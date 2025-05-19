@@ -13,7 +13,7 @@ export interface Item {
 export interface User {
   id: string;
   name: string;
-  email?: string;
+  location?: string; // Changed from email
   bio?: string;
   isProfilePrivate?: boolean;
   subscriptionStatus: 'free_trial' | 'subscribed' | 'none';

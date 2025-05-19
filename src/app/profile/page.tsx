@@ -27,7 +27,7 @@ import { Camera } from 'lucide-react';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50),
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  location: z.string().max(100, { message: 'Location cannot exceed 100 characters.' }).optional(),
   bio: z.string().max(250, { message: 'Bio cannot exceed 250 characters.' }).optional(),
   isProfilePrivate: z.boolean().default(false),
   avatarUrl: z.string().url({ message: 'Please enter a valid avatar URL.' }).optional(),
@@ -37,26 +37,23 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  // Use state to manage user data so changes can be reflected if needed,
-  // and to allow the form to re-initialize if this data were fetched asynchronously.
   const [userData, setUserData] = useState<User>(mockUser);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: userData.name || '',
-      email: userData.email || '',
+      location: userData.location || '',
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
       avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
     },
   });
   
-  // Effect to reset form if userData changes (e.g., if fetched async or updated elsewhere)
   useEffect(() => {
     form.reset({
       name: userData.name || '',
-      email: userData.email || '',
+      location: userData.location || '',
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
       avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
@@ -64,15 +61,12 @@ export default function ProfilePage() {
   }, [userData, form]);
 
   function onSubmit(data: ProfileFormValues) {
-    // In a real app, this would be an API call.
-    // Here, we're updating the mockUser object directly.
     mockUser.name = data.name;
-    mockUser.email = data.email;
+    mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = data.avatarUrl;
 
-    // Update local state to reflect changes, which also updates UserNav potentially
     setUserData({ ...mockUser }); 
 
     toast({
@@ -136,13 +130,14 @@ export default function ProfilePage() {
 
               <FormField
                 control={form.control}
-                name="email"
+                name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel>Delivery/Pick Up Location</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="your.email@example.com" {...field} />
+                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} />
                     </FormControl>
+                    <FormDescription>Your preferred location for item exchange (optional).</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -176,7 +171,7 @@ export default function ProfilePage() {
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Keep Profile Private</FormLabel>
                       <FormDescription>
-                        If enabled, your profile details (like bio and email) will not be publicly visible.
+                        If enabled, your profile details (like location and bio) will not be publicly visible.
                       </FormDescription>
                     </div>
                     <FormControl>

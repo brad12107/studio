@@ -3,7 +3,7 @@ import type { Item, User, Message, Conversation } from './types';
 export const mockUser: User = {
   id: 'user123',
   name: 'Jane Doe',
-  email: 'jane.doe@example.com',
+  location: 'Barrow Market Hall, Duke Street', // Changed from email
   bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
   isProfilePrivate: false,
   subscriptionStatus: 'none', 
