@@ -13,6 +13,9 @@ export interface Item {
 export interface User {
   id: string;
   name: string;
+  email?: string;
+  bio?: string;
+  isProfilePrivate?: boolean;
   subscriptionStatus: 'free_trial' | 'subscribed' | 'none';
   itemsListedCount: number;
   avatarUrl?: string;

@@ -3,8 +3,11 @@ import type { Item, User, Message, Conversation } from './types';
 export const mockUser: User = {
   id: 'user123',
   name: 'Jane Doe',
-  subscriptionStatus: 'none', // Changed to 'none' to test listing fee
-  itemsListedCount: 0,      // Reset for testing
+  email: 'jane.doe@example.com',
+  bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
+  isProfilePrivate: false,
+  subscriptionStatus: 'none', 
+  itemsListedCount: 0,      
   avatarUrl: 'https://placehold.co/100x100.png',
 };
 
