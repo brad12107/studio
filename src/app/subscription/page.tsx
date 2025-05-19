@@ -20,7 +20,7 @@ export default function SubscriptionPage() {
     setSubscriptionStatus('subscribed');
     toast({
       title: 'Subscription Successful!',
-      description: 'You are now subscribed to Community Market Premium.',
+      description: 'You are now subscribed to Barrow Market Place Premium.',
     });
   };
 
@@ -29,7 +29,7 @@ export default function SubscriptionPage() {
       <div className="max-w-3xl mx-auto">
         <Card className="shadow-xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-primary to-accent p-8 text-primary-foreground">
-            <CardTitle className="text-3xl font-bold">Join Community Market Premium</CardTitle>
+            <CardTitle className="text-3xl font-bold">Join Barrow Market Place Premium</CardTitle>
             <CardDescription className="text-lg text-primary-foreground/90 pt-1">
               Unlock unlimited listings and enjoy our full marketplace experience.
             </CardDescription>

@@ -29,7 +29,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome to Community Market!</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome to Barrow Market Place!</h1>
         <p className="text-muted-foreground">Browse items or list your own for sale or auction.</p>
       </section>
       
