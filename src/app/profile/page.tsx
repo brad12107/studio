@@ -24,6 +24,7 @@ import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
 
 const MAX_AVATAR_SIZE_MB = 2;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -44,7 +45,6 @@ const profileSchema = z.object({
   location: z.string().max(100, { message: 'Location cannot exceed 100 characters.' }).optional(),
   bio: z.string().max(250, { message: 'Bio cannot exceed 250 characters.' }).optional(),
   isProfilePrivate: z.boolean().default(false),
-  // `avatarUrl` can be a FileList (for new uploads) or string (existing URL/data URI)
   avatarUrl: z.custom<FileList | string | undefined>() 
     .optional()
     .refine((value) => {
@@ -61,6 +61,9 @@ const profileSchema = z.object({
       }
       return true;
     }, '.jpg, .jpeg, .png, and .webp files are accepted for avatar.'),
+  agreedToCodeOfConduct: z.boolean().refine(value => value === true, {
+    message: "You must agree to the Code of Conduct to save your profile."
+  }),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -78,7 +81,8 @@ export default function ProfilePage() {
       location: userData.location || '',
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
-      avatarUrl: userData.avatarUrl || undefined, // Initialize with string URL or undefined
+      avatarUrl: userData.avatarUrl || undefined,
+      agreedToCodeOfConduct: false, // Default to false
     },
   });
   
@@ -89,6 +93,7 @@ export default function ProfilePage() {
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
       avatarUrl: userData.avatarUrl || undefined,
+      agreedToCodeOfConduct: form.getValues('agreedToCodeOfConduct') || false, // Preserve if already set, or default false
     });
     setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
   }, [userData, form]);
@@ -101,24 +106,22 @@ export default function ProfilePage() {
       if (file && ACCEPTED_AVATAR_TYPES.includes(file.type) && file.size <= MAX_AVATAR_SIZE_BYTES) {
         fileToDataUri(file).then(setAvatarPreview).catch(err => {
           console.error("Error creating avatar preview:", err);
-          setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png'); // Fallback
+          setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png'); 
         });
       } else {
-         // If file is invalid, form validation should catch it. Revert preview.
         setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
       }
     } else if (typeof watchedAvatarUrl === 'string') {
       setAvatarPreview(watchedAvatarUrl);
     } else if (!watchedAvatarUrl) {
-        setAvatarPreview('https://placehold.co/100x100.png'); // Default placeholder if cleared
+        setAvatarPreview('https://placehold.co/100x100.png'); 
     }
-  // Only re-run if watchedAvatarUrl changes, not userData.avatarUrl to avoid loops
   // eslint-disable-next-line react-hooks/exhaustive-deps 
   }, [watchedAvatarUrl]);
 
 
   async function onSubmit(data: ProfileFormValues) {
-    let finalAvatarUrl = userData.avatarUrl; // Keep existing by default
+    let finalAvatarUrl = userData.avatarUrl; 
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       try {
@@ -133,18 +136,18 @@ export default function ProfilePage() {
         return;
       }
     } else if (typeof data.avatarUrl === 'string') {
-      finalAvatarUrl = data.avatarUrl; // This case handles if it was an existing URL and not changed by file input
+      finalAvatarUrl = data.avatarUrl; 
     } else if (data.avatarUrl === undefined || (data.avatarUrl instanceof FileList && data.avatarUrl.length === 0)) {
-       // If avatarUrl field is cleared (e.g. if we allowed removing avatar)
-       finalAvatarUrl = 'https://placehold.co/100x100.png'; // Or some default/null
+       finalAvatarUrl = 'https://placehold.co/100x100.png'; 
     }
-
 
     mockUser.name = data.name;
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
+    // mockUser.agreedToCodeOfConduct isn't a property on the User type, so we don't save it directly to mockUser
+    // The validation ensures it's checked.
 
     setUserData({ ...mockUser }); 
 
@@ -174,7 +177,6 @@ export default function ProfilePage() {
                       htmlFor="avatar-upload-input" 
                       className="relative cursor-pointer group"
                       onClick={(e) => {
-                        // e.preventDefault(); // Prevent label default action if it causes issues
                         fileInputRef.current?.click();
                       }}
                     >
@@ -189,13 +191,13 @@ export default function ProfilePage() {
                     <FormDescription className="text-center mt-2">Click avatar to change image.</FormDescription>
                     <FormControl>
                        <Input 
-                        id="avatar-upload-input" // Ensure this ID matches FormLabel htmlFor
+                        id="avatar-upload-input"
                         type="file"
                         accept="image/png, image/jpeg, image/webp"
-                        className="hidden" // Visually hide the default file input
+                        className="hidden" 
                         ref={fileInputRef}
                         onChange={(e) => {
-                           field.onChange(e.target.files) // Pass FileList to RHF
+                           field.onChange(e.target.files) 
                         }}
                       />
                     </FormControl>
@@ -270,6 +272,31 @@ export default function ProfilePage() {
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="agreedToCodeOfConduct"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        id="codeOfConductCheckbox"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel htmlFor="codeOfConductCheckbox">
+                        I agree to the Barrow Market Place Code of Conduct.
+                      </FormLabel>
+                      <FormDescription>
+                        This includes respecting other users, listing items accurately, and adhering to community guidelines. By checking this box, you confirm your agreement. (Full terms would be linked here in a real app).
+                      </FormDescription>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
