@@ -21,16 +21,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
+
+const MAX_AVATAR_SIZE_MB = 2;
+const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
+const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+// Helper function to convert File to data URI
+const fileToDataUri = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50),
   location: z.string().max(100, { message: 'Location cannot exceed 100 characters.' }).optional(),
   bio: z.string().max(250, { message: 'Bio cannot exceed 250 characters.' }).optional(),
   isProfilePrivate: z.boolean().default(false),
-  avatarUrl: z.string().url({ message: 'Please enter a valid avatar URL.' }).optional(),
+  // `avatarUrl` can be a FileList (for new uploads) or string (existing URL/data URI)
+  avatarUrl: z.custom<FileList | string | undefined>() 
+    .optional()
+    .refine((value) => {
+      if (value instanceof FileList && value.length > 0) {
+        const file = value[0];
+        return file.size <= MAX_AVATAR_SIZE_BYTES;
+      }
+      return true;
+    }, `Max avatar size is ${MAX_AVATAR_SIZE_MB}MB.`)
+    .refine((value) => {
+      if (value instanceof FileList && value.length > 0) {
+        const file = value[0];
+        return ACCEPTED_AVATAR_TYPES.includes(file.type);
+      }
+      return true;
+    }, '.jpg, .jpeg, .png, and .webp files are accepted for avatar.'),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -38,6 +68,8 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
   const { toast } = useToast();
   const [userData, setUserData] = useState<User>(mockUser);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(userData.avatarUrl || 'https://placehold.co/100x100.png');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -46,7 +78,7 @@ export default function ProfilePage() {
       location: userData.location || '',
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
-      avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
+      avatarUrl: userData.avatarUrl || undefined, // Initialize with string URL or undefined
     },
   });
   
@@ -56,16 +88,63 @@ export default function ProfilePage() {
       location: userData.location || '',
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
-      avatarUrl: userData.avatarUrl || 'https://placehold.co/100x100.png',
+      avatarUrl: userData.avatarUrl || undefined,
     });
+    setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
   }, [userData, form]);
 
-  function onSubmit(data: ProfileFormValues) {
+  const watchedAvatarUrl = form.watch('avatarUrl');
+
+  useEffect(() => {
+    if (watchedAvatarUrl instanceof FileList && watchedAvatarUrl.length > 0) {
+      const file = watchedAvatarUrl[0];
+      if (file && ACCEPTED_AVATAR_TYPES.includes(file.type) && file.size <= MAX_AVATAR_SIZE_BYTES) {
+        fileToDataUri(file).then(setAvatarPreview).catch(err => {
+          console.error("Error creating avatar preview:", err);
+          setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png'); // Fallback
+        });
+      } else {
+         // If file is invalid, form validation should catch it. Revert preview.
+        setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
+      }
+    } else if (typeof watchedAvatarUrl === 'string') {
+      setAvatarPreview(watchedAvatarUrl);
+    } else if (!watchedAvatarUrl) {
+        setAvatarPreview('https://placehold.co/100x100.png'); // Default placeholder if cleared
+    }
+  // Only re-run if watchedAvatarUrl changes, not userData.avatarUrl to avoid loops
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, [watchedAvatarUrl]);
+
+
+  async function onSubmit(data: ProfileFormValues) {
+    let finalAvatarUrl = userData.avatarUrl; // Keep existing by default
+
+    if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
+      try {
+        finalAvatarUrl = await fileToDataUri(data.avatarUrl[0]);
+      } catch (error) {
+        console.error("Error converting avatar to data URI:", error);
+        toast({
+          title: 'Avatar Upload Error',
+          description: 'Could not process the avatar image. Please try another one.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (typeof data.avatarUrl === 'string') {
+      finalAvatarUrl = data.avatarUrl; // This case handles if it was an existing URL and not changed by file input
+    } else if (data.avatarUrl === undefined || (data.avatarUrl instanceof FileList && data.avatarUrl.length === 0)) {
+       // If avatarUrl field is cleared (e.g. if we allowed removing avatar)
+       finalAvatarUrl = 'https://placehold.co/100x100.png'; // Or some default/null
+    }
+
+
     mockUser.name = data.name;
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
-    mockUser.avatarUrl = data.avatarUrl;
+    mockUser.avatarUrl = finalAvatarUrl;
 
     setUserData({ ...mockUser }); 
 
@@ -91,22 +170,33 @@ export default function ProfilePage() {
                 name="avatarUrl"
                 render={({ field }) => (
                   <FormItem className="flex flex-col items-center">
-                    <FormLabel htmlFor="avatar-upload" className="relative cursor-pointer group">
+                    <FormLabel 
+                      htmlFor="avatar-upload-input" 
+                      className="relative cursor-pointer group"
+                      onClick={(e) => {
+                        // e.preventDefault(); // Prevent label default action if it causes issues
+                        fileInputRef.current?.click();
+                      }}
+                    >
                       <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
-                        <AvatarImage src={field.value} alt={form.getValues('name')} data-ai-hint="user avatar placeholder" />
+                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user avatar placeholder" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                         <Camera className="h-8 w-8 text-white" />
                       </div>
                     </FormLabel>
-                    <FormDescription className="text-center mt-2">Click avatar to change. Paste image URL below.</FormDescription>
+                    <FormDescription className="text-center mt-2">Click avatar to change image.</FormDescription>
                     <FormControl>
                        <Input 
-                        id="avatar-upload" 
-                        placeholder="https://example.com/avatar.png" 
-                        {...field} 
-                        className="mt-2"
+                        id="avatar-upload-input" // Ensure this ID matches FormLabel htmlFor
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        className="hidden" // Visually hide the default file input
+                        ref={fileInputRef}
+                        onChange={(e) => {
+                           field.onChange(e.target.files) // Pass FileList to RHF
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -194,3 +284,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

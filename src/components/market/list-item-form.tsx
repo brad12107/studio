@@ -18,14 +18,29 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { mockUser } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { mockUser, mockItems } from '@/lib/mock-data'; // Assuming mockItems is needed to add new item
+import type { Item } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const MAX_FREE_ITEMS = 3;
 const LISTING_FEE = 0.50;
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+// Helper function to convert File to data URI
+const fileToDataUri = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 const listItemSchema = z.object({
   name: z.string().min(3, { message: 'Item name must be at least 3 characters.' }).max(100),
@@ -33,39 +48,60 @@ const listItemSchema = z.object({
   price: z.coerce.number().positive({ message: 'Price must be a positive number.' }),
   type: z.enum(['sale', 'auction'], { required_error: 'Please select item type.' }),
   category: z.string().min(2, {message: 'Category must be at least 2 characters.'}).max(50),
-  imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }),
+  imageUrl: z.custom<FileList>((val) => val instanceof FileList && val.length > 0, 'Please select an image.')
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE_BYTES, `Max file size is ${MAX_FILE_SIZE_MB}MB.`)
+    .refine(
+      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      '.jpg, .jpeg, .png, and .webp files are accepted.'
+    ),
 });
 
 type ListItemFormValues = z.infer<typeof listItemSchema>;
+
+const initialFormValues: ListItemFormValues = {
+  name: '',
+  description: '',
+  price: 0,
+  type: 'sale',
+  category: '',
+  imageUrl: undefined as unknown as FileList, // For reset
+};
+
 
 export function ListItemForm() {
   const { toast } = useToast();
   const [userListedItemsCount, setUserListedItemsCount] = useState(mockUser.itemsListedCount);
   const [userSubscriptionStatus, setUserSubscriptionStatus] = useState(mockUser.subscriptionStatus);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ListItemFormValues>({
     resolver: zodResolver(listItemSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      price: 0,
-      type: 'sale',
-      category: '',
-      imageUrl: '',
-    },
+    defaultValues: initialFormValues,
   });
+
+  const watchedImageUrl = form.watch('imageUrl');
+
+  useEffect(() => {
+    if (watchedImageUrl && watchedImageUrl.length > 0) {
+      const file = watchedImageUrl[0];
+      if (file && ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES) {
+        fileToDataUri(file).then(setImagePreview).catch(console.error);
+      } else {
+        setImagePreview(null); // Clear preview if file is invalid or removed
+      }
+    } else {
+      setImagePreview(null); // Clear preview if no file
+    }
+  }, [watchedImageUrl]);
 
   const isFreeTrialLimitReached =
     userSubscriptionStatus === 'free_trial' && userListedItemsCount >= MAX_FREE_ITEMS;
 
   const isFeeApplicable = userSubscriptionStatus === 'none';
 
-  // Form and inputs are disabled only if the free trial limit is reached.
-  // If a fee is applicable (status 'none'), the form remains enabled.
   const disableFormFields = isFreeTrialLimitReached;
 
-  function onSubmit(data: ListItemFormValues) {
-    // This check is a safeguard, as the button should be disabled if free trial limit is reached.
+  async function onSubmit(data: ListItemFormValues) {
     if (isFreeTrialLimitReached) {
       toast({
         title: 'Listing Limit Reached',
@@ -75,7 +111,34 @@ export function ListItemForm() {
       return;
     }
 
-    console.log(data);
+    let imageUrlForStorage = 'https://placehold.co/600x400.png'; // Default placeholder
+    if (data.imageUrl && data.imageUrl.length > 0) {
+      try {
+        imageUrlForStorage = await fileToDataUri(data.imageUrl[0]);
+      } catch (error) {
+        console.error("Error converting image to data URI:", error);
+        toast({
+          title: 'Image Upload Error',
+          description: 'Could not process the image. Please try another one.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
+    // In a real app, you'd send this to a backend. Here, we'll add to mockItems.
+    const newItem: Item = {
+      id: `item-${Date.now()}`,
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      type: data.type,
+      imageUrl: imageUrlForStorage,
+      sellerName: mockUser.name, // Assuming the current user is the seller
+      category: data.category,
+    };
+    mockItems.unshift(newItem); // Add to the beginning of the array
+
     let toastDescription = `${data.name} has been successfully listed.`;
     if (isFeeApplicable) {
       toastDescription += ` A fee of £${LISTING_FEE.toFixed(2)} was applied.`;
@@ -86,11 +149,11 @@ export function ListItemForm() {
       description: toastDescription,
     });
 
-    // Increment listed items count only if it was a free trial listing
     if (userSubscriptionStatus === 'free_trial') {
       setUserListedItemsCount(prev => prev + 1);
     }
-    form.reset();
+    form.reset(initialFormValues);
+    setImagePreview(null); 
   }
 
   return (
@@ -105,7 +168,7 @@ export function ListItemForm() {
           </AlertDescription>
         </Alert>
       )}
-      {isFeeApplicable && !isFreeTrialLimitReached && ( // Don't show fee alert if free trial limit alert is already shown
+      {isFeeApplicable && !isFreeTrialLimitReached && (
         <Alert variant="default" className="mb-6">
           <Info className="h-4 w-4" />
           <AlertTitle>Listing Fee Applicable</AlertTitle>
@@ -207,17 +270,33 @@ export function ListItemForm() {
           <FormField
             control={form.control}
             name="imageUrl"
-            render={({ field }) => (
+            render={({ field: { onChange, value, ...rest } }) => ( // Destructure onChange specifically
               <FormItem>
-                <FormLabel>Image URL</FormLabel>
+                <FormLabel>Item Image</FormLabel>
                 <FormControl>
-                  <Input type="url" placeholder="https://example.com/image.png" {...field} disabled={disableFormFields}/>
+                  <Input 
+                    type="file" 
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={(e) => onChange(e.target.files)} // Pass FileList to RHF
+                    {...rest} 
+                    disabled={disableFormFields}
+                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                  />
                 </FormControl>
-                <FormDescription>Link to an image of your item.</FormDescription>
+                <FormDescription>Upload an image of your item (Max {MAX_FILE_SIZE_MB}MB, .png, .jpg, .webp).</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+          
+          {imagePreview && (
+            <div className="mt-4">
+              <FormLabel>Image Preview</FormLabel>
+              <div className="mt-2 relative aspect-video w-full max-w-md rounded-md border border-dashed border-muted-foreground/50 flex items-center justify-center overflow-hidden">
+                <Image src={imagePreview} alt="Item preview" layout="fill" objectFit="contain" />
+              </div>
+            </div>
+          )}
           
           <Button type="submit" className="w-full md:w-auto" size="lg" disabled={disableFormFields || form.formState.isSubmitting}>
             {form.formState.isSubmitting ? 'Listing...' : 'List Item'}
@@ -227,3 +306,5 @@ export function ListItemForm() {
     </div>
   );
 }
+
+    
