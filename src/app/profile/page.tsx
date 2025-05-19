@@ -24,7 +24,7 @@ import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
+import { Checkbox } from '@/components/ui/checkbox';
 
 const MAX_AVATAR_SIZE_MB = 2;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -177,6 +177,7 @@ export default function ProfilePage() {
                       htmlFor="avatar-upload-input" 
                       className="relative cursor-pointer group"
                       onClick={(e) => {
+                        e.preventDefault(); // Prevent label from toggling checkbox if one existed
                         fileInputRef.current?.click();
                       }}
                     >
@@ -293,7 +294,9 @@ export default function ProfilePage() {
                         I agree to the Barrow Market Place Code of Conduct.
                       </FormLabel>
                       <FormDescription>
-                        This includes respecting other users, listing items accurately, and adhering to community guidelines. By checking this box, you confirm your agreement. (Full terms would be linked here in a real app).
+                        Our platform is committed to providing a safe and trustworthy environment for all users. To ensure this, we strictly prohibit the sale, purchase, or auction of firearms, ammunition, and illegal drugs. Any attempt to engage in these activities will result in immediate account suspension and potential reporting to law enforcement. Furthermore, we have a zero-tolerance policy for scams and fraudulent activities. Users are strictly forbidden from using our platform to perpetuate scams, deceive others, or engage in any form of financial exploitation. We encourage users to report any suspicious behavior or potential scams to our moderation team immediately. We are dedicated to maintaining a platform free from illegal and harmful activities, and we appreciate your cooperation in upholding these standards.
+                        <br/>
+                        By checking this box, you confirm your agreement. (Full terms would be linked here in a real app).
                       </FormDescription>
                       <FormMessage />
                     </div>
@@ -311,5 +314,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
