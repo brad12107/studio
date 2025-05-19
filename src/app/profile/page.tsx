@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const MAX_AVATAR_SIZE_MB = 2;
+const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
@@ -109,11 +109,13 @@ export default function ProfilePage() {
           setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png'); 
         });
       } else {
+        // If file is invalid (e.g. too large), reset to current user avatar or placeholder
         setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
       }
     } else if (typeof watchedAvatarUrl === 'string') {
       setAvatarPreview(watchedAvatarUrl);
     } else if (!watchedAvatarUrl) {
+        // If avatarUrl is cleared (e.g. no file selected and no existing string URL), show placeholder
         setAvatarPreview('https://placehold.co/100x100.png'); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps 
@@ -124,8 +126,21 @@ export default function ProfilePage() {
     let finalAvatarUrl = userData.avatarUrl; 
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
+      const file = data.avatarUrl[0];
+      // Double check size and type here before attempting conversion,
+      // although Zod should have caught it already.
+      if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+        // This case should ideally be handled by Zod validation and not reach here,
+        // but as a safeguard:
+        toast({
+          title: 'Invalid Avatar File',
+          description: `Max size ${MAX_AVATAR_SIZE_MB}MB. Accepted types: JPG, PNG, WEBP.`,
+          variant: 'destructive',
+        });
+        return;
+      }
       try {
-        finalAvatarUrl = await fileToDataUri(data.avatarUrl[0]);
+        finalAvatarUrl = await fileToDataUri(file);
       } catch (error) {
         console.error("Error converting avatar to data URI:", error);
         toast({
@@ -136,8 +151,10 @@ export default function ProfilePage() {
         return;
       }
     } else if (typeof data.avatarUrl === 'string') {
+      // This means an existing URL was likely kept, or manually entered if the input type was text
       finalAvatarUrl = data.avatarUrl; 
     } else if (data.avatarUrl === undefined || (data.avatarUrl instanceof FileList && data.avatarUrl.length === 0)) {
+       // If avatarUrl is explicitly undefined (e.g. field cleared and no new file), use placeholder
        finalAvatarUrl = 'https://placehold.co/100x100.png'; 
     }
 
@@ -189,7 +206,7 @@ export default function ProfilePage() {
                         <Camera className="h-8 w-8 text-white" />
                       </div>
                     </FormLabel>
-                    <FormDescription className="text-center mt-2">Click avatar to change image.</FormDescription>
+                    <FormDescription className="text-center mt-2">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
                     <FormControl>
                        <Input 
                         id="avatar-upload-input"
@@ -314,3 +331,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
