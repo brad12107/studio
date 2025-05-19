@@ -3,8 +3,8 @@ import type { Item, User, Message, Conversation } from './types';
 export const mockUser: User = {
   id: 'user123',
   name: 'Jane Doe',
-  subscriptionStatus: 'free_trial',
-  itemsListedCount: 1,
+  subscriptionStatus: 'none', // Changed to 'none' to test listing fee
+  itemsListedCount: 0,      // Reset for testing
   avatarUrl: 'https://placehold.co/100x100.png',
 };
 

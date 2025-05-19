@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,12 +19,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { mockUser } from '@/lib/mock-data'; // Using mock user for subscription status
+import { mockUser } from '@/lib/mock-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 import Link from 'next/link';
 
 const MAX_FREE_ITEMS = 3;
+const LISTING_FEE = 0.50;
 
 const listItemSchema = z.object({
   name: z.string().min(3, { message: 'Item name must be at least 3 characters.' }).max(100),
@@ -38,7 +40,6 @@ type ListItemFormValues = z.infer<typeof listItemSchema>;
 
 export function ListItemForm() {
   const { toast } = useToast();
-  // Mocking user's listed items count and subscription status
   const [userListedItemsCount, setUserListedItemsCount] = useState(mockUser.itemsListedCount);
   const [userSubscriptionStatus, setUserSubscriptionStatus] = useState(mockUser.subscriptionStatus);
 
@@ -54,39 +55,64 @@ export function ListItemForm() {
     },
   });
 
-  const canListMoreItems = 
-    userSubscriptionStatus === 'subscribed' || 
-    (userSubscriptionStatus === 'free_trial' && userListedItemsCount < MAX_FREE_ITEMS);
+  const isFreeTrialLimitReached =
+    userSubscriptionStatus === 'free_trial' && userListedItemsCount >= MAX_FREE_ITEMS;
+
+  const isFeeApplicable = userSubscriptionStatus === 'none';
+
+  // Form and inputs are disabled only if the free trial limit is reached.
+  // If a fee is applicable (status 'none'), the form remains enabled.
+  const disableFormFields = isFreeTrialLimitReached;
 
   function onSubmit(data: ListItemFormValues) {
-    if (!canListMoreItems) {
+    // This check is a safeguard, as the button should be disabled if free trial limit is reached.
+    if (isFreeTrialLimitReached) {
       toast({
         title: 'Listing Limit Reached',
-        description: 'Please subscribe to list more items.',
+        description: `You have listed ${userListedItemsCount} out of ${MAX_FREE_ITEMS} items allowed in your free trial. Please subscribe to list more items.`,
         variant: 'destructive',
       });
       return;
     }
 
-    // Simulate API call
     console.log(data);
+    let toastDescription = `${data.name} has been successfully listed.`;
+    if (isFeeApplicable) {
+      toastDescription += ` A fee of £${LISTING_FEE.toFixed(2)} was applied.`;
+    }
+
     toast({
       title: 'Item Listed!',
-      description: `${data.name} has been successfully listed.`,
+      description: toastDescription,
     });
-    setUserListedItemsCount(prev => prev + 1); // Increment listed items count
-    form.reset(); // Reset form after successful submission
+
+    // Increment listed items count only if it was a free trial listing
+    if (userSubscriptionStatus === 'free_trial') {
+      setUserListedItemsCount(prev => prev + 1);
+    }
+    form.reset();
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      {!canListMoreItems && (
+      {isFreeTrialLimitReached && (
         <Alert variant="destructive" className="mb-6">
           <Info className="h-4 w-4" />
           <AlertTitle>Free Trial Limit Reached</AlertTitle>
           <AlertDescription>
-            You have listed {userListedItemsCount} out of {MAX_FREE_ITEMS} items allowed in your free trial. 
+            You have listed {userListedItemsCount} out of {MAX_FREE_ITEMS} items allowed in your free trial.
             Please <Link href="/subscription" className="underline hover:text-destructive-foreground/80">subscribe</Link> to list more items.
+          </AlertDescription>
+        </Alert>
+      )}
+      {isFeeApplicable && !isFreeTrialLimitReached && ( // Don't show fee alert if free trial limit alert is already shown
+        <Alert variant="default" className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Listing Fee Applicable</AlertTitle>
+          <AlertDescription>
+            A fee of £{LISTING_FEE.toFixed(2)} applies per item listed.
+            <Link href="/subscription" className="underline hover:text-foreground/80 ml-1">Subscribe</Link> to list for free, or check your current
+            <Link href="/subscription" className="underline hover:text-foreground/80 ml-1">subscription status</Link>.
           </AlertDescription>
         </Alert>
       )}
@@ -99,7 +125,7 @@ export function ListItemForm() {
               <FormItem>
                 <FormLabel>Item Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Vintage Wooden Chair" {...field} disabled={!canListMoreItems} />
+                  <Input placeholder="e.g., Vintage Wooden Chair" {...field} disabled={disableFormFields} />
                 </FormControl>
                 <FormDescription>A short, descriptive name for your item.</FormDescription>
                 <FormMessage />
@@ -118,7 +144,7 @@ export function ListItemForm() {
                     placeholder="Detailed description of your item, its condition, etc."
                     className="resize-y min-h-[100px]"
                     {...field}
-                    disabled={!canListMoreItems}
+                    disabled={disableFormFields}
                   />
                 </FormControl>
                 <FormMessage />
@@ -134,7 +160,7 @@ export function ListItemForm() {
                 <FormItem>
                   <FormLabel>Price (£)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="e.g., 25.99" {...field} disabled={!canListMoreItems} />
+                    <Input type="number" step="0.01" placeholder="e.g., 25.99" {...field} disabled={disableFormFields} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -147,7 +173,7 @@ export function ListItemForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!canListMoreItems}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disableFormFields}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select item type" />
@@ -171,7 +197,7 @@ export function ListItemForm() {
               <FormItem>
                 <FormLabel>Category</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Furniture, Electronics, Apparel" {...field} disabled={!canListMoreItems} />
+                  <Input placeholder="e.g., Furniture, Electronics, Apparel" {...field} disabled={disableFormFields} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -185,7 +211,7 @@ export function ListItemForm() {
               <FormItem>
                 <FormLabel>Image URL</FormLabel>
                 <FormControl>
-                  <Input type="url" placeholder="https://example.com/image.png" {...field} disabled={!canListMoreItems}/>
+                  <Input type="url" placeholder="https://example.com/image.png" {...field} disabled={disableFormFields}/>
                 </FormControl>
                 <FormDescription>Link to an image of your item.</FormDescription>
                 <FormMessage />
@@ -193,7 +219,7 @@ export function ListItemForm() {
             )}
           />
           
-          <Button type="submit" className="w-full md:w-auto" size="lg" disabled={!canListMoreItems || form.formState.isSubmitting}>
+          <Button type="submit" className="w-full md:w-auto" size="lg" disabled={disableFormFields || form.formState.isSubmitting}>
             {form.formState.isSubmitting ? 'Listing...' : 'List Item'}
           </Button>
         </form>
