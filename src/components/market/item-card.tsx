@@ -3,7 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, DollarSign, ShoppingCart, Hammer } from 'lucide-react';
+import { Tag, ShoppingCart, Hammer } from 'lucide-react';
 
 interface ItemCardProps {
   item: Item;
@@ -35,8 +35,7 @@ export function ItemCard({ item }: ItemCardProps) {
           <span>{item.category}</span>
         </div>
         <div className="flex items-center text-lg font-bold text-primary">
-          <DollarSign className="h-5 w-5 mr-1" />
-          <span>{item.price.toFixed(2)}</span>
+          <span>£{item.price.toFixed(2)}</span>
         </div>
       </CardContent>
       <CardFooter className="p-4 border-t">

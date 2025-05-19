@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, DollarSign, Tag, Hammer, ShoppingCart, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -91,7 +91,7 @@ export default function ItemDetailPage() {
               
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
                 <div className="flex items-center text-muted-foreground">
-                  <DollarSign className="h-5 w-5 mr-2 text-primary" /> Price: <span className="font-semibold text-foreground ml-1">£{item.price.toFixed(2)}</span>
+                  Price: <span className="font-semibold text-foreground ml-1">£{item.price.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <Tag className="h-5 w-5 mr-2 text-primary" /> Category: <span className="font-semibold text-foreground ml-1">{item.category}</span>
