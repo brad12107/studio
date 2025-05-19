@@ -296,7 +296,7 @@ export default function ProfilePage() {
                       <FormDescription>
                         Our platform is committed to providing a safe and trustworthy environment for all users. To ensure this, we strictly prohibit the sale, purchase, or auction of firearms, ammunition, and illegal drugs. Any attempt to engage in these activities will result in immediate account suspension and potential reporting to law enforcement. Furthermore, we have a zero-tolerance policy for scams and fraudulent activities. Users are strictly forbidden from using our platform to perpetuate scams, deceive others, or engage in any form of financial exploitation. We encourage users to report any suspicious behavior or potential scams to our moderation team immediately. We are dedicated to maintaining a platform free from illegal and harmful activities, and we appreciate your cooperation in upholding these standards.
                         <br/>
-                        By checking this box, you confirm your agreement. (Full terms would be linked here in a real app).
+                        By checking this box, you confirm your agreement.
                       </FormDescription>
                       <FormMessage />
                     </div>
@@ -305,7 +305,7 @@ export default function ProfilePage() {
               />
               
               <Button type="submit" size="lg" className="w-full md:w-auto" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                {form.formState.isSubmitting ? 'Updating...' : 'Update Profile'}
               </Button>
             </form>
           </Form>
