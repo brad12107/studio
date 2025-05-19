@@ -1,0 +1,106 @@
+import type { Item, User, Message, Conversation } from './types';
+
+export const mockUser: User = {
+  id: 'user123',
+  name: 'Jane Doe',
+  subscriptionStatus: 'free_trial',
+  itemsListedCount: 1,
+  avatarUrl: 'https://placehold.co/100x100.png',
+};
+
+export const mockItems: Item[] = [
+  { 
+    id: '1', 
+    name: 'Vintage Leather Jacket', 
+    description: 'A stylish vintage leather jacket, in excellent condition. Size M.', 
+    price: 120, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'John Seller', 
+    category: 'Apparel',
+  },
+  { 
+    id: '2', 
+    name: 'Antique Wooden Chair', 
+    description: 'Beautifully carved antique wooden chair. A true collector\'s item.', 
+    price: 85, 
+    type: 'auction', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Alice Collector', 
+    category: 'Furniture',
+  },
+  { 
+    id: '3', 
+    name: 'Handmade Ceramic Vase', 
+    description: 'Unique handmade ceramic vase, perfect for home decor.', 
+    price: 50, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Crafty Carol', 
+    category: 'Home Decor',
+  },
+  { 
+    id: '4', 
+    name: 'Retro Gaming Console', 
+    description: 'Classic retro gaming console with 2 controllers and 10 games.', 
+    price: 150, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Gamer Tom', 
+    category: 'Electronics',
+  },
+  { 
+    id: '5', 
+    name: 'Mountain Bike', 
+    description: 'Used mountain bike, good condition, recently serviced. Size L.', 
+    price: 250, 
+    type: 'auction', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Outdoor Dave', 
+    category: 'Sports',
+  },
+  { 
+    id: '6', 
+    name: 'Signed First Edition Book', 
+    description: 'A rare signed first edition of a popular novel. Includes certificate of authenticity.', 
+    price: 300, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Bookworm Beth', 
+    category: 'Collectibles',
+  },
+];
+
+export const mockMessages: Message[] = [
+  { id: 'msg1', fromUserId: 'user123', toUserId: 'sellerA', itemId: '1', content: 'Hi, is this jacket still available?', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), isRead: false },
+  { id: 'msg2', fromUserId: 'sellerA', toUserId: 'user123', itemId: '1', content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), isRead: false },
+  { id: 'msg3', fromUserId: 'user456', toUserId: 'user123', itemId: '3', content: 'I love your vase! Can you do $40?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), isRead: true },
+  { id: 'msg4', fromUserId: 'user123', toUserId: 'user456', itemId: '3', content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString(), isRead: true },
+];
+
+export const mockConversations: Conversation[] = [
+  {
+    id: 'conv1',
+    itemId: '1',
+    itemName: 'Vintage Leather Jacket',
+    itemImageUrl: 'https://placehold.co/100x100.png',
+    participants: [
+      { id: 'user123', name: 'Jane Doe', avatarUrl: 'https://placehold.co/50x50.png' },
+      { id: 'sellerA', name: 'John Seller', avatarUrl: 'https://placehold.co/50x50.png' },
+    ],
+    lastMessage: { content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString() },
+    unreadCount: 1,
+  },
+  {
+    id: 'conv2',
+    itemId: '3',
+    itemName: 'Handmade Ceramic Vase',
+    itemImageUrl: 'https://placehold.co/100x100.png',
+    participants: [
+      { id: 'user123', name: 'Jane Doe', avatarUrl: 'https://placehold.co/50x50.png' },
+      { id: 'user456', name: 'Crafty Carol', avatarUrl: 'https://placehold.co/50x50.png' },
+    ],
+    lastMessage: { content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString() },
+    unreadCount: 0,
+  },
+];
