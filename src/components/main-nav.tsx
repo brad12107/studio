@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -14,7 +15,7 @@ export function MainNav({ className, ...props }: MainNavProps) {
 
   const routes = [
     { href: '/', label: 'Browse', active: pathname === '/' },
-    { href: '/list-item', label: 'List Item', active: pathname === '/list-item' },
+    { href: '/list-item', label: 'Sell', active: pathname === '/list-item' },
     { href: '/messages', label: 'Messages', active: pathname === '/messages' || pathname?.startsWith('/messages') },
     { href: '/subscription', label: 'Subscription', active: pathname === '/subscription' },
   ];
