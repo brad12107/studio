@@ -30,9 +30,9 @@ export function UserNav() {
   const getSubscriptionLabel = () => {
     switch (user.subscriptionStatus) {
       case 'subscribed':
-        return 'Basic Plan'; // Changed from 'Premium'
+        return 'Basic Plan'; 
       case 'premium_plus':
-        return 'Premium Plus';
+        return 'Premium Plan'; // Changed from 'Premium Plus'
       case 'free_trial':
         return 'Free Trial';
       default:
@@ -57,7 +57,7 @@ export function UserNav() {
             <p className="text-xs leading-none text-muted-foreground">
               {getSubscriptionLabel()}
             </p>
-            {user.subscriptionStatus === 'premium_plus' && (
+            {user.subscriptionStatus === 'premium_plus' && ( // Logic remains based on 'premium_plus'
               <p className="text-xs leading-none text-muted-foreground flex items-center">
                 <Star className="mr-1 h-3 w-3 text-amber-500" /> 
                 {user.enhancedListingsRemaining || 0} free enhancements left

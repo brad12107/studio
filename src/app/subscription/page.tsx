@@ -34,7 +34,7 @@ export default function SubscriptionPage() {
       setEnhancedListingsRemaining(5);
       toast({
         title: 'Subscription Successful!',
-        description: 'You are now subscribed to Barrow Market Place Premium Plus. You have 5 free enhanced listings this month.',
+        description: 'You are now subscribed to Barrow Market Place Premium Plan. You have 5 free enhanced listings this month.',
       });
     }
   };
@@ -61,14 +61,14 @@ export default function SubscriptionPage() {
         {subscriptionStatus === 'premium_plus' && (
           <div className="text-center py-8 mb-8 bg-card text-card-foreground rounded-lg shadow-md">
             <ShieldCheck className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold">You are on the Premium Plus Plan!</h2>
+            <h2 className="text-2xl font-semibold">You are on the Premium Plan!</h2>
             <p className="text-muted-foreground">Enjoy unlimited listings, {enhancedListingsRemaining} free enhanced listings remaining, and all premium features.</p>
           </div>
         )}
 
         <div className="grid md:grid-cols-3 gap-6"> {/* Adjusted to 3 columns */}
           {/* Free Trial Card */}
-          <Card className="flex flex-col">
+          <Card className="flex flex-col bg-card text-card-foreground">
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
                 <Gift className="h-6 w-6 mr-2 text-primary" />
@@ -134,12 +134,12 @@ export default function SubscriptionPage() {
             </CardFooter>
           </Card>
 
-          {/* Premium Plus Plan Card */}
+          {/* Premium Plan Card (formerly Premium Plus) */}
           <Card className={`${subscriptionStatus === 'premium_plus' ? 'border-green-500 border-2' : 'border-purple-500 border-2'} shadow-lg flex flex-col`}>
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
                 <ShieldCheck className="h-6 w-6 mr-2 text-purple-500" />
-                Premium Plus Plan
+                Premium Plan
               </CardTitle>
               <p className="text-2xl font-bold text-purple-600 pt-1">£2.99 <span className="text-sm font-normal text-muted-foreground">/ month</span></p>
             </CardHeader>
@@ -158,7 +158,7 @@ export default function SubscriptionPage() {
                 onClick={() => handleSubscribe('premium_plus')}
                 disabled={subscriptionStatus === 'premium_plus'}
               >
-                {subscriptionStatus === 'premium_plus' ? 'Currently Subscribed' : 'Go Premium Plus'}
+                {subscriptionStatus === 'premium_plus' ? 'Currently Subscribed' : 'Go Premium'}
               </Button>
             </CardFooter>
           </Card>
