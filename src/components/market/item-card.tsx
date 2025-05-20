@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, ShoppingCart, Hammer } from 'lucide-react';
+import { Tag, ShoppingCart, Hammer, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ItemCardProps {
@@ -24,6 +24,11 @@ export function ItemCard({ item }: ItemCardProps) {
             className="object-cover"
             data-ai-hint={`${item.category} ${item.name}`}
           />
+          {item.isEnhanced && (
+            <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md z-10">
+              <Star className="mr-1.5 h-3 w-3" /> Enhanced
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-4 flex-grow">

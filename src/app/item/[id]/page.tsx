@@ -7,14 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export default function ItemDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [item, setItem] = useState<Item | null | undefined>(undefined); // undefined for loading state
+  const [isCurrentlyEnhanced, setIsCurrentlyEnhanced] = useState(false);
 
   const itemId = params.id as string;
 
@@ -24,9 +28,27 @@ export default function ItemDetailPage() {
       setTimeout(() => {
         const foundItem = mockItems.find(i => i.id === itemId);
         setItem(foundItem || null); // null if not found, to trigger notFound
+        if (foundItem) {
+          setIsCurrentlyEnhanced(foundItem.isEnhanced || false);
+        }
       }, 500); // Simulate network delay
     }
   }, [itemId]);
+
+  const handleEnhanceItem = () => {
+    if (!item) return;
+    // In a real app, this would involve a payment process
+    const itemIndex = mockItems.findIndex(i => i.id === item.id);
+    if (itemIndex !== -1) {
+      mockItems[itemIndex].isEnhanced = true;
+      setItem({ ...mockItems[itemIndex] }); // Update local item state
+      setIsCurrentlyEnhanced(true);
+      toast({
+        title: 'Item Enhanced!',
+        description: `${item.name} will now appear higher in listings. £1.00 fee applied (mock).`,
+      });
+    }
+  };
 
   if (item === undefined) { // Loading state
     return (
@@ -51,8 +73,9 @@ export default function ItemDetailPage() {
               <Skeleton className="h-6 w-full" />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-col items-start space-y-4">
             <Skeleton className="h-10 w-1/3" />
+            <Skeleton className="h-10 w-1/2" />
           </CardFooter>
         </Card>
       </div>
@@ -79,6 +102,11 @@ export default function ItemDetailPage() {
               className="md:rounded-l-lg object-cover"
               data-ai-hint={`${item.category} product`}
             />
+             {isCurrentlyEnhanced && (
+              <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md">
+                <Star className="mr-1.5 h-4 w-4" /> Enhanced Listing
+              </Badge>
+            )}
           </div>
           <div className="flex flex-col">
             <CardHeader className="pb-4">
@@ -104,7 +132,7 @@ export default function ItemDetailPage() {
               </div>
 
             </CardContent>
-            <CardFooter className="border-t p-6 print:hidden">
+            <CardFooter className="border-t p-6 print:hidden flex-col items-start space-y-4">
               <Button 
                 size="lg" 
                 className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
@@ -112,6 +140,20 @@ export default function ItemDetailPage() {
               >
                 <MessageSquare className="mr-2 h-5 w-5" /> Contact Seller
               </Button>
+              {!isCurrentlyEnhanced ? (
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700" 
+                  onClick={handleEnhanceItem}
+                >
+                  <Star className="mr-2 h-5 w-5" /> Enhance this Item for £1.00
+                </Button>
+              ) : (
+                <div className="flex items-center text-green-600 font-semibold p-2 rounded-md bg-green-50 border border-green-200 w-full md:w-auto">
+                  <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
+                </div>
+              )}
             </CardFooter>
           </div>
         </div>

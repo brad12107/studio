@@ -1,9 +1,10 @@
+
 import type { Item, User, Message, Conversation } from './types';
 
 export const mockUser: User = {
   id: 'user123',
   name: 'Jane Doe',
-  location: 'Barrow Market Hall, Duke Street', // Changed from email
+  location: 'Barrow Market Hall, Duke Street', 
   bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
   isProfilePrivate: false,
   subscriptionStatus: 'none', 
@@ -21,6 +22,7 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'John Seller', 
     category: 'Apparel',
+    isEnhanced: false,
   },
   { 
     id: '2', 
@@ -31,6 +33,7 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'Alice Collector', 
     category: 'Furniture',
+    isEnhanced: false,
   },
   { 
     id: '3', 
@@ -41,6 +44,7 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'Crafty Carol', 
     category: 'Home Decor',
+    isEnhanced: false,
   },
   { 
     id: '4', 
@@ -51,6 +55,7 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'Gamer Tom', 
     category: 'Electronics',
+    isEnhanced: false,
   },
   { 
     id: '5', 
@@ -61,6 +66,7 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'Outdoor Dave', 
     category: 'Sports',
+    isEnhanced: false,
   },
   { 
     id: '6', 
@@ -71,6 +77,7 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'Bookworm Beth', 
     category: 'Collectibles',
+    isEnhanced: false,
   },
 ];
 

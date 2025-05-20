@@ -8,12 +8,13 @@ export interface Item {
   imageUrl: string;
   sellerName: string; 
   category: string;
+  isEnhanced?: boolean;
 }
 
 export interface User {
   id: string;
   name: string;
-  location?: string; // Changed from email
+  location?: string; 
   bio?: string;
   isProfilePrivate?: boolean;
   subscriptionStatus: 'free_trial' | 'subscribed' | 'none';

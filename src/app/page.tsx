@@ -18,10 +18,10 @@ export default function HomePage() {
   const [isClient, setIsClient] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [filteredItems, setFilteredItems] = useState<Item[]>(mockItems);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
 
   useEffect(() => {
-    setIsClient(true); // Ensures localStorage is accessed only on the client
+    setIsClient(true); 
     const loggedInStatus = localStorage.getItem('isLoggedIn') === 'true';
     setIsLoggedIn(loggedInStatus);
     setIsLoadingAuth(false);
@@ -32,25 +32,31 @@ export default function HomePage() {
   }, [router]);
 
   useEffect(() => {
-    if (isLoggedIn) { // Only filter if logged in and on this page
+    if (isLoggedIn) { 
       const searchQuery = searchParams.get('search');
+      let itemsToDisplay = [...mockItems]; // Create a mutable copy
+
       if (searchQuery) {
         const lowerCaseQuery = searchQuery.toLowerCase();
-        setFilteredItems(
-          mockItems.filter(item =>
-            item.name.toLowerCase().includes(lowerCaseQuery) ||
-            item.description.toLowerCase().includes(lowerCaseQuery) ||
-            item.category.toLowerCase().includes(lowerCaseQuery)
-          )
+        itemsToDisplay = itemsToDisplay.filter(item =>
+          item.name.toLowerCase().includes(lowerCaseQuery) ||
+          item.description.toLowerCase().includes(lowerCaseQuery) ||
+          item.category.toLowerCase().includes(lowerCaseQuery)
         );
-      } else {
-        setFilteredItems(mockItems);
       }
+      
+      // Sort items: enhanced items first
+      itemsToDisplay.sort((a, b) => {
+        if (a.isEnhanced && !b.isEnhanced) return -1;
+        if (!a.isEnhanced && b.isEnhanced) return 1;
+        return 0; 
+      });
+
+      setFilteredItems(itemsToDisplay);
     }
   }, [searchParams, isLoggedIn]);
 
   if (!isClient || isLoadingAuth) {
-    // Show a loading skeleton while checking auth status on client
     return (
         <div className="space-y-8">
           <Card className="shadow-md">
@@ -90,7 +96,6 @@ export default function HomePage() {
   }
 
   if (!isLoggedIn) {
-    // This path should ideally not be reached due to router.replace
     return null; 
   }
 
