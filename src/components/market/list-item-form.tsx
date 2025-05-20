@@ -17,17 +17,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { mockUser, mockItems } from '@/lib/mock-data'; // Assuming mockItems is needed to add new item
+import { mockUser, mockItems } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, UploadCloud } from 'lucide-react';
+import { Info, UploadCloud, Star } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 const MAX_FREE_ITEMS = 3;
 const LISTING_FEE = 0.50;
+const ENHANCEMENT_FEE = 1.00;
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -54,6 +56,7 @@ const listItemSchema = z.object({
       (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
       '.jpg, .jpeg, .png, and .webp files are accepted.'
     ),
+  isEnhanced: z.boolean().default(false).optional(),
 });
 
 type ListItemFormValues = z.infer<typeof listItemSchema>;
@@ -64,7 +67,8 @@ const initialFormValues: ListItemFormValues = {
   price: 0,
   type: 'sale',
   category: '',
-  imageUrl: undefined as unknown as FileList, // For reset
+  imageUrl: undefined as unknown as FileList, 
+  isEnhanced: false,
 };
 
 
@@ -87,10 +91,10 @@ export function ListItemForm() {
       if (file && ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES) {
         fileToDataUri(file).then(setImagePreview).catch(console.error);
       } else {
-        setImagePreview(null); // Clear preview if file is invalid or removed
+        setImagePreview(null); 
       }
     } else {
-      setImagePreview(null); // Clear preview if no file
+      setImagePreview(null); 
     }
   }, [watchedImageUrl]);
 
@@ -111,7 +115,7 @@ export function ListItemForm() {
       return;
     }
 
-    let imageUrlForStorage = 'https://placehold.co/600x400.png'; // Default placeholder
+    let imageUrlForStorage = 'https://placehold.co/600x400.png'; 
     if (data.imageUrl && data.imageUrl.length > 0) {
       try {
         imageUrlForStorage = await fileToDataUri(data.imageUrl[0]);
@@ -126,7 +130,6 @@ export function ListItemForm() {
       }
     }
     
-    // In a real app, you'd send this to a backend. Here, we'll add to mockItems.
     const newItem: Item = {
       id: `item-${Date.now()}`,
       name: data.name,
@@ -134,14 +137,24 @@ export function ListItemForm() {
       price: data.price,
       type: data.type,
       imageUrl: imageUrlForStorage,
-      sellerName: mockUser.name, // Assuming the current user is the seller
+      sellerName: mockUser.name,
       category: data.category,
+      isEnhanced: data.isEnhanced,
     };
-    mockItems.unshift(newItem); // Add to the beginning of the array
+    mockItems.unshift(newItem); 
 
     let toastDescription = `${data.name} has been successfully listed.`;
+    const feeMessages: string[] = [];
+
     if (isFeeApplicable) {
-      toastDescription += ` A fee of £${LISTING_FEE.toFixed(2)} was applied.`;
+      feeMessages.push(`Listing fee: £${LISTING_FEE.toFixed(2)}`);
+    }
+    if (data.isEnhanced) {
+      feeMessages.push(`Enhancement fee: £${ENHANCEMENT_FEE.toFixed(2)}`);
+    }
+
+    if (feeMessages.length > 0) {
+      toastDescription += ` ${feeMessages.join(', ')} applied.`;
     }
 
     toast({
@@ -151,7 +164,7 @@ export function ListItemForm() {
 
     if (userSubscriptionStatus === 'free_trial') {
       setUserListedItemsCount(prev => prev + 1);
-      mockUser.itemsListedCount = mockUser.itemsListedCount + 1; // Persist change to mockUser for session
+      mockUser.itemsListedCount = mockUser.itemsListedCount + 1; 
     }
     form.reset(initialFormValues);
     setImagePreview(null); 
@@ -174,7 +187,7 @@ export function ListItemForm() {
           <Info className="h-4 w-4" />
           <AlertTitle>Listing Fee Applicable</AlertTitle>
           <AlertDescription>
-            A fee of £{LISTING_FEE.toFixed(2)} applies per item listed.
+            A standard listing fee of £{LISTING_FEE.toFixed(2)} applies per item.
             <Link href="/subscription" className="underline hover:text-foreground/80 ml-1">Subscribe</Link> to list for free, or check your current
             <Link href="/subscription" className="underline hover:text-foreground/80 ml-1">subscription status</Link>.
           </AlertDescription>
@@ -300,6 +313,33 @@ export function ListItemForm() {
               </div>
             </div>
           )}
+
+          <FormField
+            control={form.control}
+            name="isEnhanced"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-amber-50/50 border-amber-200">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base flex items-center text-amber-700">
+                    <Star className="h-5 w-5 mr-2 text-amber-500" />
+                    Enhance Listing (£{ENHANCEMENT_FEE.toFixed(2)})
+                  </FormLabel>
+                  <FormDescription className="text-amber-600">
+                    Make your item stand out! Enhanced items appear higher in search results and listings.
+                    This is an optional £{ENHANCEMENT_FEE.toFixed(2)} fee.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={disableFormFields || form.formState.isSubmitting}
+                    className="data-[state=checked]:bg-amber-500"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
           
           <Button 
             type="submit" 
