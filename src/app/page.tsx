@@ -5,12 +5,14 @@ import { ItemList } from '@/components/market/item-list';
 import { mockItems } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,6 +21,15 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
+  
+  const allCategories = useMemo(() => {
+    const categories = new Set<string>();
+    mockItems.forEach(item => categories.add(item.category));
+    return ["All Categories", ...Array.from(categories).sort()];
+  }, []);
+
+  const currentSearchQuery = searchParams.get('search') || '';
+  const currentCategoryQuery = searchParams.get('category') || "All Categories";
 
   useEffect(() => {
     setIsClient(true); 
@@ -33,28 +44,43 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isLoggedIn) { 
-      const searchQuery = searchParams.get('search');
       let itemsToDisplay = [...mockItems]; // Create a mutable copy
 
-      if (searchQuery) {
-        const lowerCaseQuery = searchQuery.toLowerCase();
+      if (currentSearchQuery) {
+        const lowerCaseQuery = currentSearchQuery.toLowerCase();
         itemsToDisplay = itemsToDisplay.filter(item =>
           item.name.toLowerCase().includes(lowerCaseQuery) ||
           item.description.toLowerCase().includes(lowerCaseQuery) ||
           item.category.toLowerCase().includes(lowerCaseQuery)
         );
       }
+
+      if (currentCategoryQuery && currentCategoryQuery !== "All Categories") {
+        itemsToDisplay = itemsToDisplay.filter(item => item.category === currentCategoryQuery);
+      }
       
       // Sort items: enhanced items first
       itemsToDisplay.sort((a, b) => {
         if (a.isEnhanced && !b.isEnhanced) return -1;
         if (!a.isEnhanced && b.isEnhanced) return 1;
+        // Optional: Add secondary sort, e.g., by name or date, if desired
         return 0; 
       });
 
       setFilteredItems(itemsToDisplay);
     }
-  }, [searchParams, isLoggedIn]);
+  }, [currentSearchQuery, currentCategoryQuery, isLoggedIn]);
+
+  const handleCategoryChange = (category: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (category === "All Categories") {
+      params.delete('category');
+    } else {
+      params.set('category', category);
+    }
+    router.push(`/?${params.toString()}`);
+  };
+
 
   if (!isClient || isLoadingAuth) {
     return (
@@ -69,7 +95,10 @@ export default function HomePage() {
             </CardContent>
           </Card>
           <section>
-            <Skeleton className="h-7 w-48 mb-6" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+              <Skeleton className="h-7 w-48" /> {/* Featured Items Title */}
+              <Skeleton className="h-10 w-full sm:w-52" /> {/* Category Filter Skeleton */}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="w-full overflow-hidden shadow-lg rounded-lg border bg-card flex flex-col">
@@ -119,9 +148,28 @@ export default function HomePage() {
       </Card>
       
       <section>
-        <h2 className="text-2xl font-bold mb-6">Featured Items</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold">Featured Items</h2>
+          <div className="w-full sm:w-auto sm:min-w-[200px]">
+            <Label htmlFor="category-filter" className="sr-only">Filter by category</Label>
+            <Select value={currentCategoryQuery} onValueChange={handleCategoryChange}>
+              <SelectTrigger id="category-filter" className="w-full sm:w-auto">
+                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Filter by category..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allCategories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <ItemList items={filteredItems} />
       </section>
     </div>
   );
 }
+
