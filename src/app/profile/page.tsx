@@ -25,7 +25,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useRouter } from 'next/navigation'; // Added useRouter
+import { useRouter } from 'next/navigation'; 
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -71,7 +71,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const router = useRouter(); // Initialized useRouter
+  const router = useRouter(); 
   const [userData, setUserData] = useState<User>(mockUser);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(userData.avatarUrl || 'https://placehold.co/100x100.png');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,13 +160,13 @@ export default function ProfilePage() {
     
     setUserData({ ...mockUser }); 
 
-    localStorage.setItem('isLoggedIn', 'true'); // Set user as logged in
+    localStorage.setItem('isLoggedIn', 'true'); 
     toast({
-      title: 'Profile Saved!', // Updated toast message
+      title: 'Profile Saved!', 
       description: 'Your information is saved and you are now logged in. Welcome!',
     });
-    router.push('/'); // Redirect to homepage
-    router.refresh(); // Refresh to ensure layout/auth state is re-evaluated
+    router.push('/'); 
+    router.refresh(); 
     console.log('Updated mockUser:', mockUser);
   }
 
@@ -306,7 +306,7 @@ export default function ProfilePage() {
                         I agree to the Barrow Market Place Code of Conduct.
                       </FormLabel>
                       <FormDescription>
-                        Our platform is committed to providing a safe and trustworthy environment for all users. To ensure this, we strictly prohibit the sale, purchase, or auction of firearms, ammunition, and illegal drugs. Any attempt to engage in these activities will result in immediate account suspension and potential reporting to law enforcement. Furthermore, we have a zero-tolerance policy for scams and fraudulent activities. Users are strictly forbidden from using our platform to perpetuate scams, deceive others, or engage in any form of financial exploitation. We encourage users to report any suspicious behavior or potential scams to our moderation team immediately. We are dedicated to maintaining a platform free from illegal and harmful activities, and we appreciate your cooperation in upholding these standards.
+                        Our platform is committed to providing a safe and trustworthy environment for all users. To ensure this, we strictly prohibit the sale, purchase, or auction of firearms, ammunition, illegal drugs, and livestock. Any attempt to engage in these activities will result in immediate account suspension and potential reporting to law enforcement. Furthermore, we have a zero-tolerance policy for scams and fraudulent activities. Users are strictly forbidden from using our platform to perpetuate scams, deceive others, or engage in any form of financial exploitation. We encourage users to report any suspicious behavior or potential scams to our moderation team immediately. We are dedicated to maintaining a platform free from illegal and harmful activities, and we appreciate your cooperation in upholding these standards.
                         <br/>
                         By checking this box, you confirm your agreement.
                       </FormDescription>
