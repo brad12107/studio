@@ -30,7 +30,7 @@ export function UserNav() {
   const getSubscriptionLabel = () => {
     switch (user.subscriptionStatus) {
       case 'subscribed':
-        return 'Premium';
+        return 'Basic Plan'; // Changed from 'Premium'
       case 'premium_plus':
         return 'Premium Plus';
       case 'free_trial':

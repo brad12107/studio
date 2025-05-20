@@ -17,15 +17,15 @@ export default function SubscriptionPage() {
   const [itemsListedCount, setItemsListedCount] = useState(mockUser.itemsListedCount);
   const [enhancedListingsRemaining, setEnhancedListingsRemaining] = useState(mockUser.enhancedListingsRemaining || 0);
 
-  const handleSubscribe = (plan: 'premium' | 'premium_plus') => {
-    if (plan === 'premium') {
-      mockUser.subscriptionStatus = 'subscribed';
+  const handleSubscribe = (plan: 'basic' | 'premium_plus') => {
+    if (plan === 'basic') {
+      mockUser.subscriptionStatus = 'subscribed'; // Internal status remains 'subscribed'
       mockUser.enhancedListingsRemaining = 0;
       setSubscriptionStatus('subscribed');
       setEnhancedListingsRemaining(0);
       toast({
         title: 'Subscription Successful!',
-        description: 'You are now subscribed to Barrow Market Place Premium.',
+        description: 'You are now subscribed to the Barrow Market Place Basic Plan.',
       });
     } else if (plan === 'premium_plus') {
       mockUser.subscriptionStatus = 'premium_plus';
@@ -54,8 +54,8 @@ export default function SubscriptionPage() {
         {subscriptionStatus === 'subscribed' && (
           <div className="text-center py-8 mb-8 bg-card text-card-foreground rounded-lg shadow-md">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold">You are on the Premium Plan!</h2>
-            <p className="text-muted-foreground">Enjoy unlimited listings and all standard premium features.</p>
+            <h2 className="text-2xl font-semibold">You are on the Basic Plan!</h2>
+            <p className="text-muted-foreground">Enjoy unlimited listings and all standard features.</p>
           </div>
         )}
         {subscriptionStatus === 'premium_plus' && (
@@ -107,12 +107,12 @@ export default function SubscriptionPage() {
             </CardFooter>
           </Card>
 
-          {/* Premium Plan Card */}
+          {/* Basic Plan Card */}
           <Card className={`${subscriptionStatus === 'subscribed' ? 'border-green-500 border-2' : 'border-primary border-2'} shadow-lg flex flex-col`}>
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
                 <Star className="h-6 w-6 mr-2 text-accent" />
-                Premium Plan
+                Basic Plan
               </CardTitle>
               <p className="text-2xl font-bold text-primary pt-1">£1.99 <span className="text-sm font-normal text-muted-foreground">/ month</span></p>
             </CardHeader>
@@ -126,7 +126,7 @@ export default function SubscriptionPage() {
               <Button 
                 size="lg" 
                 className="w-full bg-accent hover:bg-accent/90" 
-                onClick={() => handleSubscribe('premium')}
+                onClick={() => handleSubscribe('basic')}
                 disabled={subscriptionStatus === 'subscribed' || subscriptionStatus === 'premium_plus'}
               >
                 {subscriptionStatus === 'subscribed' ? 'Currently Subscribed' : 'Subscribe Now'}
