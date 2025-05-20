@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -32,21 +33,25 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome to Barrow Market Place!</h1>
-          <p className="text-muted-foreground">Browse items or list your own for sale or auction.</p>
-        </div>
-        <Button asChild size="lg" className="w-full sm:w-auto">
-          <Link href="/list-item">
-            <PlusCircle className="mr-2 h-5 w-5" />
-            Sell Your Item
-          </Link>
-        </Button>
-      </section>
+      <Card className="shadow-md">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-3xl font-bold tracking-tight">Welcome to Barrow Market Place!</CardTitle>
+          <CardDescription className="text-muted-foreground pt-1">
+            Browse items or list your own for sale or auction. Your next great find is just a click away.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Link href="/list-item">
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Sell Your Item
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
       
       <section>
-        <h2 className="text-2xl font-semibold mb-6">Featured Items</h2>
+        <h2 className="text-2xl font-bold mb-6">Featured Items</h2>
         <ItemList items={filteredItems} />
       </section>
     </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Tag, ShoppingCart, Hammer } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ItemCardProps {
   item: Item;
@@ -42,10 +43,10 @@ export function ItemCard({ item }: ItemCardProps) {
       </CardContent>
       <CardFooter className="p-4 border-t">
         <div className="flex justify-between items-center w-full">
-          <span className={`text-xs font-medium px-2 py-1 rounded-full ${item.type === 'sale' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
-            {item.type === 'sale' ? <ShoppingCart className="inline h-3 w-3 mr-1" /> : <Hammer className="inline h-3 w-3 mr-1" />}
+          <Badge variant={item.type === 'sale' ? 'secondary' : 'default'} className="flex items-center">
+            {item.type === 'sale' ? <ShoppingCart className="h-3 w-3 mr-1" /> : <Hammer className="h-3 w-3 mr-1" />}
             {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-          </span>
+          </Badge>
           <Button asChild size="sm" variant="outline">
             <Link href={`/item/${item.id}`}>View Details</Link>
           </Button>

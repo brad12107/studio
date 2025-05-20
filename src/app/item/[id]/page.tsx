@@ -105,7 +105,11 @@ export default function ItemDetailPage() {
 
             </CardContent>
             <CardFooter className="border-t p-6 print:hidden">
-              <Button size="lg" className="w-full md:w-auto" onClick={() => router.push(`/messages?itemId=${item.id}&sellerName=${encodeURIComponent(item.sellerName)}`)}>
+              <Button 
+                size="lg" 
+                className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
+                onClick={() => router.push(`/messages?itemId=${item.id}&sellerName=${encodeURIComponent(item.sellerName)}`)}
+              >
                 <MessageSquare className="mr-2 h-5 w-5" /> Contact Seller
               </Button>
             </CardFooter>

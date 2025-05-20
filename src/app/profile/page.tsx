@@ -82,7 +82,7 @@ export default function ProfilePage() {
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
       avatarUrl: userData.avatarUrl || undefined,
-      agreedToCodeOfConduct: false, // Default to false
+      agreedToCodeOfConduct: false, // Default to false, user must actively agree
     },
   });
   
@@ -93,7 +93,7 @@ export default function ProfilePage() {
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
       avatarUrl: userData.avatarUrl || undefined,
-      agreedToCodeOfConduct: form.getValues('agreedToCodeOfConduct') || false, // Preserve if already set, or default false
+      agreedToCodeOfConduct: form.getValues('agreedToCodeOfConduct') || false, 
     });
     setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
   }, [userData, form]);
@@ -109,13 +109,11 @@ export default function ProfilePage() {
           setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png'); 
         });
       } else {
-        // If file is invalid (e.g. too large), reset to current user avatar or placeholder
         setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
       }
     } else if (typeof watchedAvatarUrl === 'string') {
       setAvatarPreview(watchedAvatarUrl);
     } else if (!watchedAvatarUrl) {
-        // If avatarUrl is cleared (e.g. no file selected and no existing string URL), show placeholder
         setAvatarPreview('https://placehold.co/100x100.png'); 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps 
@@ -127,11 +125,7 @@ export default function ProfilePage() {
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
-      // Double check size and type here before attempting conversion,
-      // although Zod should have caught it already.
       if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-        // This case should ideally be handled by Zod validation and not reach here,
-        // but as a safeguard:
         toast({
           title: 'Invalid Avatar File',
           description: `Max size ${MAX_AVATAR_SIZE_MB}MB. Accepted types: JPG, PNG, WEBP.`,
@@ -151,10 +145,8 @@ export default function ProfilePage() {
         return;
       }
     } else if (typeof data.avatarUrl === 'string') {
-      // This means an existing URL was likely kept, or manually entered if the input type was text
       finalAvatarUrl = data.avatarUrl; 
     } else if (data.avatarUrl === undefined || (data.avatarUrl instanceof FileList && data.avatarUrl.length === 0)) {
-       // If avatarUrl is explicitly undefined (e.g. field cleared and no new file), use placeholder
        finalAvatarUrl = 'https://placehold.co/100x100.png'; 
     }
 
@@ -163,9 +155,7 @@ export default function ProfilePage() {
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
-    // mockUser.agreedToCodeOfConduct isn't a property on the User type, so we don't save it directly to mockUser
-    // The validation ensures it's checked.
-
+    
     setUserData({ ...mockUser }); 
 
     toast({
@@ -194,12 +184,12 @@ export default function ProfilePage() {
                       htmlFor="avatar-upload-input" 
                       className="relative cursor-pointer group"
                       onClick={(e) => {
-                        e.preventDefault(); // Prevent label from toggling checkbox if one existed
+                        e.preventDefault(); 
                         fileInputRef.current?.click();
                       }}
                     >
                       <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
-                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user avatar" />
+                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user profile" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -321,7 +311,12 @@ export default function ProfilePage() {
                 )}
               />
               
-              <Button type="submit" size="lg" className="w-full md:w-auto" disabled={form.formState.isSubmitting}>
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
+                disabled={form.formState.isSubmitting}
+                >
                 {form.formState.isSubmitting ? 'Updating...' : 'Update Profile'}
               </Button>
             </form>
@@ -331,4 +326,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

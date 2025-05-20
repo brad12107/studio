@@ -151,6 +151,7 @@ export function ListItemForm() {
 
     if (userSubscriptionStatus === 'free_trial') {
       setUserListedItemsCount(prev => prev + 1);
+      mockUser.itemsListedCount = mockUser.itemsListedCount + 1; // Persist change to mockUser for session
     }
     form.reset(initialFormValues);
     setImagePreview(null); 
@@ -169,7 +170,7 @@ export function ListItemForm() {
         </Alert>
       )}
       {isFeeApplicable && !isFreeTrialLimitReached && (
-        <Alert variant="default" className="mb-6">
+        <Alert variant="default" className="mb-6 bg-secondary/50">
           <Info className="h-4 w-4" />
           <AlertTitle>Listing Fee Applicable</AlertTitle>
           <AlertDescription>
@@ -270,14 +271,16 @@ export function ListItemForm() {
           <FormField
             control={form.control}
             name="imageUrl"
-            render={({ field: { onChange, value, ...rest } }) => ( // Destructure onChange specifically
+            render={({ field: { onChange, value, ...rest } }) => ( 
               <FormItem>
-                <FormLabel>Item Image</FormLabel>
+                <FormLabel className="flex items-center">
+                  <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Image
+                </FormLabel>
                 <FormControl>
                   <Input 
                     type="file" 
                     accept="image/png, image/jpeg, image/webp"
-                    onChange={(e) => onChange(e.target.files)} // Pass FileList to RHF
+                    onChange={(e) => onChange(e.target.files)} 
                     {...rest} 
                     disabled={disableFormFields}
                     className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
@@ -292,13 +295,18 @@ export function ListItemForm() {
           {imagePreview && (
             <div className="mt-4">
               <FormLabel>Image Preview</FormLabel>
-              <div className="mt-2 relative aspect-video w-full max-w-md rounded-md border border-dashed border-muted-foreground/50 flex items-center justify-center overflow-hidden">
+              <div className="mt-2 relative aspect-video w-full max-w-md rounded-md border border-dashed border-muted-foreground/50 flex items-center justify-center overflow-hidden bg-slate-50">
                 <Image src={imagePreview} alt="Item preview" fill sizes="100vw" className="object-contain" />
               </div>
             </div>
           )}
           
-          <Button type="submit" className="w-full md:w-auto" size="lg" disabled={disableFormFields || form.formState.isSubmitting}>
+          <Button 
+            type="submit" 
+            className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
+            size="lg" 
+            disabled={disableFormFields || form.formState.isSubmitting}
+          >
             {form.formState.isSubmitting ? 'Listing...' : 'List Item'}
           </Button>
         </form>

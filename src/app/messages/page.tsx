@@ -10,7 +10,7 @@ import { mockConversations, mockMessages, mockUser, mockItems } from '@/lib/mock
 import type { Conversation, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNowStrict } from 'date-fns';
-import { Send, Search as SearchIcon, ArrowLeft, MessageSquare as MessageSquareIcon } from 'lucide-react'; // Renamed MessageSquare to avoid conflict
+import { Send, Search as SearchIcon, ArrowLeft, MessageSquare as MessageSquareIcon } from 'lucide-react'; 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
@@ -39,8 +39,6 @@ export default function MessagesPage() {
           setSelectedConversation(existingConv);
         }
       } else {
-        // Check if this conversation was already added in a previous run of this effect
-        // (e.g. due to rapid state updates)
         const alreadyAddedConv = conversations.find(
           (c) =>
             c.itemId === itemIdParam &&
@@ -69,32 +67,25 @@ export default function MessagesPage() {
             };
 
             setConversations(prev => {
-              // Ensure no duplicate is added if effect runs multiple times
               if (prev.some(c => c.id === newConvId || (c.itemId === itemIdParam && c.participants.some(p => p.name === sellerNameParam && p.id !== mockUser.id)))) {
                 return prev;
               }
               return [newConv, ...prev];
             });
             
-            // Select the newly created conversation
-            // This check is important to avoid setting state if it's already correct due to rapid re-renders
             if (selectedConversation?.id !== newConv.id) {
                 setSelectedConversation(newConv);
             }
         }
       }
     } else if (conversations.length > 0 && !selectedConversation) {
-      // Default to selecting the first conversation if no params and nothing selected
       setSelectedConversation(conversations[0]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, conversations, selectedConversation, mockUser.id, mockUser.name, mockUser.avatarUrl]);
-  // mockItems is stable mock data, so not included in deps to avoid unnecessary re-runs if it were dynamic.
 
   useEffect(() => {
     if (selectedConversation) {
-      // Filter messages related to the selected conversation
-      // Ensuring both participants are involved in the message and it's for the correct item
       const currentParticipantsIds = selectedConversation.participants.map(p => p.id);
       setMessages(
         mockMessages
@@ -121,7 +112,7 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedConversation) return;
     
     const otherParticipant = getOtherParticipant(selectedConversation);
-    if (!otherParticipant) return; // Should not happen if conversation is well-formed
+    if (!otherParticipant) return; 
 
     const msg: Message = {
       id: `msg-${Date.now()}`,
@@ -130,10 +121,9 @@ export default function MessagesPage() {
       itemId: selectedConversation.itemId,
       content: newMessage,
       timestamp: new Date().toISOString(),
-      isRead: false, // In a real app, server would handle this
+      isRead: false, 
     };
     
-    // Add to mockMessages (in a real app, this would be an API call)
     mockMessages.push(msg); 
     setMessages(prev => [...prev, msg]);
     
@@ -141,7 +131,7 @@ export default function MessagesPage() {
       conv.id === selectedConversation.id 
       ? {...conv, lastMessage: {content: newMessage, timestamp: msg.timestamp}}
       : conv
-    ).sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()) // Sort by most recent
+    ).sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime())
     );
 
     setNewMessage('');
@@ -153,7 +143,6 @@ export default function MessagesPage() {
 
   return (
     <div className="h-[calc(100vh-10rem)] flex flex-col md:flex-row border rounded-lg shadow-lg overflow-hidden bg-card">
-      {/* Conversation List Sidebar (hidden on mobile when a conversation is selected) */}
       <div className={cn(
         "w-full md:w-1/3 lg:w-1/4 border-r flex flex-col",
         selectedConversation && "hidden md:flex" 
@@ -168,7 +157,7 @@ export default function MessagesPage() {
         <ScrollArea className="flex-grow">
           {conversations.map((conv) => {
             const otherParticipant = getOtherParticipant(conv);
-            if (!otherParticipant) return null; // Should not happen with good data
+            if (!otherParticipant) return null; 
             return (
             <button
               key={conv.id}
@@ -205,7 +194,6 @@ export default function MessagesPage() {
         </ScrollArea>
       </div>
 
-      {/* Message View Area */}
       <div className={cn(
         "flex-grow flex flex-col",
         !selectedConversation && "hidden md:flex md:items-center md:justify-center" 
@@ -216,7 +204,7 @@ export default function MessagesPage() {
               <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={() => setSelectedConversation(null)}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              {(() => { // IIFE to handle potentially undefined otherParticipant
+              {(() => { 
                 const otherParticipant = getOtherParticipant(selectedConversation);
                 if (!otherParticipant) return null;
                 return (
@@ -272,7 +260,12 @@ export default function MessagesPage() {
                 className="flex-grow bg-input text-foreground placeholder:text-muted-foreground"
                 autoComplete="off"
               />
-              <Button type="submit" size="icon" disabled={!newMessage.trim() || !getOtherParticipant(selectedConversation)}>
+              <Button 
+                type="submit" 
+                size="icon" 
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                disabled={!newMessage.trim() || !getOtherParticipant(selectedConversation)}
+              >
                 <Send className="h-5 w-5" />
                 <span className="sr-only">Send</span>
               </Button>
@@ -288,4 +281,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-
