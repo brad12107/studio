@@ -23,6 +23,11 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const getOtherParticipant = (conv: Conversation | null) => {
+    if (!conv) return null;
+    return conv.participants.find(p => p.id !== mockUser.id);
+  }
+
   useEffect(() => {
     const itemIdParam = searchParams.get('itemId');
     const sellerNameParam = searchParams.get('sellerName');
@@ -39,49 +44,35 @@ export default function MessagesPage() {
           setSelectedConversation(existingConv);
         }
       } else {
-        const alreadyAddedConv = conversations.find(
-          (c) =>
-            c.itemId === itemIdParam &&
-            c.participants.some((p) => p.name === sellerNameParam && p.id !== mockUser.id)
-        );
+        // Create a new conversation
+        const itemForConv = mockItems.find(item => item.id === itemIdParam);
+        const newConvId = `conv-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}-${Date.now()}`;
+        
+        const newConv: Conversation = {
+          id: newConvId,
+          itemId: itemIdParam,
+          itemName: itemForConv?.name || `Item ${itemIdParam}`,
+          itemImageUrl: itemForConv?.imageUrl || 'https://placehold.co/100x100.png',
+          participants: [
+            { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
+            { id: `seller-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}`, name: sellerNameParam, avatarUrl: 'https://placehold.co/50x50.png' }
+          ],
+          lastMessage: { content: `Started conversation about ${itemForConv?.name || `item ID: ${itemIdParam}`}.`, timestamp: new Date().toISOString() },
+          unreadCount: 0,
+        };
 
-        if (alreadyAddedConv) {
-            if (selectedConversation?.id !== alreadyAddedConv.id) {
-                setSelectedConversation(alreadyAddedConv);
-            }
-        } else {
-            const itemForConv = mockItems.find(item => item.id === itemIdParam);
-            const newConvId = `conv-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}-${Date.now()}`;
-            
-            const newConv: Conversation = {
-              id: newConvId,
-              itemId: itemIdParam,
-              itemName: itemForConv?.name || `Item ${itemIdParam}`,
-              itemImageUrl: itemForConv?.imageUrl || 'https://placehold.co/100x100.png',
-              participants: [
-                { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
-                { id: `seller-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}`, name: sellerNameParam, avatarUrl: 'https://placehold.co/50x50.png' }
-              ],
-              lastMessage: { content: 'Started conversation about item.', timestamp: new Date().toISOString() },
-              unreadCount: 0,
-            };
-
-            setConversations(prev => {
-              if (prev.some(c => c.id === newConvId || (c.itemId === itemIdParam && c.participants.some(p => p.name === sellerNameParam && p.id !== mockUser.id)))) {
-                return prev;
-              }
-              return [newConv, ...prev];
-            });
-            
-            if (selectedConversation?.id !== newConv.id) {
-                setSelectedConversation(newConv);
-            }
-        }
+        setConversations(prevConvs => {
+          if (prevConvs.some(c => c.itemId === itemIdParam && c.participants.some(p => p.name === sellerNameParam && p.id !== mockUser.id))) {
+            return prevConvs; 
+          }
+          return [newConv, ...prevConvs];
+        });
+        
+        setSelectedConversation(newConv);
       }
     } else if (conversations.length > 0 && !selectedConversation) {
       setSelectedConversation(conversations[0]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, conversations, selectedConversation, mockUser.id, mockUser.name, mockUser.avatarUrl]);
 
   useEffect(() => {
@@ -111,7 +102,7 @@ export default function MessagesPage() {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
     
-    const otherParticipant = getOtherParticipant(selectedConversation);
+    const otherParticipant = getOtherParticipant(selectedConversation); // selectedConversation is confirmed non-null here
     if (!otherParticipant) return; 
 
     const msg: Message = {
@@ -137,10 +128,6 @@ export default function MessagesPage() {
     setNewMessage('');
   };
 
-  const getOtherParticipant = (conv: Conversation) => {
-    return conv.participants.find(p => p.id !== mockUser.id);
-  }
-
   return (
     <div className="h-[calc(100vh-10rem)] flex flex-col md:flex-row border rounded-lg shadow-lg overflow-hidden bg-card">
       <div className={cn(
@@ -156,7 +143,7 @@ export default function MessagesPage() {
         </div>
         <ScrollArea className="flex-grow">
           {conversations.map((conv) => {
-            const otherParticipant = getOtherParticipant(conv);
+            const otherParticipant = getOtherParticipant(conv); // conv is not null here
             if (!otherParticipant) return null; 
             return (
             <button
@@ -205,7 +192,7 @@ export default function MessagesPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               {(() => { 
-                const otherParticipant = getOtherParticipant(selectedConversation);
+                const otherParticipant = getOtherParticipant(selectedConversation); // selectedConversation can be null here
                 if (!otherParticipant) return null;
                 return (
                   <>
