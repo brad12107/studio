@@ -1,3 +1,4 @@
+
 'use client';
 
 import { mockItems } from '@/lib/mock-data';
@@ -73,9 +74,9 @@ export default function ItemDetailPage() {
             <Image
               src={item.imageUrl}
               alt={item.name}
-              layout="fill"
-              objectFit="cover"
-              className="md:rounded-l-lg"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="md:rounded-l-lg object-cover"
               data-ai-hint={`${item.category} product`}
             />
           </div>

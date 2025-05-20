@@ -293,7 +293,7 @@ export function ListItemForm() {
             <div className="mt-4">
               <FormLabel>Image Preview</FormLabel>
               <div className="mt-2 relative aspect-video w-full max-w-md rounded-md border border-dashed border-muted-foreground/50 flex items-center justify-center overflow-hidden">
-                <Image src={imagePreview} alt="Item preview" layout="fill" objectFit="contain" />
+                <Image src={imagePreview} alt="Item preview" fill sizes="100vw" className="object-contain" />
               </div>
             </div>
           )}
@@ -306,5 +306,3 @@ export function ListItemForm() {
     </div>
   );
 }
-
-    
