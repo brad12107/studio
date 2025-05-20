@@ -32,6 +32,9 @@ body {
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
+    --success: 134 61% 41%; /* Green */
+    --success-foreground: 0 0% 100%; /* White */
+
     --border: 204 30% 80%; /* Light Blue Border */
     --input: 0 0% 98%; /* Very Light Gray for inputs, almost white */
     --ring: 210 89% 54%; /* Medium Blue for rings */
@@ -80,6 +83,9 @@ body {
     
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 98%;
+
+    --success: 134 61% 31%; /* Darker Green for dark mode */
+    --success-foreground: 0 0% 100%; /* White */
 
     --border: 200 15% 30%;
     --input: 200 15% 20%;

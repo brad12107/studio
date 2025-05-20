@@ -68,7 +68,7 @@ export default function SubscriptionPage() {
 
         <div className="grid md:grid-cols-3 gap-6"> {/* Adjusted to 3 columns */}
           {/* Free Trial Card */}
-          <Card className="flex flex-col"> {/* Removed bg-secondary/30 to use default card styling */}
+          <Card className="flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
                 <Gift className="h-6 w-6 mr-2 text-primary" />
@@ -87,7 +87,7 @@ export default function SubscriptionPage() {
                 <Button 
                     size="lg" 
                     className="w-full" 
-                    variant="outline"
+                    variant={subscriptionStatus === 'free_trial' ? "outline" : "success"}
                     disabled={subscriptionStatus !== 'none' && subscriptionStatus !== 'free_trial'}
                     onClick={() => {
                         if (subscriptionStatus === 'none') {
@@ -171,4 +171,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
