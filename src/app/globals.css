@@ -11,11 +11,11 @@ body {
     --background: 188 78% 92%; /* Light Blue #E0F7FA */
     --foreground: 200 15% 27%; /* Dark Grayish Blue #37474F */
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 200 15% 27%; /* Dark Grayish Blue */
+    --card: 220 50% 25%; /* Dark Slate Blue */
+    --card-foreground: 220 20% 92%; /* Light Cool White */
 
-    --popover: 0 0% 100%; /* White */
-    --popover-foreground: 200 15% 27%; /* Dark Grayish Blue */
+    --popover: 220 50% 25%; /* Dark Slate Blue */
+    --popover-foreground: 220 20% 92%; /* Light Cool White */
 
     --primary: 204 88% 68%; /* Soft Blue #64B5F6 */
     --primary-foreground: 0 0% 100%; /* White */
