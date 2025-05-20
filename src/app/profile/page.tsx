@@ -199,7 +199,7 @@ export default function ProfilePage() {
                       }}
                     >
                       <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
-                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user avatar placeholder" />
+                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user avatar" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
