@@ -12,13 +12,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mockUser } from '@/lib/mock-data'; // Using mock user for now
+import { mockUser } from '@/lib/mock-data'; 
 import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 export function UserNav() {
-  // In a real app, user data would come from context or a hook
   const user = mockUser; 
+  const router = useRouter(); // Initialize useRouter
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    router.push('/login');
+    router.refresh(); // Ensures the auth state is re-checked globally
+  };
 
   return (
     <DropdownMenu>
@@ -43,7 +50,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/profile"> {/* Assuming a profile page */}
+            <Link href="/profile">
               <UserIcon className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </Link>
@@ -60,13 +67,13 @@ export function UserNav() {
               <span>Billing</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem disabled> {/* Placeholder for settings */}
+          <DropdownMenuItem disabled> 
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled> {/* Placeholder for logout */}
+        <DropdownMenuItem onClick={handleLogout}> {/* Call handleLogout on click */}
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>

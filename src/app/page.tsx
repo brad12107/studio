@@ -1,35 +1,98 @@
 
-'use client'; // For handling search query from URL and client-side filtering
+'use client';
 
 import { ItemList } from '@/components/market/item-list';
 import { mockItems } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function HomePage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [isClient, setIsClient] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [filteredItems, setFilteredItems] = useState<Item[]>(mockItems);
 
   useEffect(() => {
-    const searchQuery = searchParams.get('search');
-    if (searchQuery) {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      setFilteredItems(
-        mockItems.filter(item =>
-          item.name.toLowerCase().includes(lowerCaseQuery) ||
-          item.description.toLowerCase().includes(lowerCaseQuery) ||
-          item.category.toLowerCase().includes(lowerCaseQuery)
-        )
-      );
-    } else {
-      setFilteredItems(mockItems);
+    setIsClient(true); // Ensures localStorage is accessed only on the client
+    const loggedInStatus = localStorage.getItem('isLoggedIn') === 'true';
+    setIsLoggedIn(loggedInStatus);
+    setIsLoadingAuth(false);
+
+    if (!loggedInStatus) {
+      router.replace('/login');
     }
-  }, [searchParams]);
+  }, [router]);
+
+  useEffect(() => {
+    if (isLoggedIn) { // Only filter if logged in and on this page
+      const searchQuery = searchParams.get('search');
+      if (searchQuery) {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        setFilteredItems(
+          mockItems.filter(item =>
+            item.name.toLowerCase().includes(lowerCaseQuery) ||
+            item.description.toLowerCase().includes(lowerCaseQuery) ||
+            item.category.toLowerCase().includes(lowerCaseQuery)
+          )
+        );
+      } else {
+        setFilteredItems(mockItems);
+      }
+    }
+  }, [searchParams, isLoggedIn]);
+
+  if (!isClient || isLoadingAuth) {
+    // Show a loading skeleton while checking auth status on client
+    return (
+        <div className="space-y-8">
+          <Card className="shadow-md">
+            <CardHeader className="pb-4">
+              <Skeleton className="h-8 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-full md:w-2/3 mb-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-11 w-48" />
+            </CardContent>
+          </Card>
+          <section>
+            <Skeleton className="h-7 w-48 mb-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-full overflow-hidden shadow-lg rounded-lg border bg-card flex flex-col">
+                  <Skeleton className="aspect-[16/10] w-full" />
+                  <div className="p-4 flex-grow space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-6 w-1/3" />
+                  </div>
+                  <div className="p-4 border-t">
+                    <div className="flex justify-between items-center w-full">
+                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-9 w-24" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    // This path should ideally not be reached due to router.replace
+    return null; 
+  }
 
   return (
     <div className="space-y-8">
