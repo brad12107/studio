@@ -25,6 +25,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useRouter } from 'next/navigation'; // Added useRouter
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -70,6 +71,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const { toast } = useToast();
+  const router = useRouter(); // Initialized useRouter
   const [userData, setUserData] = useState<User>(mockUser);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(userData.avatarUrl || 'https://placehold.co/100x100.png');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +84,7 @@ export default function ProfilePage() {
       bio: userData.bio || '',
       isProfilePrivate: userData.isProfilePrivate || false,
       avatarUrl: userData.avatarUrl || undefined,
-      agreedToCodeOfConduct: false, // Default to false, user must actively agree
+      agreedToCodeOfConduct: false, 
     },
   });
   
@@ -158,10 +160,13 @@ export default function ProfilePage() {
     
     setUserData({ ...mockUser }); 
 
+    localStorage.setItem('isLoggedIn', 'true'); // Set user as logged in
     toast({
-      title: 'Profile Updated',
-      description: 'Your profile information has been successfully saved.',
+      title: 'Profile Saved!', // Updated toast message
+      description: 'Your information is saved and you are now logged in. Welcome!',
     });
+    router.push('/'); // Redirect to homepage
+    router.refresh(); // Refresh to ensure layout/auth state is re-evaluated
     console.log('Updated mockUser:', mockUser);
   }
 
@@ -317,7 +322,7 @@ export default function ProfilePage() {
                 className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
                 disabled={form.formState.isSubmitting}
                 >
-                {form.formState.isSubmitting ? 'Updating...' : 'Update Profile'}
+                {form.formState.isSubmitting ? 'Saving...' : 'Save Profile'}
               </Button>
             </form>
           </Form>
@@ -326,3 +331,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
