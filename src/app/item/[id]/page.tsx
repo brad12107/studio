@@ -1,7 +1,7 @@
 
 'use client';
 
-import { mockItems } from '@/lib/mock-data';
+import { mockItems, mockUser } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,8 @@ import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+
+const ENHANCEMENT_FEE = 1.00;
 
 export default function ItemDetailPage() {
   const params = useParams();
@@ -37,18 +39,49 @@ export default function ItemDetailPage() {
 
   const handleEnhanceItem = () => {
     if (!item) return;
-    // In a real app, this would involve a payment process
+    
     const itemIndex = mockItems.findIndex(i => i.id === item.id);
-    if (itemIndex !== -1) {
+    if (itemIndex === -1) return;
+
+    let feeMessage = `£${ENHANCEMENT_FEE.toFixed(2)} fee applied (mock).`;
+    let enhancementSuccessful = false;
+
+    if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
+      mockUser.enhancedListingsRemaining = (mockUser.enhancedListingsRemaining || 0) - 1;
       mockItems[itemIndex].isEnhanced = true;
-      setItem({ ...mockItems[itemIndex] }); // Update local item state
+      enhancementSuccessful = true;
+      feeMessage = `Used 1 free enhanced listing. ${mockUser.enhancedListingsRemaining} remaining.`;
+    } else {
+      // Simulate payment process for non-Premium Plus or those with no free enhancements left
+      mockItems[itemIndex].isEnhanced = true;
+      enhancementSuccessful = true;
+      // Fee message remains the default
+    }
+    
+    if (enhancementSuccessful) {
+      setItem({ ...mockItems[itemIndex] }); 
       setIsCurrentlyEnhanced(true);
       toast({
         title: 'Item Enhanced!',
-        description: `${item.name} will now appear higher in listings. £1.00 fee applied (mock).`,
+        description: `${item.name} will now appear higher in listings. ${feeMessage}`,
+      });
+    } else {
+      // This case should ideally not be reached if button is disabled properly or logic is sound
+      toast({
+        title: 'Enhancement Failed',
+        description: 'Could not enhance item at this time.',
+        variant: 'destructive',
       });
     }
   };
+
+  const getEnhancementButtonText = () => {
+    if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
+      return `Enhance this Item (FREE - ${mockUser.enhancedListingsRemaining} left)`;
+    }
+    return `Enhance this Item for £${ENHANCEMENT_FEE.toFixed(2)}`;
+  };
+
 
   if (item === undefined) { // Loading state
     return (
@@ -147,7 +180,7 @@ export default function ItemDetailPage() {
                   className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700" 
                   onClick={handleEnhanceItem}
                 >
-                  <Star className="mr-2 h-5 w-5" /> Enhance this Item for £1.00
+                  <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
               ) : (
                 <div className="flex items-center text-green-600 font-semibold p-2 rounded-md bg-green-50 border border-green-200 w-full md:w-auto">

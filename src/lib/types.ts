@@ -17,9 +17,10 @@ export interface User {
   location?: string; 
   bio?: string;
   isProfilePrivate?: boolean;
-  subscriptionStatus: 'free_trial' | 'subscribed' | 'none';
+  subscriptionStatus: 'free_trial' | 'subscribed' | 'premium_plus' | 'none';
   itemsListedCount: number;
   avatarUrl?: string;
+  enhancedListingsRemaining?: number;
 }
 
 export interface Message {

@@ -21,7 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { mockUser, mockItems } from '@/lib/mock-data';
-import type { Item } from '@/lib/types';
+import type { Item, User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info, UploadCloud, Star } from 'lucide-react';
 import Link from 'next/link';
@@ -74,8 +74,8 @@ const initialFormValues: ListItemFormValues = {
 
 export function ListItemForm() {
   const { toast } = useToast();
-  const [userListedItemsCount, setUserListedItemsCount] = useState(mockUser.itemsListedCount);
-  const [userSubscriptionStatus, setUserSubscriptionStatus] = useState(mockUser.subscriptionStatus);
+  // We use mockUser directly for subscription status and counts for this mock setup
+  // For a real app, this would come from context or a state management solution updated on subscription change
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ListItemFormValues>({
@@ -84,6 +84,7 @@ export function ListItemForm() {
   });
 
   const watchedImageUrl = form.watch('imageUrl');
+  const watchedIsEnhanced = form.watch('isEnhanced');
 
   useEffect(() => {
     if (watchedImageUrl && watchedImageUrl.length > 0) {
@@ -99,17 +100,24 @@ export function ListItemForm() {
   }, [watchedImageUrl]);
 
   const isFreeTrialLimitReached =
-    userSubscriptionStatus === 'free_trial' && userListedItemsCount >= MAX_FREE_ITEMS;
+    mockUser.subscriptionStatus === 'free_trial' && mockUser.itemsListedCount >= MAX_FREE_ITEMS;
 
-  const isFeeApplicable = userSubscriptionStatus === 'none';
+  const isListingFeeApplicable = mockUser.subscriptionStatus === 'none';
 
   const disableFormFields = isFreeTrialLimitReached;
+
+  const getEnhancementFeeText = () => {
+    if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
+      return `FREE (1 of ${mockUser.enhancedListingsRemaining} remaining this month)`;
+    }
+    return `£${ENHANCEMENT_FEE.toFixed(2)}`;
+  };
 
   async function onSubmit(data: ListItemFormValues) {
     if (isFreeTrialLimitReached) {
       toast({
         title: 'Listing Limit Reached',
-        description: `You have listed ${userListedItemsCount} out of ${MAX_FREE_ITEMS} items allowed in your free trial. Please subscribe to list more items.`,
+        description: `You have listed ${mockUser.itemsListedCount} of ${MAX_FREE_ITEMS} items allowed in your free trial. Please subscribe to list more items.`,
         variant: 'destructive',
       });
       return;
@@ -145,16 +153,25 @@ export function ListItemForm() {
 
     let toastDescription = `${data.name} has been successfully listed.`;
     const feeMessages: string[] = [];
+    let enhancementFeeApplied = false;
 
-    if (isFeeApplicable) {
+    if (data.isEnhanced) {
+      if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
+        mockUser.enhancedListingsRemaining = (mockUser.enhancedListingsRemaining || 0) - 1;
+        feeMessages.push(`Free enhanced listing used (${mockUser.enhancedListingsRemaining} remaining).`);
+      } else {
+        feeMessages.push(`Enhancement fee: £${ENHANCEMENT_FEE.toFixed(2)}`);
+        enhancementFeeApplied = true;
+      }
+    }
+
+    if (isListingFeeApplicable) {
       feeMessages.push(`Listing fee: £${LISTING_FEE.toFixed(2)}`);
     }
-    if (data.isEnhanced) {
-      feeMessages.push(`Enhancement fee: £${ENHANCEMENT_FEE.toFixed(2)}`);
-    }
+    
 
     if (feeMessages.length > 0) {
-      toastDescription += ` ${feeMessages.join(', ')} applied.`;
+      toastDescription += ` ${feeMessages.join(' ')} (mock fees applied).`;
     }
 
     toast({
@@ -162,9 +179,8 @@ export function ListItemForm() {
       description: toastDescription,
     });
 
-    if (userSubscriptionStatus === 'free_trial') {
-      setUserListedItemsCount(prev => prev + 1);
-      mockUser.itemsListedCount = mockUser.itemsListedCount + 1; 
+    if (mockUser.subscriptionStatus === 'free_trial') {
+      mockUser.itemsListedCount += 1; 
     }
     form.reset(initialFormValues);
     setImagePreview(null); 
@@ -177,12 +193,12 @@ export function ListItemForm() {
           <Info className="h-4 w-4" />
           <AlertTitle>Free Trial Limit Reached</AlertTitle>
           <AlertDescription>
-            You have listed {userListedItemsCount} out of {MAX_FREE_ITEMS} items allowed in your free trial.
+            You have listed {mockUser.itemsListedCount} of {MAX_FREE_ITEMS} items allowed in your free trial.
             Please <Link href="/subscription" className="underline hover:text-destructive-foreground/80">subscribe</Link> to list more items.
           </AlertDescription>
         </Alert>
       )}
-      {isFeeApplicable && !isFreeTrialLimitReached && (
+      {isListingFeeApplicable && !isFreeTrialLimitReached && (
         <Alert variant="default" className="mb-6 bg-secondary/50">
           <Info className="h-4 w-4" />
           <AlertTitle>Listing Fee Applicable</AlertTitle>
@@ -309,7 +325,7 @@ export function ListItemForm() {
             <div className="mt-4">
               <FormLabel>Image Preview</FormLabel>
               <div className="mt-2 relative aspect-video w-full max-w-md rounded-md border border-dashed border-muted-foreground/50 flex items-center justify-center overflow-hidden bg-slate-50">
-                <Image src={imagePreview} alt="Item preview" fill sizes="100vw" className="object-contain" />
+                <Image src={imagePreview} alt="Item preview" fill sizes="100vw" className="object-contain" data-ai-hint="item image"/>
               </div>
             </div>
           )}
@@ -322,11 +338,12 @@ export function ListItemForm() {
                 <div className="space-y-0.5">
                   <FormLabel className="text-base flex items-center text-amber-700">
                     <Star className="h-5 w-5 mr-2 text-amber-500" />
-                    Enhance Listing (£{ENHANCEMENT_FEE.toFixed(2)})
+                    Enhance Listing ({getEnhancementFeeText()})
                   </FormLabel>
                   <FormDescription className="text-amber-600">
                     Make your item stand out! Enhanced items appear higher in search results and listings.
-                    This is an optional £{ENHANCEMENT_FEE.toFixed(2)} fee.
+                    {mockUser.subscriptionStatus !== 'premium_plus' || (mockUser.enhancedListingsRemaining || 0) === 0 ? 
+                     ` This is an optional £${ENHANCEMENT_FEE.toFixed(2)} fee.` : ' Use one of your free monthly enhancements.'}
                   </FormDescription>
                 </div>
                 <FormControl>

@@ -10,6 +10,7 @@ export const mockUser: User = {
   subscriptionStatus: 'none', 
   itemsListedCount: 0,      
   avatarUrl: 'https://placehold.co/100x100.png',
+  enhancedListingsRemaining: 0,
 };
 
 export const mockItems: Item[] = [

@@ -13,18 +13,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { mockUser } from '@/lib/mock-data'; 
-import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare } from 'lucide-react';
+import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation'; 
 
 export function UserNav() {
   const user = mockUser; 
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter(); 
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     router.push('/login');
-    router.refresh(); // Ensures the auth state is re-checked globally
+    router.refresh(); 
+  };
+
+  const getSubscriptionLabel = () => {
+    switch (user.subscriptionStatus) {
+      case 'subscribed':
+        return 'Premium';
+      case 'premium_plus':
+        return 'Premium Plus';
+      case 'free_trial':
+        return 'Free Trial';
+      default:
+        return 'Standard User';
+    }
   };
 
   return (
@@ -37,14 +50,19 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-64" align="end" forceMount> {/* Increased width for more info */}
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.subscriptionStatus === 'subscribed' ? 'Subscribed' : 
-               user.subscriptionStatus === 'free_trial' ? 'Free Trial' : 'Standard User'}
+              {getSubscriptionLabel()}
             </p>
+            {user.subscriptionStatus === 'premium_plus' && (
+              <p className="text-xs leading-none text-muted-foreground flex items-center">
+                <Star className="mr-1 h-3 w-3 text-amber-500" /> 
+                {user.enhancedListingsRemaining || 0} free enhancements left
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -64,7 +82,7 @@ export function UserNav() {
           <DropdownMenuItem asChild>
             <Link href="/subscription">
               <CreditCard className="mr-2 h-4 w-4" />
-              <span>Billing</span>
+              <span>Billing & Subscription</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem disabled> 
@@ -73,7 +91,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}> {/* Call handleLogout on click */}
+        <DropdownMenuItem onClick={handleLogout}> 
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
