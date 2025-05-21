@@ -77,7 +77,7 @@ export const mockItems: Item[] = [
     type: 'sale', 
     imageUrl: 'https://placehold.co/600x400.png', 
     sellerName: 'Bookworm Beth', 
-    category: 'Collectibles',
+    category: 'Books', // Changed category
     isEnhanced: false,
   },
   {
@@ -113,6 +113,83 @@ export const mockItems: Item[] = [
     category: 'Vehicles',
     isEnhanced: false,
   },
+  { 
+    id: '10', 
+    name: 'Gardening Tool Set', 
+    description: 'Complete set of essential gardening tools. Barely used.', 
+    price: 45, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Green Thumb George', 
+    category: 'Garden & Outdoors',
+    isEnhanced: false,
+  },
+  { 
+    id: '11', 
+    name: 'Acoustic Guitar', 
+    description: 'Full-size acoustic guitar, great for beginners. Includes soft case.', 
+    price: 75, 
+    type: 'auction', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Musician Mia', 
+    category: 'Music & Instruments',
+    isEnhanced: false,
+  },
+  { 
+    id: '12', 
+    name: 'Silver Pendant Necklace', 
+    description: 'Elegant silver pendant necklace with a unique design. Gift box included.', 
+    price: 60, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Jeweler Jess', 
+    category: 'Jewellery & Accessories',
+    isEnhanced: false,
+  },
+  { 
+    id: '13', 
+    name: 'Board Game Collection', 
+    description: 'Collection of 5 popular board games. Excellent condition.', 
+    price: 50, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Gamer Tom', 
+    category: 'Toys & Games',
+    isEnhanced: false,
+  },
+  { 
+    id: '14', 
+    name: 'Oil Painting Set', 
+    description: 'Beginner oil painting set with various colors, brushes, and canvases.', 
+    price: 35, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Artist Andy', 
+    category: 'Art & Crafts',
+    isEnhanced: false,
+  },
+   { 
+    id: '15', 
+    name: 'Organic Skincare Set', 
+    description: 'Set of organic skincare products, including cleanser, toner, and moisturizer. Unopened.', 
+    price: 40, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Healthy Hannah', 
+    category: 'Health & Beauty',
+    isEnhanced: true, // Example of an enhanced new item
+  },
+  { 
+    id: '16', 
+    name: 'Dog Bed - Large', 
+    description: 'Comfortable and durable large dog bed. Washable cover.', 
+    price: 30, 
+    type: 'sale', 
+    imageUrl: 'https://placehold.co/600x400.png', 
+    sellerName: 'Pet Lover Pete', 
+    category: 'Pet Supplies',
+    isEnhanced: false,
+  }
 ];
 
 export const mockMessages: Message[] = [
@@ -148,3 +225,6 @@ export const mockConversations: Conversation[] = [
     unreadCount: 0,
   },
 ];
+
+
+    
