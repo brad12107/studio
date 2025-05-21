@@ -5,43 +5,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Gift, Star, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mockUser } from '@/lib/mock-data'; 
 import type { User } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 const MAX_FREE_ITEMS = 3;
 
 export default function SubscriptionPage() {
-  const { toast } = useToast();
+  const { toast } = useToast(); // Keep toast for potential future use or non-payment related messages
+  const router = useRouter();
   const [subscriptionStatus, setSubscriptionStatus] = useState<User["subscriptionStatus"]>(mockUser.subscriptionStatus);
   const [itemsListedCount, setItemsListedCount] = useState(mockUser.itemsListedCount);
   const [enhancedListingsRemaining, setEnhancedListingsRemaining] = useState(mockUser.enhancedListingsRemaining || 0);
 
-  const handleSubscribe = (plan: 'basic' | 'premium_plus') => {
-    if (plan === 'basic') {
-      mockUser.subscriptionStatus = 'subscribed'; // Internal status remains 'subscribed'
-      mockUser.enhancedListingsRemaining = 0;
-      setSubscriptionStatus('subscribed');
-      setEnhancedListingsRemaining(0);
-      toast({
-        title: 'Subscription Successful!',
-        description: 'You are now subscribed to the Barrow Market Place Basic Plan.',
-      });
-    } else if (plan === 'premium_plus') {
-      mockUser.subscriptionStatus = 'premium_plus';
-      mockUser.enhancedListingsRemaining = 5; // Reset to 5 free enhanced listings
-      setSubscriptionStatus('premium_plus');
-      setEnhancedListingsRemaining(5);
-      toast({
-        title: 'Subscription Successful!',
-        description: 'You are now subscribed to Barrow Market Place Premium Plan. You have 5 free enhanced listings this month.',
-      });
-    }
+  // Effect to update local state when mockUser changes (e.g., after payment)
+  useEffect(() => {
+    setSubscriptionStatus(mockUser.subscriptionStatus);
+    setItemsListedCount(mockUser.itemsListedCount);
+    setEnhancedListingsRemaining(mockUser.enhancedListingsRemaining || 0);
+  }, [mockUser.subscriptionStatus, mockUser.itemsListedCount, mockUser.enhancedListingsRemaining]);
+
+
+  const navigateToPayment = (plan: 'free_trial' | 'basic' | 'premium_plus') => {
+    router.push(`/payment?plan=${plan}`);
   };
 
   return (
     <div className="container mx-auto py-8">
-      <div className="max-w-5xl mx-auto"> {/* Increased max-width for 3 cards */}
+      <div className="max-w-5xl mx-auto">
         <Card className="shadow-xl overflow-hidden mb-8">
           <CardHeader className="bg-gradient-to-r from-primary to-accent p-8 text-primary-foreground">
             <CardTitle className="text-3xl font-bold">Join Barrow Market Place Subscriptions</CardTitle>
@@ -65,8 +57,16 @@ export default function SubscriptionPage() {
             <p className="text-muted-foreground">Enjoy unlimited listings, {enhancedListingsRemaining} free enhanced listings remaining, and all premium features.</p>
           </div>
         )}
+         {subscriptionStatus === 'free_trial' && (
+          <div className="text-center py-8 mb-8 bg-card text-card-foreground rounded-lg shadow-md">
+            <Gift className="h-16 w-16 text-primary mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold">You are on the Free Trial!</h2>
+            <p className="text-muted-foreground">You can list up to {MAX_FREE_ITEMS - itemsListedCount} more items.</p>
+          </div>
+        )}
 
-        <div className="grid md:grid-cols-3 gap-6"> {/* Adjusted to 3 columns */}
+
+        <div className="grid md:grid-cols-3 gap-6">
           {/* Free Trial Card */}
           <Card className="flex flex-col bg-card text-card-foreground">
             <CardHeader>
@@ -88,21 +88,15 @@ export default function SubscriptionPage() {
                     size="lg" 
                     className="w-full" 
                     variant={subscriptionStatus === 'free_trial' ? "outline" : "success"}
-                    disabled={subscriptionStatus !== 'none' && subscriptionStatus !== 'free_trial'}
+                    disabled={subscriptionStatus !== 'none'} // Disable if already on any plan including free_trial after activation
                     onClick={() => {
                         if (subscriptionStatus === 'none') {
-                            mockUser.subscriptionStatus = 'free_trial';
-                            mockUser.itemsListedCount = 0; // Reset count for trial
-                            setSubscriptionStatus('free_trial');
-                            setItemsListedCount(0);
-                             toast({
-                                title: 'Free Trial Activated!',
-                                description: `You can now list up to ${MAX_FREE_ITEMS} items.`,
-                            });
+                           navigateToPayment('free_trial');
                         }
                     }}
                 >
-                    {subscriptionStatus === 'free_trial' ? 'Currently on Free Trial' : 'Start Free Trial'}
+                    {subscriptionStatus === 'free_trial' ? 'Currently on Free Trial' : 
+                     subscriptionStatus === 'none' ? 'Start Free Trial' : 'Free Trial Used'}
                 </Button>
             </CardFooter>
           </Card>
@@ -126,7 +120,7 @@ export default function SubscriptionPage() {
               <Button 
                 size="lg" 
                 className="w-full bg-accent hover:bg-accent/90" 
-                onClick={() => handleSubscribe('basic')}
+                onClick={() => navigateToPayment('basic')}
                 disabled={subscriptionStatus === 'subscribed' || subscriptionStatus === 'premium_plus'}
               >
                 {subscriptionStatus === 'subscribed' ? 'Currently Subscribed' : 'Subscribe Now'}
@@ -134,7 +128,7 @@ export default function SubscriptionPage() {
             </CardFooter>
           </Card>
 
-          {/* Premium Plan Card (formerly Premium Plus) */}
+          {/* Premium Plan Card */}
           <Card className={`${subscriptionStatus === 'premium_plus' ? 'border-green-500 border-2' : 'border-purple-500 border-2'} shadow-lg flex flex-col`}>
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
@@ -155,7 +149,7 @@ export default function SubscriptionPage() {
               <Button 
                 size="lg" 
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
-                onClick={() => handleSubscribe('premium_plus')}
+                onClick={() => navigateToPayment('premium_plus')}
                 disabled={subscriptionStatus === 'premium_plus'}
               >
                 {subscriptionStatus === 'premium_plus' ? 'Currently Subscribed' : 'Go Premium'}
@@ -164,10 +158,11 @@ export default function SubscriptionPage() {
           </Card>
         </div>
         <p className="text-xs text-center text-muted-foreground mt-6">
-          Subscriptions are managed mockly and do not involve real payments. 
-          Free trial automatically applies if no other plan is active. Enhanced listings reset notionally each month for Premium Plus.
+          Select a plan to proceed to our mock payment page. No real charges will apply.
+          Enhanced listings reset notionally each month for Premium Plan.
         </p>
       </div>
     </div>
   );
 }
+
