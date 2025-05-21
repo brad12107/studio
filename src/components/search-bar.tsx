@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ export function SearchBar({ initialQuery = '' }: { initialQuery?: string }) {
   };
 
   return (
-    <form onSubmit={handleSearch} className="relative w-full max-w-md ml-auto">
+    <form onSubmit={handleSearch} className="relative w-full max-w-lg mx-auto">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         type="search"
