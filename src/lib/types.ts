@@ -3,19 +3,22 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number; // For 'sale' type, this is the price. For 'auction', this is the starting price.
   type: 'sale' | 'auction';
   imageUrl: string;
   sellerName: string;
   category: string;
   isEnhanced?: boolean;
+  auctionEndTime?: string; // ISO date string, only for auction type
+  currentBid?: number; // Only for auction type
+  bidHistory?: { userId: string; userName: string; amount: number; timestamp: string }[]; // Only for auction type
 }
 
 export interface User {
   id: string;
   name: string;
-  email: string; // Added email
-  password: string; // Added password
+  email: string;
+  password: string; 
   location?: string;
   bio?: string;
   isProfilePrivate?: boolean;

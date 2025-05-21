@@ -7,13 +7,47 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, Users, History, Gavel } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { formatDistanceToNowStrict, format } from 'date-fns';
+
 
 const ENHANCEMENT_FEE = 1.00;
+
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  total: number;
+}
+
+const calculateTimeLeft = (endTimeString?: string): TimeLeft => {
+  if (!endTimeString) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
+  }
+  const difference = +new Date(endTimeString) - +new Date();
+  let timeLeft: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
+
+  if (difference > 0) {
+    timeLeft = {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60),
+      total: difference,
+    };
+  }
+  return timeLeft;
+};
+
 
 export default function ItemDetailPage() {
   const params = useParams();
@@ -21,10 +55,13 @@ export default function ItemDetailPage() {
   const { toast } = useToast();
   const [item, setItem] = useState<Item | null | undefined>(undefined); // undefined for loading state
   const [isCurrentlyEnhanced, setIsCurrentlyEnhanced] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
+  const [bidAmount, setBidAmount] = useState<string>('');
+  const [isBidDialogOpen, setIsBidDialogOpen] = useState(false);
 
   const itemId = params.id as string;
 
-  useEffect(() => {
+  const updateItemData = useCallback(() => {
     if (itemId) {
       // Simulate fetching item data
       setTimeout(() => {
@@ -32,10 +69,28 @@ export default function ItemDetailPage() {
         setItem(foundItem || null); // null if not found, to trigger notFound
         if (foundItem) {
           setIsCurrentlyEnhanced(foundItem.isEnhanced || false);
+          if (foundItem.type === 'auction' && foundItem.auctionEndTime) {
+            setTimeLeft(calculateTimeLeft(foundItem.auctionEndTime));
+          }
         }
-      }, 500); // Simulate network delay
+      }, 0); // Short delay to allow state updates from mock data if needed
     }
   }, [itemId]);
+
+
+  useEffect(() => {
+    updateItemData();
+  }, [updateItemData]);
+
+
+  useEffect(() => {
+    if (item?.type === 'auction' && item.auctionEndTime && timeLeft.total > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft(calculateTimeLeft(item.auctionEndTime));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [item?.type, item?.auctionEndTime, timeLeft.total]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -52,10 +107,8 @@ export default function ItemDetailPage() {
       enhancementSuccessful = true;
       feeMessage = `Used 1 free enhanced listing. ${mockUser.enhancedListingsRemaining} remaining.`;
     } else {
-      // Simulate payment process for non-Premium Plus or those with no free enhancements left
       mockItems[itemIndex].isEnhanced = true;
       enhancementSuccessful = true;
-      // Fee message remains the default
     }
     
     if (enhancementSuccessful) {
@@ -66,7 +119,6 @@ export default function ItemDetailPage() {
         description: `${item.name} will now appear higher in listings. ${feeMessage}`,
       });
     } else {
-      // This case should ideally not be reached if button is disabled properly or logic is sound
       toast({
         title: 'Enhancement Failed',
         description: 'Could not enhance item at this time.',
@@ -80,6 +132,45 @@ export default function ItemDetailPage() {
       return `Enhance this Item (FREE - ${mockUser.enhancedListingsRemaining} left)`;
     }
     return `Enhance this Item for £${ENHANCEMENT_FEE.toFixed(2)}`;
+  };
+
+  const handlePlaceBid = () => {
+    if (!item || item.type !== 'auction' || !mockUser) return;
+    const numericBidAmount = parseFloat(bidAmount);
+
+    if (isNaN(numericBidAmount) || numericBidAmount <= 0) {
+      toast({ title: 'Invalid Bid', description: 'Please enter a valid bid amount.', variant: 'destructive' });
+      return;
+    }
+
+    const minBid = (item.currentBid || item.price) + 0.01; // Must be at least 1p more
+    if (numericBidAmount < minBid) {
+      toast({ title: 'Bid Too Low', description: `Your bid must be at least £${minBid.toFixed(2)}.`, variant: 'destructive' });
+      return;
+    }
+    
+    const itemIndex = mockItems.findIndex(i => i.id === item.id);
+    if (itemIndex === -1) return;
+
+    mockItems[itemIndex].currentBid = numericBidAmount;
+    if (!mockItems[itemIndex].bidHistory) {
+      mockItems[itemIndex].bidHistory = [];
+    }
+    mockItems[itemIndex].bidHistory!.unshift({ // Add to beginning for recent first
+      userId: mockUser.id,
+      userName: mockUser.name,
+      amount: numericBidAmount,
+      timestamp: new Date().toISOString(),
+    });
+
+    setItem({ ...mockItems[itemIndex] });
+    setBidAmount('');
+    setIsBidDialogOpen(false);
+
+    toast({
+      title: 'Bid Placed (Mock)!',
+      description: `You successfully bid £${numericBidAmount.toFixed(2)} on ${item.name}.`,
+    });
   };
 
 
@@ -120,6 +211,10 @@ export default function ItemDetailPage() {
     notFound();
   }
 
+  const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
+  const auctionEnded = item.type === 'auction' && timeLeft.total <= 0;
+
+
   return (
     <div className="container mx-auto py-8">
       <Button variant="outline" onClick={() => router.back()} className="mb-6 print:hidden">
@@ -154,16 +249,54 @@ export default function ItemDetailPage() {
               
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
                 <div className="flex items-center text-muted-foreground">
-                  Price: <span className="font-semibold text-foreground ml-1">£{item.price.toFixed(2)}</span>
+                  {item.type === 'auction' ? 'Starting Price:' : 'Price:'} <span className="font-semibold text-foreground ml-1">£{item.price.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <Tag className="h-5 w-5 mr-2 text-primary" /> Category: <span className="font-semibold text-foreground ml-1">{item.category}</span>
                 </div>
-                <div className="flex items-center text-muted-foreground col-span-2">
-                  {item.type === 'sale' ? <ShoppingCart className="h-5 w-5 mr-2 text-primary" /> : <Hammer className="h-5 w-5 mr-2 text-primary" />}
+                 <div className="flex items-center text-muted-foreground col-span-2">
+                  {item.type === 'sale' ? <ShoppingCart className="h-5 w-5 mr-2 text-primary" /> : <Gavel className="h-5 w-5 mr-2 text-primary" />}
                   Type: <span className="font-semibold text-foreground ml-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
                 </div>
               </div>
+
+              {item.type === 'auction' && (
+                <div className="mt-4 p-4 border rounded-lg bg-secondary/30">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center">
+                    <Clock className="mr-2 h-5 w-5 text-primary" /> Auction Details
+                  </h3>
+                  {item.currentBid && (
+                    <p className="text-base font-semibold text-primary">
+                      Current Bid: £{item.currentBid.toFixed(2)}
+                    </p>
+                  )}
+                  {auctionIsActive && (
+                    <p className="text-sm text-green-600 font-medium">
+                      Time Left: {timeLeft.days > 0 && `${timeLeft.days}d `}
+                      {timeLeft.hours > 0 && `${timeLeft.hours}h `}
+                      {timeLeft.minutes > 0 && `${timeLeft.minutes}m `}
+                      {timeLeft.seconds}s
+                    </p>
+                  )}
+                  {auctionEnded && (
+                    <p className="text-sm text-destructive font-medium">Auction Ended</p>
+                  )}
+                  {item.bidHistory && item.bidHistory.length > 0 && (
+                    <div className="mt-3">
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-1 flex items-center">
+                        <History className="mr-1.5 h-3 w-3" /> Bid History (Recent First)
+                      </h4>
+                      <ul className="text-xs space-y-0.5 max-h-24 overflow-y-auto">
+                        {item.bidHistory.slice(0, 5).map((bid, index) => ( // Show up to 5 recent bids
+                          <li key={index} className="text-muted-foreground">
+                            £{bid.amount.toFixed(2)} by {bid.userName === mockUser.name ? <b>You</b> : bid.userName} ({formatDistanceToNowStrict(new Date(bid.timestamp), { addSuffix: true })})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
 
             </CardContent>
             <CardFooter className="border-t p-6 print:hidden flex-col items-start space-y-4">
@@ -174,7 +307,47 @@ export default function ItemDetailPage() {
               >
                 <MessageSquare className="mr-2 h-5 w-5" /> Contact Seller
               </Button>
-              {!isCurrentlyEnhanced ? (
+
+              {item.type === 'auction' && auctionIsActive && (
+                 <Dialog open={isBidDialogOpen} onOpenChange={setIsBidDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="lg" variant="success" className="w-full md:w-auto">
+                      <Gavel className="mr-2 h-5 w-5" /> Place Bid
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Place Your Bid on {item.name}</DialogTitle>
+                      <DialogDescription>
+                        Current bid is £{(item.currentBid || item.price).toFixed(2)}. 
+                        Enter an amount greater than this.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="bidAmount" className="text-right">
+                          Bid (£)
+                        </Label>
+                        <Input
+                          id="bidAmount"
+                          type="number"
+                          step="0.01"
+                          value={bidAmount}
+                          onChange={(e) => setBidAmount(e.target.value)}
+                          className="col-span-3"
+                          placeholder={`Minimum bid £${((item.currentBid || item.price) + 0.01).toFixed(2)}`}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setIsBidDialogOpen(false)}>Cancel</Button>
+                      <Button type="button" onClick={handlePlaceBid}>Submit Bid</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+
+              {!isCurrentlyEnhanced && (
                 <Button 
                   size="lg" 
                   variant="outline"
@@ -183,7 +356,8 @@ export default function ItemDetailPage() {
                 >
                   <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
-              ) : (
+              ) }
+              {isCurrentlyEnhanced && !auctionEnded &&( // Don't show if auction ended
                 <div className="flex items-center text-green-600 font-semibold p-2 rounded-md bg-green-50 border border-green-200 w-full md:w-auto">
                   <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
                 </div>

@@ -3,9 +3,9 @@ import type { Item, User, Message, Conversation } from './types';
 
 export const mockUser: User = {
   id: 'user123',
-  name: '', // Will be set during profile creation
-  email: '', // Will be set during profile creation
-  password: '', // Will be set during profile creation
+  name: 'Jane Doe', // Will be set during profile creation
+  email: 'user@example.com', // Will be set during profile creation
+  password: 'password', // Will be set during profile creation
   location: 'Barrow Market Hall, Duke Street',
   bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
   isProfilePrivate: false,
@@ -14,6 +14,10 @@ export const mockUser: User = {
   avatarUrl: 'https://placehold.co/100x100.png',
   enhancedListingsRemaining: 0,
 };
+
+const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
 export const mockItems: Item[] = [
   {
@@ -25,18 +29,24 @@ export const mockItems: Item[] = [
     imageUrl: 'https://placehold.co/600x400.png',
     sellerName: 'John Seller',
     category: 'Apparel',
-    isEnhanced: false,
+    isEnhanced: true,
   },
   {
     id: '2',
     name: 'Antique Wooden Chair',
-    description: 'Beautifully carved antique wooden chair. A true collector\'s item.',
-    price: 85,
+    description: 'Beautifully carved antique wooden chair. A true collector\'s item. Auction ends soon!',
+    price: 85, // Starting price
     type: 'auction',
     imageUrl: 'https://placehold.co/600x400.png',
     sellerName: 'Alice Collector',
     category: 'Furniture',
     isEnhanced: false,
+    auctionEndTime: oneHourFromNow,
+    currentBid: 95,
+    bidHistory: [
+      { userId: 'user456', userName: 'Bidder Bob', amount: 90, timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+      { userId: 'user789', userName: 'Auction Alex', amount: 95, timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+    ]
   },
   {
     id: '3',
@@ -62,14 +72,19 @@ export const mockItems: Item[] = [
   },
   {
     id: '5',
-    name: 'Mountain Bike',
-    description: 'Used mountain bike, good condition, recently serviced. Size L.',
-    price: 250,
+    name: 'Mountain Bike - Auction',
+    description: 'Used mountain bike, good condition, recently serviced. Size L. Auction running for a few days.',
+    price: 200, // Starting price
     type: 'auction',
     imageUrl: 'https://placehold.co/600x400.png',
     sellerName: 'Outdoor Dave',
     category: 'Sports',
-    isEnhanced: false,
+    isEnhanced: true,
+    auctionEndTime: threeDaysFromNow,
+    currentBid: 220,
+    bidHistory: [
+       { userId: 'user101', userName: 'Cyclist Chris', amount: 220, timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString() },
+    ]
   },
   {
     id: '6',
@@ -95,14 +110,20 @@ export const mockItems: Item[] = [
   },
   {
     id: '8',
-    name: 'Classic Motorbike Project',
+    name: 'Classic Motorbike Project - Ended Auction',
     description: 'Vintage motorbike, needs some TLC. Great project for an enthusiast. Sold as seen.',
-    price: 1200,
+    price: 1200, // Starting price
     type: 'auction',
     imageUrl: 'https://placehold.co/600x400.png',
     sellerName: 'Mechanic Mike',
     category: 'Vehicles',
     isEnhanced: false,
+    auctionEndTime: oneDayAgo, // Auction ended
+    currentBid: 1350,
+    bidHistory: [
+      { userId: 'user202', userName: 'BikeLover', amount: 1300, timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+      { userId: 'user303', userName: 'FixItFelix', amount: 1350, timestamp: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString() },
+    ]
   },
   {
     id: '9',
@@ -136,6 +157,7 @@ export const mockItems: Item[] = [
     sellerName: 'Musician Mia',
     category: 'Music & Instruments',
     isEnhanced: false,
+    auctionEndTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
   },
   {
     id: '12',
@@ -195,21 +217,25 @@ export const mockItems: Item[] = [
 ];
 
 export const mockMessages: Message[] = [
-  { id: 'msg1', fromUserId: 'user123', toUserId: 'sellerA', itemId: '1', content: 'Hi, is this jacket still available?', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), isRead: false },
-  { id: 'msg2', fromUserId: 'sellerA', toUserId: 'user123', itemId: '1', content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), isRead: false },
-  { id: 'msg3', fromUserId: 'user456', toUserId: 'user123', itemId: '3', content: 'I love your vase! Can you do $40?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), isRead: true },
-  { id: 'msg4', fromUserId: 'user123', toUserId: 'user456', itemId: '3', content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString(), isRead: true },
+  { id: 'msg1', fromUserId: mockUser.id, toUserId: 'sellerA', itemId: '1', content: 'Hi, is this jacket still available?', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), isRead: false },
+  { id: 'msg2', fromUserId: 'sellerA', toUserId: mockUser.id, itemId: '1', content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), isRead: false },
+  { id: 'msg3', fromUserId: 'user456', toUserId: mockUser.id, itemId: '3', content: 'I love your vase! Can you do $40?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), isRead: true },
+  { id: 'msg4', fromUserId: mockUser.id, toUserId: 'user456', itemId: '3', content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString(), isRead: true },
 ];
+
+// Update participant names in mockConversations based on mockUser
+mockUser.name = 'Jane Doe'; // Or whatever name is set during profile creation simulation
+mockUser.avatarUrl = mockUser.avatarUrl || 'https://placehold.co/50x50.png';
 
 export const mockConversations: Conversation[] = [
   {
     id: 'conv1',
     itemId: '1',
     itemName: 'Vintage Leather Jacket',
-    itemImageUrl: 'https://placehold.co/100x100.png',
+    itemImageUrl: (mockItems.find(item => item.id === '1')?.imageUrl || 'https://placehold.co/100x100.png'),
     participants: [
-      { id: 'user123', name: 'Jane Doe', avatarUrl: 'https://placehold.co/50x50.png' },
-      { id: 'sellerA', name: 'John Seller', avatarUrl: 'https://placehold.co/50x50.png' },
+      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
+      { id: 'sellerA', name: 'John Seller', avatarUrl: 'https://placehold.co/50x50.png?text=JS' },
     ],
     lastMessage: { content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString() },
     unreadCount: 1,
@@ -218,10 +244,10 @@ export const mockConversations: Conversation[] = [
     id: 'conv2',
     itemId: '3',
     itemName: 'Handmade Ceramic Vase',
-    itemImageUrl: 'https://placehold.co/100x100.png',
+    itemImageUrl: (mockItems.find(item => item.id === '3')?.imageUrl || 'https://placehold.co/100x100.png'),
     participants: [
-      { id: 'user123', name: 'Jane Doe', avatarUrl: 'https://placehold.co/50x50.png' },
-      { id: 'user456', name: 'Crafty Carol', avatarUrl: 'https://placehold.co/50x50.png' },
+      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
+      { id: 'user456', name: 'Crafty Carol', avatarUrl: 'https://placehold.co/50x50.png?text=CC' },
     ],
     lastMessage: { content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString() },
     unreadCount: 0,
