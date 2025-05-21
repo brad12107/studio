@@ -2,7 +2,7 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -71,12 +71,12 @@ export default function MessagesPage() {
             { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
             { id: `seller-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}`, name: sellerNameParam, avatarUrl: 'https://placehold.co/50x50.png' }
           ],
-          lastMessage: { content: `Started conversation about ${itemForConv?.name || `item ID: ${itemIdParam}`}.`, timestamp: new Date().toISOString() },
+          lastMessage: { content: `Started conversation about ${itemForConv?.name || `Item ID: ${itemIdParam}`}.`, timestamp: new Date().toISOString() },
           unreadCount: 0,
         };
 
         setConversations(prevConvs => {
-          if (prevConvs.some(c => c.id === newConvId)) { // Check if this specific newConv was already added
+          if (prevConvs.some(c => c.id === newConvId)) { 
             return prevConvs; 
           }
           return [newConv, ...prevConvs].sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
@@ -88,7 +88,7 @@ export default function MessagesPage() {
       setSelectedConversation(conversations[0]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, mockUser.id, mockUser.name, mockUser.avatarUrl]); // conversations and selectedConversation removed to prevent re-runs when they are set inside
+  }, [searchParams, mockUser.id, mockUser.name, mockUser.avatarUrl]); 
 
   useEffect(() => {
     if (selectedConversation) {
@@ -153,9 +153,8 @@ export default function MessagesPage() {
 
     const originalMessageIndex = mockMessages.findIndex(m => m.id === messageToDeleteId);
     if (originalMessageIndex > -1) {
-      mockMessages.splice(originalMessageIndex, 1); // Mutate mockMessages
+      mockMessages.splice(originalMessageIndex, 1); 
     } else {
-      // Message not found in mock data, perhaps already deleted or an error
       setMessageToDeleteId(null);
       setIsDeleteDialogOpen(false);
       return;
@@ -186,7 +185,7 @@ export default function MessagesPage() {
               ...conv,
               lastMessage: { 
                 content: `Chat about '${conv.itemName}'`, 
-                timestamp: new Date(0).toISOString() // Pushes to bottom of sorted list
+                timestamp: new Date(0).toISOString() 
               },
             };
           }
@@ -289,12 +288,12 @@ export default function MessagesPage() {
                   );
                 })()}
               </CardHeader>
-              <ScrollArea className="flex-grow p-4 space-y-1 bg-background"> {/* Reduced space-y-4 to space-y-1 for tighter message packing */}
+              <ScrollArea className="flex-grow p-4 space-y-1 bg-background"> 
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
-                      "flex items-end mb-2 group", // items-end for bubble alignment, mb-2 for tighter packing
+                      "flex items-end mb-2 group", 
                       msg.fromUserId === mockUser.id ? "justify-end" : "justify-start"
                     )}
                   >
