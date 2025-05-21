@@ -123,7 +123,7 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: false,
+        agreedToCodeOfConduct: false, // User must re-agree if they edit
       },
   });
 
@@ -142,12 +142,14 @@ export default function ProfilePage() {
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
-          avatarUrl: userData.avatarUrl || undefined, agreedToCodeOfConduct: false,
+          avatarUrl: userData.avatarUrl || undefined, 
+          agreedToCodeOfConduct: false, // Require re-agreement on edit, or set based on existing if that's desired
         },
       { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
-  }, [userData, form, isCreateMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData, isCreateMode]); // form removed as dependency to prevent loops, reset is manual
 
 
   const watchedAvatarUrl = form.watch('avatarUrl');
@@ -202,8 +204,8 @@ export default function ProfilePage() {
     }
 
     mockUser.name = data.name;
-    if (isCreateMode || data.email) mockUser.email = data.email as string; // data.email will exist in create mode
-    if (data.password) mockUser.password = data.password; // Only update password if provided
+    if (isCreateMode || data.email) mockUser.email = data.email as string; 
+    if (data.password) mockUser.password = data.password; 
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
@@ -211,13 +213,23 @@ export default function ProfilePage() {
 
     setUserData({ ...mockUser });
 
-    localStorage.setItem('isLoggedIn', 'true');
-    toast({
-      title: isCreateMode ? 'Account Created!' : 'Profile Saved!',
-      description: isCreateMode ? 'Your account has been successfully created and you are now logged in.' : 'Your information has been updated.',
-    });
-    router.push('/');
-    router.refresh();
+    if (isCreateMode) {
+      localStorage.setItem('isLoggedIn', 'true');
+      toast({
+        title: 'Account Created!',
+        description: 'Your account has been successfully created and you are now logged in.',
+      });
+      router.push('/');
+      router.refresh();
+    } else {
+      toast({
+        title: 'Profile Saved!',
+        description: 'Your information has been updated.',
+      });
+      // Optionally, stay on page or redirect
+      // router.push('/'); 
+      // router.refresh();
+    }
   }
 
   return (
@@ -244,7 +256,7 @@ export default function ProfilePage() {
                       }}
                     >
                       <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
-                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user avatar" />
+                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user photo" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -276,13 +288,12 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your full name" {...field} />
+                      <Input placeholder="Your full name" {...field} className="text-custom-input-text" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              {/* Email, Password, Confirm Password fields for create mode */}
               {isCreateMode && (
                 <>
                   <FormField
@@ -326,7 +337,7 @@ export default function ProfilePage() {
                   />
                 </>
               )}
-              {!isCreateMode && ( // Display email as read-only for edit mode in this simplified example
+              {!isCreateMode && ( 
                  <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
@@ -344,7 +355,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Delivery/Pick Up Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} />
+                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} className="text-custom-input-text" />
                     </FormControl>
                     <FormDescription>Your preferred location for item exchange (optional).</FormDescription>
                     <FormMessage />
@@ -361,7 +372,7 @@ export default function ProfilePage() {
                     <FormControl>
                       <Textarea
                         placeholder="Tell us a little about yourself..."
-                        className="resize-y min-h-[100px]"
+                        className="resize-y min-h-[100px] text-custom-input-text"
                         {...field}
                         value={field.value || ''}
                       />

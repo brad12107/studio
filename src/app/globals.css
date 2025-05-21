@@ -39,6 +39,8 @@ body {
     --input: 0 0% 98%; /* Very Light Gray for inputs, almost white */
     --ring: 210 89% 54%; /* Medium Blue for rings */
 
+    --custom-input-text: hsl(220, 45%, 30%); /* Dark Slate Blue for input text */
+
     --radius: 0.5rem;
 
     /* Chart colors can be adjusted if charts are used, keeping them for now */
@@ -90,6 +92,8 @@ body {
     --border: 200 15% 30%;
     --input: 200 15% 20%;
     --ring: 210 89% 60%;
+
+    --custom-input-text: hsl(200, 60%, 85%); /* Light Blue for custom input text in dark mode */
     
     --chart-1: 204 70% 50%;
     --chart-2: 210 60% 45%;
