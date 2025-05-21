@@ -13,24 +13,44 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { mockUser } from '@/lib/mock-data'; 
-import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star } from 'lucide-react';
+import type { User } from '@/lib/types';
+import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn } from 'lucide-react';
 import Link from 'next/link';
-// useRouter is no longer needed here for logout, but kept for other navigation if any.
-// import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation'; 
+import { useEffect, useState } from 'react';
 
 export function UserNav() {
   const user = mockUser; 
-  // const router = useRouter(); // Not strictly needed if only used for logout's previous implementation
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const status = localStorage.getItem('isLoggedIn') === 'true';
+    setIsUserLoggedIn(status);
+
+    // Listen for storage changes to update login status across tabs/windows
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'isLoggedIn') {
+        const newStatus = event.newValue === 'true';
+        setIsUserLoggedIn(newStatus);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
-    // Using window.location.href forces a full page reload to the login page,
-    // ensuring all client-side state (including React state) is reset.
-    // This is a robust way to handle logout for localStorage-based mock authentication.
+    setIsUserLoggedIn(false); // Update state immediately
     window.location.href = '/login'; 
   };
 
   const getSubscriptionLabel = () => {
+    if (!user) return 'Standard User'; // Should not happen if logged in
     switch (user.subscriptionStatus) {
       case 'subscribed':
         return 'Basic Plan'; 
@@ -43,6 +63,20 @@ export function UserNav() {
     }
   };
 
+  if (!isClient) {
+    // Avoid rendering anything on the server or before hydration to prevent flash of incorrect state
+    return null; 
+  }
+
+  if (!isUserLoggedIn) {
+    return (
+      <Button variant="outline" onClick={() => router.push('/login')}>
+        <LogIn className="mr-2 h-4 w-4" />
+        Login
+      </Button>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -53,7 +87,7 @@ export function UserNav() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64" align="end" forceMount> {/* Increased width for more info */}
+      <DropdownMenuContent className="w-64" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
