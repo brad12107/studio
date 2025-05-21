@@ -85,7 +85,7 @@ export function LoginForm() {
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 h-auto text-accent">
               <Link href="/profile">
-                Create Profile
+                Create Account
               </Link>
             </Button>
           </p>
