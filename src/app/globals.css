@@ -39,7 +39,9 @@ body {
     --input: 0 0% 98%; /* Very Light Gray for inputs, almost white */
     --ring: 210 89% 54%; /* Medium Blue for rings */
 
-    --custom-input-text: hsl(220, 45%, 30%); /* Dark Slate Blue for input text */
+    --custom-input-text: hsl(220, 20%, 92%); /* Light Cool White for text in custom inputs */
+    --input-profile-background: hsl(220, 50%, 25%); /* Dark Slate Blue for profile input backgrounds */
+
 
     --radius: 0.5rem;
 
@@ -94,6 +96,7 @@ body {
     --ring: 210 89% 60%;
 
     --custom-input-text: hsl(200, 60%, 85%); /* Light Blue for custom input text in dark mode */
+    --input-profile-background: hsl(200, 15%, 20%); /* Same as general dark input for profile inputs */
     
     --chart-1: 204 70% 50%;
     --chart-2: 210 60% 45%;

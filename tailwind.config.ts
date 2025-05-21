@@ -48,6 +48,7 @@ export default {
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
         'custom-input-text': 'hsl(var(--custom-input-text))',
+        'input-profile-background': 'hsl(var(--input-profile-background))',
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

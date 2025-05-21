@@ -116,14 +116,14 @@ export default function ProfilePage() {
       }
     : {
         name: userData.name || '',
-        email: userData.email || '', // Pre-fill email for edit, though not actively editable in this simplified form
-        password: '', // Passwords typically not pre-filled
+        email: userData.email || '', 
+        password: '', 
         confirmPassword: '',
         location: userData.location || '',
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: true, // User must re-agree if they edit, or set to true for existing users
+        agreedToCodeOfConduct: true, 
       },
   });
 
@@ -137,19 +137,19 @@ export default function ProfilePage() {
         }
       : {
           name: userData.name || '',
-          email: userData.email || '', // Display current email if editing
-          password: '', // Reset password fields on mode change or user data change
+          email: userData.email || '', 
+          password: '', 
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined, 
           agreedToCodeOfConduct: true, 
         },
-      { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver
+      { resolver: zodResolver(currentProfileSchema) } 
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData, isCreateMode]); // form removed as dependency to prevent loops, reset is manual
+  }, [userData, isCreateMode]); 
 
 
   const watchedAvatarUrl = form.watch('avatarUrl');
@@ -286,7 +286,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your full name" {...field} className="text-custom-input-text" />
+                      <Input placeholder="Your full name" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -301,7 +301,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="you@example.com" {...field} className="text-custom-input-text"/>
+                          <Input type="email" placeholder="you@example.com" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -314,7 +314,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} className="text-custom-input-text"/>
+                          <Input type="password" placeholder="••••••••" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -327,7 +327,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} className="text-custom-input-text"/>
+                          <Input type="password" placeholder="••••••••" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -353,7 +353,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Delivery/Pick Up Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} className="text-custom-input-text" />
+                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" />
                     </FormControl>
                     <FormDescription>Your preferred location for item exchange (optional).</FormDescription>
                     <FormMessage />
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                     <FormControl>
                       <Textarea
                         placeholder="Tell us a little about yourself..."
-                        className="resize-y min-h-[100px] text-custom-input-text"
+                        className="resize-y min-h-[100px] bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
                         {...field}
                         value={field.value || ''}
                       />
@@ -444,4 +444,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
