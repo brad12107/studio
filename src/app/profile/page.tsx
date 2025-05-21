@@ -123,7 +123,7 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: false, // User must re-agree if they edit
+        agreedToCodeOfConduct: true, // User must re-agree if they edit, or set to true for existing users
       },
   });
 
@@ -143,7 +143,7 @@ export default function ProfilePage() {
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined, 
-          agreedToCodeOfConduct: false, // Require re-agreement on edit, or set based on existing if that's desired
+          agreedToCodeOfConduct: true, 
         },
       { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver
     );
@@ -204,8 +204,8 @@ export default function ProfilePage() {
     }
 
     mockUser.name = data.name;
-    if (isCreateMode || data.email) mockUser.email = data.email as string; 
-    if (data.password) mockUser.password = data.password; 
+    if (isCreateMode && data.email) mockUser.email = data.email; 
+    if (isCreateMode && data.password) mockUser.password = data.password; 
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
@@ -226,9 +226,7 @@ export default function ProfilePage() {
         title: 'Profile Saved!',
         description: 'Your information has been updated.',
       });
-      // Optionally, stay on page or redirect
-      // router.push('/'); 
-      // router.refresh();
+      router.refresh(); 
     }
   }
 
@@ -256,7 +254,7 @@ export default function ProfilePage() {
                       }}
                     >
                       <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
-                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user photo" />
+                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user profile" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -303,7 +301,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="you@example.com" {...field} />
+                          <Input type="email" placeholder="you@example.com" {...field} className="text-custom-input-text"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -316,7 +314,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <Input type="password" placeholder="••••••••" {...field} className="text-custom-input-text"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -329,7 +327,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
+                          <Input type="password" placeholder="••••••••" {...field} className="text-custom-input-text"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -446,3 +444,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
