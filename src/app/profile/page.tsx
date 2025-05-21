@@ -25,13 +25,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useRouter, useSearchParams } from 'next/navigation'; 
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
-// Helper function to convert File to data URI
 const fileToDataUri = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -41,12 +40,12 @@ const fileToDataUri = (file: File): Promise<string> => {
   });
 };
 
-const profileSchema = z.object({
+const profileSchemaBase = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }).max(50),
   location: z.string().max(100, { message: 'Location cannot exceed 100 characters.' }).optional(),
   bio: z.string().max(250, { message: 'Bio cannot exceed 250 characters.' }).optional(),
   isProfilePrivate: z.boolean().default(false),
-  avatarUrl: z.custom<FileList | string | undefined>() 
+  avatarUrl: z.custom<FileList | string | undefined>()
     .optional()
     .refine((value) => {
       if (value instanceof FileList && value.length > 0) {
@@ -67,99 +66,108 @@ const profileSchema = z.object({
   }),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+const profileSchemaCreate = profileSchemaBase.extend({
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  confirmPassword: z.string().min(6, { message: "Please confirm your password." }),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
+const profileSchemaEdit = profileSchemaBase.extend({
+  email: z.string().email({ message: "Please enter a valid email address." }).optional(), // Email might not be editable or shown in edit mode for simplicity here
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
+  confirmPassword: z.string().min(6, { message: "Please confirm your password." }).optional(),
+}).refine(data => !data.password || data.password === data.confirmPassword, { // Only validate if password is being changed
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
+
+type ProfileFormValues = z.infer<typeof profileSchemaCreate>; // Use the create schema for form values type
 const defaultAvatarPlaceholder = 'https://placehold.co/100x100.png';
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const router = useRouter(); 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isCreateMode = searchParams.get('mode') === 'create';
 
-  const [userData, setUserData] = useState<User>(mockUser); // Represents the current state of mockUser
+  const [userData, setUserData] = useState<User>(mockUser);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(
     isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder)
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(isCreateMode ? profileSchemaCreate : profileSchemaEdit),
     defaultValues: isCreateMode
-    ? { // Defaults for "Create Account" mode
+    ? {
         name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
         location: '',
         bio: '',
         isProfilePrivate: false,
         avatarUrl: undefined,
         agreedToCodeOfConduct: false,
       }
-    : { // Defaults for "Edit Profile" mode
+    : {
         name: userData.name || '',
+        email: userData.email || '', // Pre-fill email for edit, though not actively editable in this simplified form
+        password: '', // Passwords typically not pre-filled
+        confirmPassword: '',
         location: userData.location || '',
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: false, // Always require re-agreement
+        agreedToCodeOfConduct: false,
       },
   });
-  
+
   useEffect(() => {
-    // This effect ensures that if 'userData' (our reflection of mockUser) changes,
-    // and we are in "edit mode", the form reflects these changes.
-    // It also sets the initial avatar preview for edit mode.
-    if (!isCreateMode) {
-      form.reset({
-        name: userData.name || '',
-        location: userData.location || '',
-        bio: userData.bio || '',
-        isProfilePrivate: userData.isProfilePrivate || false,
-        avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: false, // Keep false, user must re-check
-      });
-      setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
-    } else {
-      // For create mode, ensure the form stays with blank/default values
-      // and the avatar preview is the default placeholder.
-      // The defaultValues in useForm should handle the initial blank state.
-      // Avatar preview is initialized above.
-      // If for some reason userData changed while in create mode, we'd want to ensure
-      // the form doesn't get pre-filled from it.
-       form.reset({
-        name: '',
-        location: '',
-        bio: '',
-        isProfilePrivate: false,
-        avatarUrl: undefined,
-        agreedToCodeOfConduct: false,
-      });
-      setAvatarPreview(defaultAvatarPlaceholder);
-    }
+    const currentProfileSchema = isCreateMode ? profileSchemaCreate : profileSchemaEdit;
+    form.reset(
+      isCreateMode
+      ? {
+          name: '', email: '', password: '', confirmPassword: '', location: '', bio: '',
+          isProfilePrivate: false, avatarUrl: undefined, agreedToCodeOfConduct: false,
+        }
+      : {
+          name: userData.name || '',
+          email: userData.email || '', // Display current email if editing
+          password: '', // Reset password fields on mode change or user data change
+          confirmPassword: '',
+          location: userData.location || '', bio: userData.bio || '',
+          isProfilePrivate: userData.isProfilePrivate || false,
+          avatarUrl: userData.avatarUrl || undefined, agreedToCodeOfConduct: false,
+        },
+      { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver
+    );
+    setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
   }, [userData, form, isCreateMode]);
+
 
   const watchedAvatarUrl = form.watch('avatarUrl');
 
   useEffect(() => {
-    // Handles preview updates when a new file is selected for avatar
     if (watchedAvatarUrl instanceof FileList && watchedAvatarUrl.length > 0) {
       const file = watchedAvatarUrl[0];
       if (file && ACCEPTED_AVATAR_TYPES.includes(file.type) && file.size <= MAX_AVATAR_SIZE_BYTES) {
         fileToDataUri(file).then(setAvatarPreview).catch(err => {
           console.error("Error creating avatar preview:", err);
-          // Fallback to default if preview fails
           setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
-         // If file is invalid, revert to previous or default preview
         setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
       }
     } else if (typeof watchedAvatarUrl === 'string') {
-      // If avatarUrl is a string (e.g. existing URL), use it for preview
       setAvatarPreview(watchedAvatarUrl);
     } else if (!watchedAvatarUrl && isCreateMode) {
-      // If no avatarUrl and in create mode, ensure default placeholder
       setAvatarPreview(defaultAvatarPlaceholder);
     } else if (!watchedAvatarUrl && !isCreateMode) {
-      // If no avatarUrl and in edit mode, use current userData's avatar or default
       setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
     }
   }, [watchedAvatarUrl, isCreateMode, userData.avatarUrl]);
@@ -170,7 +178,6 @@ export default function ProfilePage() {
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
-      // Schema validation should catch this, but double check
       if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
         toast({
           title: 'Invalid Avatar File',
@@ -190,35 +197,35 @@ export default function ProfilePage() {
         });
         return;
       }
-    } else if (typeof data.avatarUrl === 'string') { // Existing URL was passed through
-      finalAvatarUrl = data.avatarUrl; 
+    } else if (typeof data.avatarUrl === 'string') {
+      finalAvatarUrl = data.avatarUrl;
     }
-    // If data.avatarUrl was undefined (e.g. in create mode, no file selected), finalAvatarUrl retains its initial value
 
-    // Update mockUser directly
     mockUser.name = data.name;
+    if (isCreateMode || data.email) mockUser.email = data.email as string; // data.email will exist in create mode
+    if (data.password) mockUser.password = data.password; // Only update password if provided
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
-    
-    setUserData({ ...mockUser }); // Update local state to reflect changes if needed elsewhere
 
-    localStorage.setItem('isLoggedIn', 'true'); 
+    setUserData({ ...mockUser });
+
+    localStorage.setItem('isLoggedIn', 'true');
     toast({
-      title: 'Profile Saved!', 
-      description: 'Your information is saved and you are now logged in. Welcome!',
+      title: isCreateMode ? 'Account Created!' : 'Profile Saved!',
+      description: isCreateMode ? 'Your account has been successfully created and you are now logged in.' : 'Your information has been updated.',
     });
-    router.push('/'); 
-    router.refresh(); 
+    router.push('/');
+    router.refresh();
   }
 
   return (
     <div className="container mx-auto py-8">
       <Card className="max-w-2xl mx-auto shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Edit Profile</CardTitle>
-          <CardDescription>Manage your personal information and privacy settings.</CardDescription>
+          <CardTitle className="text-2xl font-bold">{isCreateMode ? 'Create Your Account' : 'Edit Profile'}</CardTitle>
+          <CardDescription>{isCreateMode ? 'Fill in your details to get started.' : 'Manage your personal information and privacy settings.'}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -228,16 +235,16 @@ export default function ProfilePage() {
                 name="avatarUrl"
                 render={({ field }) => (
                   <FormItem className="flex flex-col items-center">
-                    <FormLabel 
-                      htmlFor="avatar-upload-input" 
+                    <FormLabel
+                      htmlFor="avatar-upload-input"
                       className="relative cursor-pointer group"
                       onClick={(e) => {
-                        e.preventDefault(); 
+                        e.preventDefault();
                         fileInputRef.current?.click();
                       }}
                     >
                       <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
-                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user profile" />
+                        <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user avatar" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
                       <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -246,14 +253,14 @@ export default function ProfilePage() {
                     </FormLabel>
                     <FormDescription className="text-center mt-2">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
                     <FormControl>
-                       <Input 
+                       <Input
                         id="avatar-upload-input"
                         type="file"
                         accept="image/png, image/jpeg, image/webp"
-                        className="hidden" 
+                        className="hidden"
                         ref={fileInputRef}
                         onChange={(e) => {
-                           field.onChange(e.target.files) 
+                           field.onChange(e.target.files)
                         }}
                       />
                     </FormControl>
@@ -275,6 +282,60 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
+              {/* Email, Password, Confirm Password fields for create mode */}
+              {isCreateMode && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="you@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+              {!isCreateMode && ( // Display email as read-only for edit mode in this simplified example
+                 <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input type="email" value={userData.email} readOnly disabled className="bg-muted/50"/>
+                    </FormControl>
+                    <FormDescription>Email cannot be changed after account creation (in this mock setup).</FormDescription>
+                  </FormItem>
+              )}
+
 
               <FormField
                 control={form.control}
@@ -302,7 +363,7 @@ export default function ProfilePage() {
                         placeholder="Tell us a little about yourself..."
                         className="resize-y min-h-[100px]"
                         {...field}
-                        value={field.value || ''} 
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormDescription>A short description about you (max 250 characters).</FormDescription>
@@ -358,14 +419,14 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              
-              <Button 
-                type="submit" 
-                size="lg" 
-                className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground"
                 disabled={form.formState.isSubmitting}
                 >
-                {form.formState.isSubmitting ? 'Saving...' : 'Save Profile'}
+                {form.formState.isSubmitting ? (isCreateMode ? 'Creating Account...' : 'Saving...') : (isCreateMode ? 'Create Account' : 'Save Profile')}
               </Button>
             </form>
           </Form>

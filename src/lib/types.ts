@@ -6,7 +6,7 @@ export interface Item {
   price: number;
   type: 'sale' | 'auction';
   imageUrl: string;
-  sellerName: string; 
+  sellerName: string;
   category: string;
   isEnhanced?: boolean;
 }
@@ -14,7 +14,9 @@ export interface Item {
 export interface User {
   id: string;
   name: string;
-  location?: string; 
+  email: string; // Added email
+  password: string; // Added password
+  location?: string;
   bio?: string;
   isProfilePrivate?: boolean;
   subscriptionStatus: 'free_trial' | 'subscribed' | 'premium_plus' | 'none';

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { mockUser } from '@/lib/mock-data'; // Import mockUser to check credentials
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -20,22 +21,21 @@ export function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
-    // Mock authentication
-    if (email === 'user@example.com' && password === 'password') {
+    // Check against mockUser's credentials
+    if (mockUser.email && email === mockUser.email && mockUser.password && password === mockUser.password) {
       localStorage.setItem('isLoggedIn', 'true');
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/'); // Redirect to homepage
-      router.refresh(); // Refresh to re-evaluate auth state on homepage
+      router.push('/');
+      router.refresh();
     } else {
       toast({
         title: 'Login Failed',
-        description: 'Invalid email or password. (Hint: user@example.com / password)',
+        description: 'Invalid email or password. If you don\'t have an account, please create one.',
         variant: 'destructive',
       });
     }
@@ -56,7 +56,7 @@ export function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="user@example.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -68,7 +68,7 @@ export function LoginForm() {
               <Input
                 id="password"
                 type="password"
-                placeholder="password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
