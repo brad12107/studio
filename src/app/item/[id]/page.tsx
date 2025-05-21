@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -109,6 +109,7 @@ export default function ItemDetailPage() {
           <CardFooter className="flex-col items-start space-y-4">
             <Skeleton className="h-10 w-1/3" />
             <Skeleton className="h-10 w-1/2" />
+            <Skeleton className="h-10 w-1/3" />
           </CardFooter>
         </Card>
       </div>
@@ -187,6 +188,14 @@ export default function ItemDetailPage() {
                   <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
                 </div>
               )}
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full md:w-auto border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => router.push(`/report-item?itemId=${item.id}&itemName=${encodeURIComponent(item.name)}`)}
+              >
+                <Flag className="mr-2 h-5 w-5" /> Report this Item
+              </Button>
             </CardFooter>
           </div>
         </div>
