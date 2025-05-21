@@ -25,7 +25,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useRouter } from 'next/navigation'; 
+import { useRouter, useSearchParams } from 'next/navigation'; 
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -68,65 +68,109 @@ const profileSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
+const defaultAvatarPlaceholder = 'https://placehold.co/100x100.png';
 
 export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter(); 
-  const [userData, setUserData] = useState<User>(mockUser);
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(userData.avatarUrl || 'https://placehold.co/100x100.png');
+  const searchParams = useSearchParams();
+  const isCreateMode = searchParams.get('mode') === 'create';
+
+  const [userData, setUserData] = useState<User>(mockUser); // Represents the current state of mockUser
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(
+    isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder)
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: userData.name || '',
-      location: userData.location || '',
-      bio: userData.bio || '',
-      isProfilePrivate: userData.isProfilePrivate || false,
-      avatarUrl: userData.avatarUrl || undefined,
-      agreedToCodeOfConduct: false, 
-    },
+    defaultValues: isCreateMode
+    ? { // Defaults for "Create Account" mode
+        name: '',
+        location: '',
+        bio: '',
+        isProfilePrivate: false,
+        avatarUrl: undefined,
+        agreedToCodeOfConduct: false,
+      }
+    : { // Defaults for "Edit Profile" mode
+        name: userData.name || '',
+        location: userData.location || '',
+        bio: userData.bio || '',
+        isProfilePrivate: userData.isProfilePrivate || false,
+        avatarUrl: userData.avatarUrl || undefined,
+        agreedToCodeOfConduct: false, // Always require re-agreement
+      },
   });
   
   useEffect(() => {
-    form.reset({
-      name: userData.name || '',
-      location: userData.location || '',
-      bio: userData.bio || '',
-      isProfilePrivate: userData.isProfilePrivate || false,
-      avatarUrl: userData.avatarUrl || undefined,
-      agreedToCodeOfConduct: form.getValues('agreedToCodeOfConduct') || false, 
-    });
-    setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
-  }, [userData, form]);
+    // This effect ensures that if 'userData' (our reflection of mockUser) changes,
+    // and we are in "edit mode", the form reflects these changes.
+    // It also sets the initial avatar preview for edit mode.
+    if (!isCreateMode) {
+      form.reset({
+        name: userData.name || '',
+        location: userData.location || '',
+        bio: userData.bio || '',
+        isProfilePrivate: userData.isProfilePrivate || false,
+        avatarUrl: userData.avatarUrl || undefined,
+        agreedToCodeOfConduct: false, // Keep false, user must re-check
+      });
+      setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
+    } else {
+      // For create mode, ensure the form stays with blank/default values
+      // and the avatar preview is the default placeholder.
+      // The defaultValues in useForm should handle the initial blank state.
+      // Avatar preview is initialized above.
+      // If for some reason userData changed while in create mode, we'd want to ensure
+      // the form doesn't get pre-filled from it.
+       form.reset({
+        name: '',
+        location: '',
+        bio: '',
+        isProfilePrivate: false,
+        avatarUrl: undefined,
+        agreedToCodeOfConduct: false,
+      });
+      setAvatarPreview(defaultAvatarPlaceholder);
+    }
+  }, [userData, form, isCreateMode]);
 
   const watchedAvatarUrl = form.watch('avatarUrl');
 
   useEffect(() => {
+    // Handles preview updates when a new file is selected for avatar
     if (watchedAvatarUrl instanceof FileList && watchedAvatarUrl.length > 0) {
       const file = watchedAvatarUrl[0];
       if (file && ACCEPTED_AVATAR_TYPES.includes(file.type) && file.size <= MAX_AVATAR_SIZE_BYTES) {
         fileToDataUri(file).then(setAvatarPreview).catch(err => {
           console.error("Error creating avatar preview:", err);
-          setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png'); 
+          // Fallback to default if preview fails
+          setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
-        setAvatarPreview(userData.avatarUrl || 'https://placehold.co/100x100.png');
+         // If file is invalid, revert to previous or default preview
+        setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
       }
     } else if (typeof watchedAvatarUrl === 'string') {
+      // If avatarUrl is a string (e.g. existing URL), use it for preview
       setAvatarPreview(watchedAvatarUrl);
-    } else if (!watchedAvatarUrl) {
-        setAvatarPreview('https://placehold.co/100x100.png'); 
+    } else if (!watchedAvatarUrl && isCreateMode) {
+      // If no avatarUrl and in create mode, ensure default placeholder
+      setAvatarPreview(defaultAvatarPlaceholder);
+    } else if (!watchedAvatarUrl && !isCreateMode) {
+      // If no avatarUrl and in edit mode, use current userData's avatar or default
+      setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps 
-  }, [watchedAvatarUrl]);
+  }, [watchedAvatarUrl, isCreateMode, userData.avatarUrl]);
 
 
   async function onSubmit(data: ProfileFormValues) {
-    let finalAvatarUrl = userData.avatarUrl; 
+    let finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder);
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
+      // Schema validation should catch this, but double check
       if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
         toast({
           title: 'Invalid Avatar File',
@@ -146,19 +190,19 @@ export default function ProfilePage() {
         });
         return;
       }
-    } else if (typeof data.avatarUrl === 'string') {
+    } else if (typeof data.avatarUrl === 'string') { // Existing URL was passed through
       finalAvatarUrl = data.avatarUrl; 
-    } else if (data.avatarUrl === undefined || (data.avatarUrl instanceof FileList && data.avatarUrl.length === 0)) {
-       finalAvatarUrl = 'https://placehold.co/100x100.png'; 
     }
+    // If data.avatarUrl was undefined (e.g. in create mode, no file selected), finalAvatarUrl retains its initial value
 
+    // Update mockUser directly
     mockUser.name = data.name;
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
     
-    setUserData({ ...mockUser }); 
+    setUserData({ ...mockUser }); // Update local state to reflect changes if needed elsewhere
 
     localStorage.setItem('isLoggedIn', 'true'); 
     toast({
@@ -167,7 +211,6 @@ export default function ProfilePage() {
     });
     router.push('/'); 
     router.refresh(); 
-    console.log('Updated mockUser:', mockUser);
   }
 
   return (
@@ -331,4 +374,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

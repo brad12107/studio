@@ -84,7 +84,7 @@ export function LoginForm() {
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 h-auto text-accent">
-              <Link href="/profile">
+              <Link href="/profile?mode=create">
                 Create Account
               </Link>
             </Button>
