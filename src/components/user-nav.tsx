@@ -15,16 +15,19 @@ import {
 import { mockUser } from '@/lib/mock-data'; 
 import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; 
+// useRouter is no longer needed here for logout, but kept for other navigation if any.
+// import { useRouter } from 'next/navigation'; 
 
 export function UserNav() {
   const user = mockUser; 
-  const router = useRouter(); 
+  // const router = useRouter(); // Not strictly needed if only used for logout's previous implementation
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
-    router.push('/login');
-    router.refresh(); 
+    // Using window.location.href forces a full page reload to the login page,
+    // ensuring all client-side state (including React state) is reset.
+    // This is a robust way to handle logout for localStorage-based mock authentication.
+    window.location.href = '/login'; 
   };
 
   const getSubscriptionLabel = () => {
@@ -32,7 +35,7 @@ export function UserNav() {
       case 'subscribed':
         return 'Basic Plan'; 
       case 'premium_plus':
-        return 'Premium Plan'; // Changed from 'Premium Plus'
+        return 'Premium Plan';
       case 'free_trial':
         return 'Free Trial';
       default:
@@ -57,7 +60,7 @@ export function UserNav() {
             <p className="text-xs leading-none text-muted-foreground">
               {getSubscriptionLabel()}
             </p>
-            {user.subscriptionStatus === 'premium_plus' && ( // Logic remains based on 'premium_plus'
+            {user.subscriptionStatus === 'premium_plus' && (
               <p className="text-xs leading-none text-muted-foreground flex items-center">
                 <Star className="mr-1 h-3 w-3 text-amber-500" /> 
                 {user.enhancedListingsRemaining || 0} free enhancements left
