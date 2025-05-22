@@ -211,7 +211,7 @@ export default function ProfilePage() {
 
     mockUser.name = data.name;
     if (isCreateMode && data.email) mockUser.email = data.email; 
-    if (isCreateMode && data.password) mockUser.password = data.password; 
+    if (data.password) mockUser.password = data.password;  // Update password if provided (for create or edit)
     mockUser.location = data.location;
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
@@ -316,30 +316,42 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              {isCreateMode && (
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email" 
+                        placeholder="you@example.com" 
+                        {...field} 
+                        className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
+                        readOnly={!isCreateMode} // Email is editable only in create mode
+                        disabled={!isCreateMode} // Disable if not create mode
+                      />
+                    </FormControl>
+                     {!isCreateMode && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Password fields are shown in create mode, or optionally in edit mode for changes */}
+              {(isCreateMode || !isCreateMode /* (allow password change in edit mode too) */) && (
                 <>
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="you@example.com" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>{isCreateMode ? 'Password' : 'New Password (optional)'}</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
+                         {!isCreateMode && <FormDescription>Leave blank to keep current password.</FormDescription>}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -349,7 +361,7 @@ export default function ProfilePage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel>{isCreateMode ? 'Confirm Password' : 'Confirm New Password'}</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
@@ -359,16 +371,6 @@ export default function ProfilePage() {
                   />
                 </>
               )}
-              {!isCreateMode && ( 
-                 <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input type="email" value={userData.email} readOnly disabled className="bg-muted/50"/>
-                    </FormControl>
-                    <FormDescription>Email cannot be changed after account creation (in this mock setup).</FormDescription>
-                  </FormItem>
-              )}
-
 
               <FormField
                 control={form.control}
@@ -413,7 +415,7 @@ export default function ProfilePage() {
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Keep Profile Private</FormLabel>
                       <FormDescription>
-                        If enabled, your profile details (like location and bio) will not be publicly visible.
+                        If enabled, your email address and delivery/pick-up location will not be publicly visible. Other details like your name, avatar, and bio may still be visible.
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -468,3 +470,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
