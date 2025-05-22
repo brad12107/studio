@@ -1,13 +1,13 @@
 
 'use client';
 
-import { mockItems, mockUser } from '@/lib/mock-data';
-import type { Item } from '@/lib/types';
+import { mockItems, mockUser, mockConversations, mockMessages } from '@/lib/mock-data';
+import type { Item, Message, Conversation } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, Users, History, Gavel, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +59,7 @@ export default function ItemDetailPage() {
   const [bidAmount, setBidAmount] = useState<string>('');
   const [isBidDialogOpen, setIsBidDialogOpen] = useState(false);
   const [feedbackGivenForItem, setFeedbackGivenForItem] = useState<'up' | 'down' | null>(null);
+  const [winningNotificationSent, setWinningNotificationSent] = useState(false);
 
 
   const itemId = params.id as string;
@@ -77,6 +78,7 @@ export default function ItemDetailPage() {
         }
          // Reset feedback state when item changes
         setFeedbackGivenForItem(null);
+        setWinningNotificationSent(false); // Reset notification status when item changes/reloads
       }, 0); // Short delay to allow state updates from mock data if needed
     }
   }, [itemId]);
@@ -93,8 +95,67 @@ export default function ItemDetailPage() {
         setTimeLeft(calculateTimeLeft(item.auctionEndTime));
       }, 1000);
       return () => clearInterval(timer);
+    } else if (item?.type === 'auction' && timeLeft.total <= 0 && !winningNotificationSent) {
+      // Auction ended, check for winner
+      if (item.bidHistory && item.bidHistory.length > 0 && item.bidHistory[0].userId === mockUser.id) {
+        // Current user is the winner
+        const winningMsgContent = `Congratulations! You won the auction for "${item.name}". Please go to your messages to finalize the purchase with ${item.sellerName}. You can send a buy request there.`;
+        const systemMessage: Message = {
+          id: `msg-win-${item.id}-${Date.now()}`,
+          fromUserId: 'system', 
+          toUserId: mockUser.id, 
+          itemId: item.id,
+          content: winningMsgContent,
+          timestamp: new Date().toISOString(),
+          isRead: false,
+          isSystemMessage: true,
+        };
+        mockMessages.push(systemMessage);
+
+        let conversation = mockConversations.find(
+          (c) => c.itemId === item.id && c.participants.some(p => p.id === mockUser.id) && c.participants.some(p => p.name === item.sellerName)
+        );
+
+        if (conversation) {
+          conversation.lastMessage = { content: systemMessage.content, timestamp: systemMessage.timestamp };
+          // Optionally mark as unread for the winner if this logic is handled per user. For mock, assume new message = unread.
+          conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+           // Ensure conversations are re-sorted if lastMessage timestamp changes
+          mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
+        } else {
+          const newConvId = `conv-win-${item.id}-${Date.now()}`;
+          const sellerParticipant = { 
+            id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, // Consistent seller ID for this item context
+            name: item.sellerName, 
+            avatarUrl: `https://placehold.co/50x50.png?text=${item.sellerName.substring(0,2).toUpperCase()}` 
+          };
+          
+          conversation = {
+            id: newConvId,
+            itemId: item.id,
+            itemName: item.name,
+            itemImageUrl: item.imageUrl,
+            participants: [
+              { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
+              sellerParticipant
+            ],
+            lastMessage: { content: systemMessage.content, timestamp: systemMessage.timestamp },
+            unreadCount: 1, 
+            buyRequestStatus: 'none',
+            isItemSoldOrUnavailable: false, 
+          };
+          mockConversations.unshift(conversation);
+        }
+        
+        setWinningNotificationSent(true);
+        toast({ 
+            title: "Auction Won!", 
+            description: `You won the auction for ${item.name}. Check your messages to complete the purchase.`,
+            duration: 7000 
+        });
+      }
     }
-  }, [item?.type, item?.auctionEndTime, timeLeft.total]);
+  }, [item, timeLeft.total, winningNotificationSent, toast, mockUser.id, mockUser.name, mockUser.avatarUrl]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -190,15 +251,14 @@ export default function ItemDetailPage() {
       toast({
         title: 'Negative Feedback Submitted!',
         description: `You gave ${item.sellerName} a thumbs down (mocked on your profile).`,
-        variant: 'default', // Use default for neutral information
+        variant: 'default', 
       });
     }
     setFeedbackGivenForItem(type);
-    // In a real app, you'd also save this feedback to the backend, associated with the seller and item.
   };
 
 
-  if (item === undefined) { // Loading state
+  if (item === undefined) { 
     return (
       <div className="container mx-auto py-8">
         <Button variant="outline" onClick={() => router.back()} className="mb-6">
@@ -274,7 +334,8 @@ export default function ItemDetailPage() {
               
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
                 <div className="flex items-center text-muted-foreground">
-                  {item.type === 'auction' ? 'Starting Price:' : 'Price:'} <span className="font-semibold text-foreground ml-1">£{item.price.toFixed(2)}</span>
+                  {item.type === 'auction' ? (item.currentBid ? 'Current Bid:' : 'Starting Price:') : 'Price:'} 
+                  <span className="font-semibold text-foreground ml-1">£{(item.currentBid || item.price).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center text-muted-foreground">
                   <Tag className="h-5 w-5 mr-2 text-primary" /> Category: <span className="font-semibold text-foreground ml-1">{item.category}</span>
@@ -290,11 +351,7 @@ export default function ItemDetailPage() {
                   <h3 className="text-lg font-semibold mb-2 flex items-center">
                     <Clock className="mr-2 h-5 w-5 text-primary" /> Auction Details
                   </h3>
-                  {item.currentBid && (
-                    <p className="text-base font-semibold text-primary">
-                      Current Bid: £{item.currentBid.toFixed(2)}
-                    </p>
-                  )}
+                  {/* Display current bid if it exists, otherwise starting price already shown above */}
                   {auctionIsActive && (
                     <p className="text-sm text-green-600 font-medium">
                       Time Left: {timeLeft.days > 0 && `${timeLeft.days}d `}
@@ -312,7 +369,7 @@ export default function ItemDetailPage() {
                         <History className="mr-1.5 h-3 w-3" /> Bid History (Recent First)
                       </h4>
                       <ul className="text-xs space-y-0.5 max-h-24 overflow-y-auto">
-                        {item.bidHistory.slice(0, 5).map((bid, index) => ( // Show up to 5 recent bids
+                        {item.bidHistory.slice(0, 5).map((bid, index) => ( 
                           <li key={index} className="text-muted-foreground">
                             £{bid.amount.toFixed(2)} by {bid.userName === mockUser.name ? <b>You</b> : bid.userName} ({formatDistanceToNowStrict(new Date(bid.timestamp), { addSuffix: true })})
                           </li>
@@ -372,17 +429,18 @@ export default function ItemDetailPage() {
                 </Dialog>
               )}
 
-              {!isCurrentlyEnhanced && (
+              {!isCurrentlyEnhanced && item.sellerName === mockUser.name && ( // Only show enhance if current user is seller
                 <Button 
                   size="lg" 
                   variant="outline"
                   className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700" 
                   onClick={handleEnhanceItem}
+                  disabled={auctionEnded && item.type === 'auction'} // Disable if auction ended
                 >
                   <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
               ) }
-              {isCurrentlyEnhanced && !(item.type === 'auction' && auctionEnded) &&( // Don't show if auction ended
+              {isCurrentlyEnhanced && (
                 <div className="flex items-center text-green-600 font-semibold p-3 rounded-md bg-green-50 border border-green-200 w-full md:w-auto shadow-sm">
                   <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
                 </div>
@@ -396,7 +454,6 @@ export default function ItemDetailPage() {
                 <Flag className="mr-2 h-5 w-5" /> Report this Item
               </Button>
 
-              {/* Feedback Section */}
               {showFeedbackOptions && (
                 <div className="w-full pt-4 mt-4 border-t">
                   <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>

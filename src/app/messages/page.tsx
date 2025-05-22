@@ -76,10 +76,8 @@ export default function MessagesPage() {
       } else {
         const itemForConv = mockItems.find(item => item.id === itemIdParam);
         if (itemForConv && itemForConv.sellerName === mockUser.name) {
-            // User is trying to message themselves about their own item
-            // Do not create a conversation. Optionally show a toast.
             toast({ title: "Cannot message yourself", description: "You cannot start a conversation with yourself about your own item.", variant: 'default' });
-            router.replace('/messages'); // Redirect to avoid invalid state
+            router.replace('/messages'); 
             return;
         }
 
@@ -112,24 +110,25 @@ export default function MessagesPage() {
     } else if (conversations.length > 0 && !selectedConversation) {
       setSelectedConversation(conversations[0]);
     }
-  // Explicitly list dependencies. selectedConversation is read, so it should be a dependency.
-  // The internal logic should prevent infinite loops if an existingConv is found and set.
   }, [searchParams, mockUser.id, mockUser.name, mockUser.avatarUrl, conversations, selectedConversation, router, toast]); 
 
   useEffect(() => {
     if (selectedConversation) {
       const currentParticipantsIds = selectedConversation.participants.map(p => p.id);
-      setMessages(
-        mockMessages
-          .filter(
-            (msg) =>
-              (msg.itemId === selectedConversation.itemId && // Ensure message is for the correct item
-              currentParticipantsIds.includes(msg.fromUserId) && // fromUser is part of this conversation
-              currentParticipantsIds.includes(msg.toUserId)) || // toUser is part of this conversation
-              (msg.itemId === selectedConversation.itemId && msg.isSystemMessage && currentParticipantsIds.includes(msg.toUserId === mockUser.id ? msg.fromUserId : msg.toUserId )) // system messages related to this item/conversation
-          )
-          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      );
+      const msgsForConv = mockMessages.filter(msg => {
+          if (msg.itemId !== selectedConversation.itemId) return false;
+
+          if (msg.isSystemMessage) {
+              // For system messages, they are relevant if targeted at either participant in the conversation
+              // OR if the 'from' is system and 'to' is one of the participants.
+              // Our system messages are 'from' system 'to' one of the participants (e.g. mockUser or otherParticipant).
+              return currentParticipantsIds.includes(msg.toUserId) || (msg.fromUserId === 'system' && currentParticipantsIds.includes(msg.toUserId));
+          }
+          // For non-system messages, both sender and receiver must be in the current conversation
+          return currentParticipantsIds.includes(msg.fromUserId) && currentParticipantsIds.includes(msg.toUserId);
+      })
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      setMessages(msgsForConv);
     } else {
       setMessages([]);
     }
@@ -145,12 +144,15 @@ export default function MessagesPage() {
     if (!content.trim() || !selectedConversation) return;
     
     const otherParticipant = getOtherParticipant(selectedConversation);
-    if (!otherParticipant) return; 
+    if (!otherParticipant && !isSystem) return; // For user messages, other participant is required
+
+    const toUserIdForMsg = isSystem ? (isCurrentUserTheSeller ? otherParticipant!.id : mockUser.id) : otherParticipant!.id;
+
 
     const msg: Message = {
       id: `msg-${Date.now()}`,
       fromUserId: isSystem ? 'system' : mockUser.id,
-      toUserId: otherParticipant.id, // System messages are for both, but contextually from one to other
+      toUserId: toUserIdForMsg, 
       itemId: selectedConversation.itemId,
       content: content,
       timestamp: new Date().toISOString(),
@@ -197,10 +199,11 @@ export default function MessagesPage() {
         if (conv.id === selectedConversation.id) {
           const remainingConvMessages = mockMessages
             .filter(m => {
-                const convParticipantIds = conv.participants.map(p => p.id);
-                return m.itemId === conv.itemId &&
-                       convParticipantIds.includes(m.fromUserId) &&
-                       convParticipantIds.includes(m.toUserId);
+                if (m.itemId !== conv.itemId) return false;
+                if (m.isSystemMessage) {
+                    return conv.participants.map(p => p.id).includes(m.toUserId);
+                }
+                return conv.participants.map(p => p.id).includes(m.fromUserId) && conv.participants.map(p => p.id).includes(m.toUserId);
             })
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -211,13 +214,11 @@ export default function MessagesPage() {
               lastMessage: { content: newLastMsg.content, timestamp: newLastMsg.timestamp },
             };
           } else {
-            // If no user messages remain, but there might be system messages,
-            // or if conversation should appear "empty" in preview
             return {
               ...conv,
               lastMessage: { 
                 content: `Chat about '${conv.itemName}'`, 
-                timestamp: new Date(0).toISOString() // Puts it at the bottom if sorted by time
+                timestamp: new Date(0).toISOString() 
               },
             };
           }
@@ -260,6 +261,8 @@ export default function MessagesPage() {
 
     let systemMessageContent = '';
     let updatedConv: Conversation;
+    const otherP = getOtherParticipant(selectedConversation);
+    if(!otherP) return;
 
     if (action === 'accept') {
       updatedConv = {
@@ -267,20 +270,28 @@ export default function MessagesPage() {
         buyRequestStatus: 'accepted' as const,
         isItemSoldOrUnavailable: true,
       };
-      removeItemFromMockItems(selectedConversation.itemId);
-      systemMessageContent = `${mockUser.name} accepted the buy request for ${selectedConversation.itemName}. Item sold.`;
+      removeItemFromMockItems(selectedConversation.itemId); // Remove item from global list
+      // Update other conversations related to this item to reflect it's sold
+      setConversations(prevConvs => prevConvs.map(c => {
+        if (c.itemId === selectedConversation.itemId && c.id !== updatedConv.id) {
+          return {...c, isItemSoldOrUnavailable: true, buyRequestStatus: c.buyRequestStatus === 'pending_seller_response' ? 'declined' : c.buyRequestStatus };
+        }
+        return c.id === updatedConv.id ? updatedConv : c;
+      }));
+
+      systemMessageContent = `${mockUser.name} accepted the buy request from ${otherP.name} for ${selectedConversation.itemName}. Item sold.`;
       toast({ title: 'Buy Request Accepted!', description: `${selectedConversation.itemName} has been marked as sold and removed from listings.` });
     } else { // decline
       updatedConv = {
         ...selectedConversation,
         buyRequestStatus: 'declined' as const,
       };
-      systemMessageContent = `${mockUser.name} declined the buy request for ${selectedConversation.itemName}.`;
+      setConversations(prev => prev.map(c => c.id === updatedConv.id ? updatedConv : c));
+      systemMessageContent = `${mockUser.name} declined the buy request from ${otherP.name} for ${selectedConversation.itemName}.`;
       toast({ title: 'Buy Request Declined', description: `You have declined the buy request.` });
     }
     
     setSelectedConversation(updatedConv);
-    setConversations(prev => prev.map(c => c.id === updatedConv.id ? updatedConv : c));
     handleSendMessage(e, systemMessageContent, true);
   };
 
@@ -366,7 +377,6 @@ export default function MessagesPage() {
                     </>
                   )}
                 </div>
-                {/* Buy Request Status/Actions for Seller */}
                 {isCurrentUserTheSeller && selectedConversation.buyRequestStatus === 'pending_seller_response' && !selectedConversation.isItemSoldOrUnavailable && (
                   <div className="pt-2 flex gap-2 justify-end">
                      <p className="text-sm text-muted-foreground mr-auto flex items-center"><Info className="h-4 w-4 mr-1"/> A buyer has sent a request for this item.</p>
@@ -413,20 +423,20 @@ export default function MessagesPage() {
                           </p>
                         </div>
                       </div>
-                    ) : ( // Message from mockUser
+                    ) : ( 
                       <>
                         <div
                           className={cn(
                             "max-w-[70%] p-3 rounded-lg shadow-md",
-                            "bg-primary text-primary-foreground"
+                            msg.fromUserId === mockUser.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                           )}
                         >
                           <p className="text-sm">{msg.content}</p>
-                          <p className="text-xs mt-1 text-primary-foreground/70 text-right">
+                          <p className={cn("text-xs mt-1 text-right", msg.fromUserId === mockUser.id ? "text-primary-foreground/70" : "text-muted-foreground/80" )}>
                             {format(new Date(msg.timestamp), "p")}
                           </p>
                         </div>
-                        {!msg.isSystemMessage && (
+                        {msg.fromUserId === mockUser.id && !msg.isSystemMessage && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -444,7 +454,6 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </ScrollArea>
 
-              {/* Buy Request Status Display for Buyer */}
               {!isCurrentUserTheSeller && selectedConversation.buyRequestStatus !== 'none' && (
                 <div className={cn("p-3 border-t text-sm font-medium", 
                   selectedConversation.buyRequestStatus === 'accepted' ? 'bg-green-50 text-green-700' :
@@ -457,7 +466,6 @@ export default function MessagesPage() {
                 </div>
               )}
               
-              {/* Message Input and Buy Request Button for Buyer */}
               <form onSubmit={(e) => handleSendMessage(e, newMessage)} className="p-4 border-t bg-card flex items-center space-x-2 sticky bottom-0">
                 {!isCurrentUserTheSeller && 
                  (selectedConversation.buyRequestStatus === 'none' || selectedConversation.buyRequestStatus === 'declined') && 
@@ -477,13 +485,13 @@ export default function MessagesPage() {
                   placeholder="Type a message..."
                   className="flex-grow bg-input text-foreground placeholder:text-muted-foreground"
                   autoComplete="off"
-                  disabled={selectedConversation.isItemSoldOrUnavailable || selectedConversation.buyRequestStatus === 'accepted'}
+                  disabled={selectedConversation.isItemSoldOrUnavailable || selectedConversation.buyRequestStatus === 'accepted' || (isCurrentUserTheSeller && selectedConversation.buyRequestStatus === 'pending_seller_response')}
                 />
                 <Button 
                   type="submit" 
                   size="icon" 
                   className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                  disabled={!newMessage.trim() || !getOtherParticipant(selectedConversation) || selectedConversation.isItemSoldOrUnavailable || selectedConversation.buyRequestStatus === 'accepted'}
+                  disabled={!newMessage.trim() || !getOtherParticipant(selectedConversation) || selectedConversation.isItemSoldOrUnavailable || selectedConversation.buyRequestStatus === 'accepted' || (isCurrentUserTheSeller && selectedConversation.buyRequestStatus === 'pending_seller_response')}
                 >
                   <Send className="h-5 w-5" />
                   <span className="sr-only">Send</span>
