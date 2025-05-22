@@ -38,6 +38,7 @@ export interface Message {
   content: string;
   timestamp: string; // ISO string for simplicity
   isRead: boolean;
+  isSystemMessage?: boolean; // Added for buy request system messages
 }
 
 export interface Conversation {
@@ -48,4 +49,8 @@ export interface Conversation {
   participants: Pick<User, 'id' | 'name' | 'avatarUrl'>[];
   lastMessage: Pick<Message, 'content' | 'timestamp'>;
   unreadCount: number;
+  buyRequestStatus: 'none' | 'pending_seller_response' | 'accepted' | 'declined';
+  itemPriceAtRequest?: number;
+  isItemSoldOrUnavailable?: boolean; // To track if item sold via this or other means
 }
+

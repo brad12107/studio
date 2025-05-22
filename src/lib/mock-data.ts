@@ -21,7 +21,7 @@ const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-export const mockItems: Item[] = [
+export let mockItems: Item[] = [
   {
     id: '1',
     name: 'Vintage Leather Jacket',
@@ -241,6 +241,8 @@ export const mockConversations: Conversation[] = [
     ],
     lastMessage: { content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString() },
     unreadCount: 1,
+    buyRequestStatus: 'none',
+    isItemSoldOrUnavailable: false,
   },
   {
     id: 'conv2',
@@ -253,5 +255,26 @@ export const mockConversations: Conversation[] = [
     ],
     lastMessage: { content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString() },
     unreadCount: 0,
+    buyRequestStatus: 'none',
+    isItemSoldOrUnavailable: false,
   },
+  {
+    id: 'conv-item4-seller-GamerTom',
+    itemId: '4',
+    itemName: 'Retro Gaming Console',
+    itemImageUrl: (mockItems.find(item => item.id === '4')?.imageUrl || 'https://placehold.co/100x100.png'),
+    participants: [
+      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl }, // Assuming mockUser is the buyer
+      { id: 'seller-GamerTom', name: 'Gamer Tom', avatarUrl: 'https://placehold.co/50x50.png?text=GT' }
+    ],
+    lastMessage: { content: 'Interested in the console.', timestamp: new Date().toISOString() },
+    unreadCount: 0,
+    buyRequestStatus: 'none',
+    isItemSoldOrUnavailable: false,
+  }
 ];
+
+// Function to remove an item from mockItems array by ID
+export const removeItemFromMockItems = (itemId: string) => {
+  mockItems = mockItems.filter(item => item.id !== itemId);
+};
