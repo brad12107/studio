@@ -18,7 +18,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; 
+  password: string;
   location?: string;
   bio?: string;
   isProfilePrivate?: boolean;
@@ -26,6 +26,8 @@ export interface User {
   itemsListedCount: number;
   avatarUrl?: string;
   enhancedListingsRemaining?: number;
+  thumbsUp: number;
+  thumbsDown: number;
 }
 
 export interface Message {

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, Users, History, Gavel } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, Users, History, Gavel, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +58,8 @@ export default function ItemDetailPage() {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
   const [bidAmount, setBidAmount] = useState<string>('');
   const [isBidDialogOpen, setIsBidDialogOpen] = useState(false);
+  const [feedbackGivenForItem, setFeedbackGivenForItem] = useState<'up' | 'down' | null>(null);
+
 
   const itemId = params.id as string;
 
@@ -73,6 +75,8 @@ export default function ItemDetailPage() {
             setTimeLeft(calculateTimeLeft(foundItem.auctionEndTime));
           }
         }
+         // Reset feedback state when item changes
+        setFeedbackGivenForItem(null);
       }, 0); // Short delay to allow state updates from mock data if needed
     }
   }, [itemId]);
@@ -90,7 +94,7 @@ export default function ItemDetailPage() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [item?.type, item?.auctionEndTime, timeLeft.total]);
+  }, [item?.type, item.auctionEndTime, timeLeft.total]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -173,6 +177,26 @@ export default function ItemDetailPage() {
     });
   };
 
+  const handleFeedback = (type: 'up' | 'down') => {
+    if (!item) return;
+    if (type === 'up') {
+      mockUser.thumbsUp += 1;
+      toast({
+        title: 'Positive Feedback Submitted!',
+        description: `You gave ${item.sellerName} a thumbs up (mocked on your profile).`,
+      });
+    } else {
+      mockUser.thumbsDown += 1;
+      toast({
+        title: 'Negative Feedback Submitted!',
+        description: `You gave ${item.sellerName} a thumbs down (mocked on your profile).`,
+        variant: 'default', // Use default for neutral information
+      });
+    }
+    setFeedbackGivenForItem(type);
+    // In a real app, you'd also save this feedback to the backend, associated with the seller and item.
+  };
+
 
   if (item === undefined) { // Loading state
     return (
@@ -213,6 +237,7 @@ export default function ItemDetailPage() {
 
   const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
   const auctionEnded = item.type === 'auction' && timeLeft.total <= 0;
+  const showFeedbackOptions = (item.type === 'sale' || (item.type === 'auction' && auctionEnded));
 
 
   return (
@@ -357,7 +382,7 @@ export default function ItemDetailPage() {
                   <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
               ) }
-              {isCurrentlyEnhanced && !auctionEnded &&( // Don't show if auction ended
+              {isCurrentlyEnhanced && !(item.type === 'auction' && auctionEnded) &&( // Don't show if auction ended
                 <div className="flex items-center text-green-600 font-semibold p-3 rounded-md bg-green-50 border border-green-200 w-full md:w-auto shadow-sm">
                   <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
                 </div>
@@ -370,6 +395,37 @@ export default function ItemDetailPage() {
               >
                 <Flag className="mr-2 h-5 w-5" /> Report this Item
               </Button>
+
+              {/* Feedback Section */}
+              {showFeedbackOptions && (
+                <div className="w-full pt-4 mt-4 border-t">
+                  <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>
+                  {feedbackGivenForItem ? (
+                    <div className="p-3 rounded-md bg-green-50 border border-green-200 text-green-700">
+                      Thank you, your feedback has been submitted!
+                    </div>
+                  ) : (
+                    <div className="flex space-x-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                        onClick={() => handleFeedback('up')}
+                        size="lg"
+                      >
+                        <ThumbsUp className="mr-2 h-5 w-5" /> Positive
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => handleFeedback('down')}
+                        size="lg"
+                      >
+                        <ThumbsDown className="mr-2 h-5 w-5" /> Negative
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardFooter>
           </div>
         </div>

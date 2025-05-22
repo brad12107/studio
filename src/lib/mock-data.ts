@@ -3,9 +3,9 @@ import type { Item, User, Message, Conversation } from './types';
 
 export const mockUser: User = {
   id: 'user123',
-  name: 'Jane Doe', // Will be set during profile creation
-  email: 'user@example.com', // Will be set during profile creation
-  password: 'password', // Will be set during profile creation
+  name: '', // Will be set during profile creation
+  email: '', // Will be set during profile creation
+  password: '', // Will be set during profile creation
   location: 'Barrow Market Hall, Duke Street',
   bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
   isProfilePrivate: false,
@@ -13,6 +13,8 @@ export const mockUser: User = {
   itemsListedCount: 0,
   avatarUrl: 'https://placehold.co/100x100.png',
   enhancedListingsRemaining: 0,
+  thumbsUp: 0,
+  thumbsDown: 0,
 };
 
 const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -224,7 +226,7 @@ export const mockMessages: Message[] = [
 ];
 
 // Update participant names in mockConversations based on mockUser
-mockUser.name = 'Jane Doe'; // Or whatever name is set during profile creation simulation
+mockUser.name = ''; // Or whatever name is set during profile creation simulation
 mockUser.avatarUrl = mockUser.avatarUrl || 'https://placehold.co/50x50.png';
 
 export const mockConversations: Conversation[] = [

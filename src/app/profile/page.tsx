@@ -23,9 +23,10 @@ import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera } from 'lucide-react';
+import { Camera, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -122,10 +123,15 @@ export default function ProfilePage() {
         location: userData.location || '',
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
-        avatarUrl: userData.avatarUrl || undefined,
+        avatarUrl: userData.avatarUrl || undefined, 
         agreedToCodeOfConduct: true, 
       },
   });
+
+  // Effect to update local userData state when mockUser changes (e.g., feedback update)
+  useEffect(() => {
+    setUserData({...mockUser});
+  }, [mockUser.thumbsUp, mockUser.thumbsDown]);
 
   useEffect(() => {
     const currentProfileSchema = isCreateMode ? profileSchemaCreate : profileSchemaEdit;
@@ -149,7 +155,7 @@ export default function ProfilePage() {
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData, isCreateMode]); 
+  }, [userData.name, userData.email, userData.location, userData.bio, userData.isProfilePrivate, userData.avatarUrl, isCreateMode]); 
 
 
   const watchedAvatarUrl = form.watch('avatarUrl');
@@ -210,6 +216,7 @@ export default function ProfilePage() {
     mockUser.bio = data.bio;
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
+    // Thumbs up/down are not edited here, they are updated by other interactions
 
     setUserData({ ...mockUser });
 
@@ -238,6 +245,23 @@ export default function ProfilePage() {
           <CardDescription>{isCreateMode ? 'Fill in your details to get started.' : 'Manage your personal information and privacy settings.'}</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Feedback Display Section - Only in Edit Mode */}
+          {!isCreateMode && (
+            <div className="mb-8 p-4 border rounded-lg bg-secondary/30">
+              <h3 className="text-lg font-semibold mb-2">Your Feedback Score</h3>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center text-green-600">
+                  <ThumbsUp className="mr-2 h-5 w-5" />
+                  <span>{userData.thumbsUp} Positive</span>
+                </div>
+                <div className="flex items-center text-red-600">
+                  <ThumbsDown className="mr-2 h-5 w-5" />
+                  <span>{userData.thumbsDown} Negative</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <FormField
