@@ -94,7 +94,7 @@ export default function ItemDetailPage() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [item?.type, item.auctionEndTime, timeLeft.total]);
+  }, [item?.type, item?.auctionEndTime, timeLeft.total]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -433,3 +433,4 @@ export default function ItemDetailPage() {
     </div>
   );
 }
+
