@@ -75,7 +75,7 @@ export function LoginForm() {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading} size="lg">
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>

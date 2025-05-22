@@ -45,7 +45,7 @@ export default function ReportItemPage() {
     // Basic handling if params are missing, ideally redirect or show specific error
     return (
       <div className="container mx-auto py-8">
-        <Card className="max-w-xl mx-auto">
+        <Card className="max-w-xl mx-auto shadow-lg">
           <CardHeader>
             <CardTitle>Error</CardTitle>
           </CardHeader>
@@ -70,7 +70,7 @@ export default function ReportItemPage() {
 
     toast({
       title: 'Report Submitted',
-      description: `Thank you for reporting "${itemName}". Our team will review it shortly.`,
+      description: `Thank you for reporting "${decodeURIComponent(itemName)}". Our team will review it shortly.`,
     });
 
     // Redirect back to the item detail page
@@ -120,6 +120,7 @@ export default function ReportItemPage() {
                   onClick={() => router.back()}
                   className="w-full sm:w-auto"
                   disabled={form.formState.isSubmitting}
+                  size="lg"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" /> Cancel
                 </Button>

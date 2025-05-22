@@ -130,7 +130,7 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="shadow-lg">
         <CardHeader className="pb-4">
           <CardTitle className="text-3xl font-bold tracking-tight">Welcome to Barrow Market Place!</CardTitle>
           <CardDescription className="text-muted-foreground pt-1">
@@ -172,4 +172,3 @@ export default function HomePage() {
     </div>
   );
 }
-

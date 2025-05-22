@@ -68,7 +68,7 @@ export default function SubscriptionPage() {
 
         <div className="grid md:grid-cols-3 gap-6">
           {/* Free Trial Card */}
-          <Card className="flex flex-col bg-card text-card-foreground">
+          <Card className="flex flex-col bg-card text-card-foreground shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center text-xl">
                 <Gift className="h-6 w-6 mr-2 text-primary" />
@@ -165,4 +165,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-

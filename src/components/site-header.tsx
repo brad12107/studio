@@ -6,7 +6,7 @@ import { UserNav } from '@/components/user-nav';
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-md">
       <div className="container mx-auto max-w-screen-2xl px-4">
         {/* Top Row: Logo, MainNav, UserNav */}
         <div className="flex h-16 items-center justify-between">

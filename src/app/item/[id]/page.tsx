@@ -358,7 +358,7 @@ export default function ItemDetailPage() {
                 </Button>
               ) }
               {isCurrentlyEnhanced && !auctionEnded &&( // Don't show if auction ended
-                <div className="flex items-center text-green-600 font-semibold p-2 rounded-md bg-green-50 border border-green-200 w-full md:w-auto">
+                <div className="flex items-center text-green-600 font-semibold p-3 rounded-md bg-green-50 border border-green-200 w-full md:w-auto shadow-sm">
                   <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
                 </div>
               )}
