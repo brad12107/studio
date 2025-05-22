@@ -245,23 +245,6 @@ export default function ProfilePage() {
           <CardDescription>{isCreateMode ? 'Fill in your details to get started.' : 'Manage your personal information and privacy settings.'}</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Feedback Display Section - Only in Edit Mode */}
-          {!isCreateMode && (
-            <div className="mb-8 p-4 border rounded-lg bg-secondary/30">
-              <h3 className="text-lg font-semibold mb-2">Your Feedback Score</h3>
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center text-green-600">
-                  <ThumbsUp className="mr-2 h-5 w-5" />
-                  <span>{userData.thumbsUp} Positive</span>
-                </div>
-                <div className="flex items-center text-red-600">
-                  <ThumbsDown className="mr-2 h-5 w-5" />
-                  <span>{userData.thumbsDown} Negative</span>
-                </div>
-              </div>
-            </div>
-          )}
-          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <FormField
@@ -285,6 +268,18 @@ export default function ProfilePage() {
                         <Camera className="h-8 w-8 text-white" />
                       </div>
                     </FormLabel>
+                    {!isCreateMode && (
+                        <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <ThumbsUp className="mr-1 h-4 w-4 text-green-500" />
+                            <span>{userData.thumbsUp}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <ThumbsDown className="mr-1 h-4 w-4 text-red-500" />
+                            <span>{userData.thumbsDown}</span>
+                          </div>
+                        </div>
+                      )}
                     <FormDescription className="text-center mt-2">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
                     <FormControl>
                        <Input
@@ -329,8 +324,8 @@ export default function ProfilePage() {
                         placeholder="you@example.com" 
                         {...field} 
                         className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
-                        readOnly={!isCreateMode} // Email is editable only in create mode
-                        disabled={!isCreateMode} // Disable if not create mode
+                        readOnly={!isCreateMode} 
+                        disabled={!isCreateMode} 
                       />
                     </FormControl>
                      {!isCreateMode && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
@@ -339,8 +334,7 @@ export default function ProfilePage() {
                 )}
               />
               
-              {/* Password fields are shown in create mode, or optionally in edit mode for changes */}
-              {(isCreateMode || !isCreateMode /* (allow password change in edit mode too) */) && (
+              {(isCreateMode || !isCreateMode ) && (
                 <>
                   <FormField
                     control={form.control}
@@ -470,4 +464,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
