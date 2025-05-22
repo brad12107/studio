@@ -16,7 +16,7 @@ export function MainNav({ className, ...props }: MainNavProps) {
   const routes = [
     { href: '/', label: 'Browse', active: pathname === '/' },
     { href: '/list-item', label: 'Sell', active: pathname === '/list-item' },
-    { href: '/my-listings', label: 'My Listings', active: pathname === '/my-listings' },
+    // { href: '/my-listings', label: 'My Listings', active: pathname === '/my-listings' }, // Removed from here
     { href: '/messages', label: 'Messages', active: pathname === '/messages' || pathname?.startsWith('/messages') },
     { href: '/subscription', label: 'Subscription', active: pathname === '/subscription' },
   ];

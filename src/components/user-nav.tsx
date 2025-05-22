@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { mockUser } from '@/lib/mock-data'; 
 import type { User } from '@/lib/types';
-import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn } from 'lucide-react';
+import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn, ShoppingBag } from 'lucide-react'; // Added ShoppingBag
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
 import { useEffect, useState } from 'react';
@@ -50,7 +50,7 @@ export function UserNav() {
   };
 
   const getSubscriptionLabel = () => {
-    if (!user) return 'Standard User'; // Should not happen if logged in
+    if (!user) return 'Standard User'; 
     switch (user.subscriptionStatus) {
       case 'subscribed':
         return 'Basic Plan'; 
@@ -64,7 +64,6 @@ export function UserNav() {
   };
 
   if (!isClient) {
-    // Avoid rendering anything on the server or before hydration to prevent flash of incorrect state
     return null; 
   }
 
@@ -108,6 +107,12 @@ export function UserNav() {
             <Link href="/profile">
               <UserIcon className="mr-2 h-4 w-4" />
               <span>Profile</span>
+            </Link>
+          </DropdownMenuItem>
+           <DropdownMenuItem asChild>
+            <Link href="/my-listings">
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              <span>My Listings</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
