@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 188 78% 92%; /* Light Blue #E0F7FA */
@@ -120,12 +116,29 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    /*
+      Instructions for custom background image:
+      1. Save your desired background image (e.g., the blue abstract image you provided)
+         into the `public` folder of your Next.js project.
+      2. Rename the image to `app-background.jpg` (or update the URL below if you use a different name/format).
+    */
+    background-image: url('/app-background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
+    @apply text-foreground; /* This ensures direct text on body has a theme color */
+    /* The HSL --background variable will be overlaid by the image, 
+       but is kept for components that might explicitly use it. */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
   main {
     flex-grow: 1;
+    /* Content inside main, like cards, will use their own backgrounds (e.g., --card)
+       which will provide opacity over the body background image. */
   }
 }
