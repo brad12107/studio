@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // Import usePathname
 import { Mail, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 
 export function MessageNotifications() {
   const router = useRouter();
+  const pathname = usePathname(); // Get current pathname
   const [isClient, setIsClient] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [unreadConversations, setUnreadConversations] = useState<Conversation[]>([]);
@@ -32,7 +33,7 @@ export function MessageNotifications() {
     const status = localStorage.getItem('isLoggedIn') === 'true';
     setIsUserLoggedIn(status);
 
-    if (status && mockUser) {
+    if (status && mockUser?.id) {
       const filteredUnread = mockConversations.filter(
         (conv) => conv.participants.some(p => p.id === mockUser.id) && conv.unreadCount > 0
       ).sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
@@ -40,17 +41,17 @@ export function MessageNotifications() {
     } else {
       setUnreadConversations([]);
     }
-  }, [isUserLoggedIn, router]); // Re-check on router changes which might imply data changes
+  }, [isUserLoggedIn, pathname, mockUser?.id]); // Added pathname and mockUser.id to dependencies
 
   const handleConversationClick = (conv: Conversation) => {
     const otherParticipant = conv.participants.find(p => p.id !== mockUser.id);
     if (otherParticipant) {
       // This is a simplified way to mark as read for the demo.
       // In a real app, this would be an API call.
-      const convIndex = mockConversations.findIndex(c => c.id === conv.id);
-      if (convIndex > -1) {
-        // mockConversations[convIndex].unreadCount = 0; // For now, clicking doesn't mark as read to keep notifications visible for demo
-      }
+      // const convIndex = mockConversations.findIndex(c => c.id === conv.id);
+      // if (convIndex > -1) {
+      //   // mockConversations[convIndex].unreadCount = 0; // For now, clicking doesn't mark as read to keep notifications visible for demo
+      // }
       router.push(`/messages?itemId=${conv.itemId}&sellerName=${encodeURIComponent(otherParticipant.name)}`);
     }
   };
