@@ -118,15 +118,15 @@
   }
   body {
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    /* The background-image has been removed as per request */
-    /* background-image: url('/app-background.jpg'); */
-    /* background-size: cover; */
-    /* background-position: center; */
-    /* background-repeat: no-repeat; */
-    /* background-attachment: fixed; */
-
-    /* The body will now use the --background variable for its background color */
-    @apply bg-background text-foreground; /* text-foreground ensures text on body has new light color */
+    /* Apply the background image */
+    background-image: url('/dark-blue-waves-background.jpg'); /* Or .png if you use that */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    /* Fallback background color if the image doesn't load */
+    background-color: hsl(var(--background)); 
+    @apply text-foreground; /* text-foreground ensures text on body has new light color */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -134,6 +134,8 @@
   main {
     flex-grow: 1;
     /* Content inside main, like cards, will use their own backgrounds (e.g., --card) */
+    /* Optionally add a very subtle overlay to main content for readability if waves are too busy */
+    /* background-color: hsla(var(--background), 0.5); /* Example: 50% opaque background color */ 
   }
 }
 
