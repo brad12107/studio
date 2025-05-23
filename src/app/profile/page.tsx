@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -63,7 +63,7 @@ const profileSchemaBase = z.object({
       return true;
     }, '.jpg, .jpeg, .png, and .webp files are accepted for avatar.'),
   agreedToCodeOfConduct: z.boolean().refine(value => value === true, {
-    message: "You must agree to the Code of Conduct to save your profile."
+    message: "You must agree to the Code of Conduct."
   }),
 });
 
@@ -71,22 +71,26 @@ const profileSchemaCreate = profileSchemaBase.extend({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string().min(6, { message: "Please confirm your password." }),
+  agreedToTerms: z.boolean().refine(value => value === true, {
+    message: "You must agree to the Terms and Conditions to create an account."
+  }),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
 });
 
 const profileSchemaEdit = profileSchemaBase.extend({
-  email: z.string().email({ message: "Please enter a valid email address." }).optional(), // Email might not be editable or shown in edit mode for simplicity here
+  email: z.string().email({ message: "Please enter a valid email address." }).optional(), // Email might not be editable
   password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
   confirmPassword: z.string().min(6, { message: "Please confirm your password." }).optional(),
-}).refine(data => !data.password || data.password === data.confirmPassword, { // Only validate if password is being changed
+  // agreedToTerms is not needed for edit schema as it's an account creation step
+}).refine(data => !data.password || data.password === data.confirmPassword, { 
   message: "Passwords do not match.",
   path: ["confirmPassword"],
 });
 
 
-type ProfileFormValues = z.infer<typeof profileSchemaCreate>; // Use the create schema for form values type
+type ProfileFormValues = z.infer<typeof profileSchemaCreate>; 
 const defaultAvatarPlaceholder = 'https://placehold.co/100x100.png';
 
 export default function ProfilePage() {
@@ -114,6 +118,7 @@ export default function ProfilePage() {
         isProfilePrivate: false,
         avatarUrl: undefined,
         agreedToCodeOfConduct: false,
+        agreedToTerms: false, // Default for create mode
       }
     : {
         name: userData.name || '',
@@ -125,10 +130,10 @@ export default function ProfilePage() {
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined, 
         agreedToCodeOfConduct: true, 
+        agreedToTerms: true, // Assume true for existing users; not validated in edit mode
       },
   });
 
-  // Effect to update local userData state when mockUser changes (e.g., feedback update)
   useEffect(() => {
     setUserData({...mockUser});
   }, [mockUser.thumbsUp, mockUser.thumbsDown]);
@@ -139,7 +144,7 @@ export default function ProfilePage() {
       isCreateMode
       ? {
           name: '', email: '', password: '', confirmPassword: '', location: '', bio: '',
-          isProfilePrivate: false, avatarUrl: undefined, agreedToCodeOfConduct: false,
+          isProfilePrivate: false, avatarUrl: undefined, agreedToCodeOfConduct: false, agreedToTerms: false,
         }
       : {
           name: userData.name || '',
@@ -150,6 +155,7 @@ export default function ProfilePage() {
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined, 
           agreedToCodeOfConduct: true, 
+          agreedToTerms: true,
         },
       { resolver: zodResolver(currentProfileSchema) } 
     );
@@ -209,15 +215,14 @@ export default function ProfilePage() {
       finalAvatarUrl = data.avatarUrl;
     }
 
-    mockUser.name = data.name.trim(); // Trim the name
+    mockUser.name = data.name.trim();
     if (isCreateMode && data.email) mockUser.email = data.email.trim(); 
     if (data.password) mockUser.password = data.password;
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
-    // Thumbs up/down are not edited here, they are updated by other interactions
-
+    
     setUserData({ ...mockUser });
 
     if (isCreateMode) {
@@ -268,19 +273,17 @@ export default function ProfilePage() {
                         <Camera className="h-8 w-8 text-white" />
                       </div>
                     </FormLabel>
-                    {!isCreateMode && (
-                        <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center">
-                            <ThumbsUp className="mr-1 h-4 w-4 text-green-500" />
-                            <span>{userData.thumbsUp}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <ThumbsDown className="mr-1 h-4 w-4 text-red-500" />
-                            <span>{userData.thumbsDown}</span>
-                          </div>
-                        </div>
-                      )}
-                    <FormDescription className="text-center mt-2">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
+                    <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center">
+                        <ThumbsUp className="mr-1 h-4 w-4 text-green-500" />
+                        <span>{userData.thumbsUp}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <ThumbsDown className="mr-1 h-4 w-4 text-red-500" />
+                        <span>{userData.thumbsDown}</span>
+                      </div>
+                    </div>
+                    <FormDescription className="text-center mt-1">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
                     <FormControl>
                        <Input
                         id="avatar-upload-input"
@@ -422,6 +425,33 @@ export default function ProfilePage() {
                 )}
               />
 
+              {isCreateMode && (
+                <FormField
+                  control={form.control}
+                  name="agreedToTerms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          id="termsAndConditionsCheckbox"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel htmlFor="termsAndConditionsCheckbox">
+                          I have read and agree to the{' '}
+                          <Link href="/terms-and-conditions" className="underline hover:text-primary" target="_blank">
+                            Terms and Conditions
+                          </Link>.
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="agreedToCodeOfConduct"
@@ -464,3 +494,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
