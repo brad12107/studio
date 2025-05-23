@@ -12,25 +12,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mockUser } from '@/lib/mock-data'; 
+import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
-import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn, ShoppingBag } from 'lucide-react'; // Added ShoppingBag
+import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; 
+import { usePathname, useRouter } from 'next/navigation'; // Import usePathname
 import { useEffect, useState } from 'react';
 
 export function UserNav() {
-  const user = mockUser; 
+  const user = mockUser;
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const pathname = usePathname(); // Get current pathname
 
   useEffect(() => {
     setIsClient(true);
     const status = localStorage.getItem('isLoggedIn') === 'true';
     setIsUserLoggedIn(status);
 
-    // Listen for storage changes to update login status across tabs/windows
+    // This listener handles changes from other tabs/windows
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'isLoggedIn') {
         const newStatus = event.newValue === 'true';
@@ -41,19 +42,18 @@ export function UserNav() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [pathname]); // Add pathname as a dependency
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
-    setIsUserLoggedIn(false); // Update state immediately
-    window.location.href = '/login'; 
+    window.location.href = '/login'; // Force full reload to ensure state is cleared
   };
 
   const getSubscriptionLabel = () => {
-    if (!user) return 'Standard User'; 
+    if (!user) return 'Standard User';
     switch (user.subscriptionStatus) {
       case 'subscribed':
-        return 'Basic Plan'; 
+        return 'Basic Plan';
       case 'premium_plus':
         return 'Premium Plan';
       case 'free_trial':
@@ -64,7 +64,8 @@ export function UserNav() {
   };
 
   if (!isClient) {
-    return null; 
+    // Render nothing or a placeholder on the server/initial client render
+    return null;
   }
 
   if (!isUserLoggedIn) {
@@ -81,21 +82,21 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10 border-2 border-primary">
-            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="user avatar" />
-            <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={user.avatarUrl} alt={user.name || "User Avatar"} data-ai-hint="user avatar" />
+            <AvatarFallback>{user.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {getSubscriptionLabel()}
             </p>
             {user.subscriptionStatus === 'premium_plus' && (
               <p className="text-xs leading-none text-muted-foreground flex items-center">
-                <Star className="mr-1 h-3 w-3 text-amber-500" /> 
+                <Star className="mr-1 h-3 w-3 text-amber-500" />
                 {user.enhancedListingsRemaining || 0} free enhancements left
               </p>
             )}
@@ -127,13 +128,13 @@ export function UserNav() {
               <span>Billing & Subscription</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem disabled> 
+          <DropdownMenuItem disabled>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}> 
+        <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
