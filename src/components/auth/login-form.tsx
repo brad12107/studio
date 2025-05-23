@@ -77,7 +77,7 @@ export function LoginForm() {
                 className="bg-white text-card-foreground"
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading} size="lg">
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading} size="default">
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
