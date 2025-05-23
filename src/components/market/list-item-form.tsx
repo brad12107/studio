@@ -25,9 +25,9 @@ import type { Item } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info, UploadCloud, Star, Clock, Image as ImageIcon, Trash2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { addDays } from 'date-fns';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation'; 
 
 const MAX_FREE_ITEMS = 3;
 const LISTING_FEE = 0.50;
@@ -88,7 +88,7 @@ const listItemSchema = z.object({
     .custom<FileList>()
     .refine(
       (files) => {
-        if (typeof FileList === 'undefined') return true;
+        if (typeof FileList === 'undefined') return true; // SSR check
         return files instanceof FileList;
       },
       { message: "Invalid file input. Please upload a list of files." }
@@ -145,7 +145,7 @@ const initialFormValues: ListItemFormValues = {
 
 export function ListItemForm() {
   const { toast } = useToast();
-  const router = useRouter(); // Initialize router
+  const router = useRouter(); 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const form = useForm<ListItemFormValues>({
@@ -164,7 +164,7 @@ export function ListItemForm() {
     if (watchedImageFiles && watchedImageFiles.length > 0 && typeof FileList !== 'undefined' && watchedImageFiles instanceof FileList) {
       const filePromises = Array.from(watchedImageFiles)
         .filter(file => ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES)
-        .slice(0, MAX_IMAGES) // Ensure we don't process more than MAX_IMAGES
+        .slice(0, MAX_IMAGES) 
         .map(fileToDataUri);
       
       Promise.all(filePromises).then(setImagePreviews).catch(console.error);
@@ -279,7 +279,7 @@ export function ListItemForm() {
     }
     form.reset(initialFormValues);
     setImagePreviews([]); 
-    router.push('/my-listings'); // Redirect to My Listings page
+    router.push('/my-listings'); 
   }
 
   return (
@@ -314,7 +314,12 @@ export function ListItemForm() {
               <FormItem>
                 <FormLabel>Item Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Vintage Wooden Chair" {...field} disabled={disableFormFields} />
+                  <Input 
+                    placeholder="e.g., Vintage Wooden Chair" 
+                    {...field} 
+                    disabled={disableFormFields} 
+                    className="bg-input text-card-foreground placeholder:text-muted-foreground"
+                  />
                 </FormControl>
                 <FormDescription>A short, descriptive name for your item.</FormDescription>
                 <FormMessage />
@@ -331,7 +336,7 @@ export function ListItemForm() {
                 <FormControl>
                   <Textarea
                     placeholder="Detailed description of your item, its condition, etc."
-                    className="resize-y min-h-[100px]"
+                    className="resize-y min-h-[100px] bg-input text-card-foreground placeholder:text-muted-foreground"
                     {...field}
                     disabled={disableFormFields}
                   />
@@ -349,7 +354,14 @@ export function ListItemForm() {
                 <FormItem>
                   <FormLabel>{watchedItemType === 'auction' ? 'Starting Price (£)' : 'Price (£)'}</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="e.g., 25.99" {...field} disabled={disableFormFields} />
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="e.g., 25.99" 
+                      {...field} 
+                      disabled={disableFormFields} 
+                      className="bg-input text-card-foreground placeholder:text-muted-foreground"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -364,7 +376,7 @@ export function ListItemForm() {
                   <FormLabel>Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disableFormFields}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-input text-card-foreground">
                         <SelectValue placeholder="Select item type" />
                       </SelectTrigger>
                     </FormControl>
@@ -398,6 +410,7 @@ export function ListItemForm() {
                       disabled={disableFormFields} 
                       value={field.value ?? ''} 
                       onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
+                      className="bg-input text-card-foreground placeholder:text-muted-foreground"
                     />
                   </FormControl>
                   <FormDescription>How many days the auction will run for.</FormDescription>
@@ -415,7 +428,7 @@ export function ListItemForm() {
                 <FormLabel>Category</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disableFormFields}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-input text-card-foreground">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
@@ -443,7 +456,7 @@ export function ListItemForm() {
                   </FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disableFormFields}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-input text-card-foreground">
                           <SelectValue placeholder="Select item condition" />
                         </SelectTrigger>
                       </FormControl>
@@ -474,11 +487,11 @@ export function ListItemForm() {
                   <Input 
                     type="file" 
                     accept="image/png, image/jpeg, image/webp"
-                    multiple // Allow multiple file selection
+                    multiple 
                     onChange={(e) => onChange(e.target.files)} 
                     {...rest} 
                     disabled={disableFormFields}
-                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    className="block w-full text-sm text-card-foreground bg-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 placeholder:text-muted-foreground"
                   />
                 </FormControl>
                 <FormDescription>Upload images of your item (Max {MAX_IMAGES} files, {MAX_FILE_SIZE_MB}MB each, .png, .jpg, .webp).</FormDescription>
@@ -493,7 +506,7 @@ export function ListItemForm() {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                 {imagePreviews.map((previewUrl, index) => (
                   <div key={index} className="relative aspect-square rounded-md border border-muted overflow-hidden group">
-                    <Image src={previewUrl} alt={`Preview ${index + 1}`} fill sizes="10vw" className="object-cover" data-ai-hint="item image preview"/>
+                    <NextImage src={previewUrl} alt={`Preview ${index + 1}`} fill sizes="10vw" className="object-cover" data-ai-hint="item image preview"/>
                     <Button
                       type="button"
                       variant="destructive"
@@ -551,3 +564,4 @@ export function ListItemForm() {
     </div>
   );
 }
+
