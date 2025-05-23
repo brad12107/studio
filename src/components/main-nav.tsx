@@ -13,13 +13,17 @@ interface MainNavProps extends HTMLAttributes<HTMLElement> {
 export function MainNav({ className, ...props }: MainNavProps) {
   const pathname = usePathname();
 
-  const routes = [
-    { href: '/', label: 'Browse', active: pathname === '/' },
-    { href: '/list-item', label: 'Sell', active: pathname === '/list-item' },
-    // { href: '/my-listings', label: 'My Listings', active: pathname === '/my-listings' }, // Removed from here
-    { href: '/messages', label: 'Messages', active: pathname === '/messages' || pathname?.startsWith('/messages') },
-    { href: '/subscription', label: 'Subscription', active: pathname === '/subscription' },
+  // Remove all routes to hide the main navigation links
+  const routes: { href: string; label: string; active: boolean }[] = [
+    // { href: '/', label: 'Browse', active: pathname === '/' },
+    // { href: '/list-item', label: 'Sell', active: pathname === '/list-item' },
+    // { href: '/messages', label: 'Messages', active: pathname === '/messages' || pathname?.startsWith('/messages') },
+    // { href: '/subscription', label: 'Subscription', active: pathname === '/subscription' },
   ];
+
+  if (routes.length === 0) {
+    return null; // Render nothing if there are no routes
+  }
 
   return (
     <nav
