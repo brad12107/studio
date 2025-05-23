@@ -84,15 +84,30 @@ const listItemSchema = z.object({
   category: z.string().nonempty({ message: 'Please select a category.' }),
   itemCondition: z.enum(['new', 'like_new', 'good', 'not_working']).optional(),
   imageFiles: z
-    .instanceof(FileList)
-    .refine((files) => files.length >= 1, 'Please select at least one image.')
-    .refine((files) => files.length <= MAX_IMAGES, `You can upload a maximum of ${MAX_IMAGES} images.`)
+    .custom<FileList>() // Type hint for Zod and TypeScript
     .refine(
-      (files) => Array.from(files).every((file) => file.size <= MAX_FILE_SIZE_BYTES),
+      (files) => {
+        // On the server, FileList is undefined, this allows schema definition to pass.
+        // On the client, this ensures files is a FileList.
+        if (typeof FileList === 'undefined') return true;
+        return files instanceof FileList;
+      },
+      { message: "Invalid file input. Please upload a list of files." }
+    )
+    .refine(
+      (files) => files && files.length >= 1,
+      'Please select at least one image.'
+    )
+    .refine(
+      (files) => files && files.length <= MAX_IMAGES,
+      `You can upload a maximum of ${MAX_IMAGES} images.`
+    )
+    .refine(
+      (files) => files && Array.from(files).every((file) => file.size <= MAX_FILE_SIZE_BYTES),
       `Each file size must be ${MAX_FILE_SIZE_MB}MB or less.`
     )
     .refine(
-      (files) => Array.from(files).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)),
+      (files) => files && Array.from(files).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)),
       'Only .jpg, .jpeg, .png, and .webp files are accepted.'
     ),
   isEnhanced: z.boolean().default(false).optional(),
@@ -146,7 +161,7 @@ export function ListItemForm() {
 
 
   useEffect(() => {
-    if (watchedImageFiles && watchedImageFiles.length > 0) {
+    if (watchedImageFiles && watchedImageFiles.length > 0 && typeof FileList !== 'undefined' && watchedImageFiles instanceof FileList) {
       const filePromises = Array.from(watchedImageFiles)
         .filter(file => ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES)
         .slice(0, MAX_IMAGES) // Ensure we don't process more than MAX_IMAGES
@@ -160,11 +175,10 @@ export function ListItemForm() {
 
   const handleRemoveImage = (index: number) => {
     const currentFiles = form.getValues('imageFiles');
-    if (currentFiles) {
+    if (currentFiles && typeof FileList !== 'undefined' && currentFiles instanceof FileList) {
       const newFilesArray = Array.from(currentFiles);
       newFilesArray.splice(index, 1);
       
-      // Create a new FileList
       const dataTransfer = new DataTransfer();
       newFilesArray.forEach(file => dataTransfer.items.add(file));
       form.setValue('imageFiles', dataTransfer.files, { shouldValidate: true });
@@ -196,7 +210,7 @@ export function ListItemForm() {
     }
 
     let imageUrlsForStorage: string[] = [];
-    if (data.imageFiles && data.imageFiles.length > 0) {
+    if (data.imageFiles && data.imageFiles.length > 0 && typeof FileList !== 'undefined' && data.imageFiles instanceof FileList) {
       try {
         const filePromises = Array.from(data.imageFiles).map(fileToDataUri);
         imageUrlsForStorage = await Promise.all(filePromises);
@@ -209,7 +223,7 @@ export function ListItemForm() {
         });
         return;
       }
-    } else { // Should be caught by schema, but as a fallback
+    } else { 
         imageUrlsForStorage = ['https://placehold.co/600x400.png'];
     }
     
