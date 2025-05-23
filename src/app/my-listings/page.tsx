@@ -4,7 +4,7 @@
 import { ItemList } from '@/components/market/item-list';
 import { mockItems, mockUser } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // Import usePathname
 import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function MyListingsPage() {
   const router = useRouter();
+  const pathname = usePathname(); // Get pathname
   const [isClient, setIsClient] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -44,7 +45,7 @@ export default function MyListingsPage() {
       // For now, this will result in no items, which is acceptable for mock
       setUserListings([]);
     }
-  }, [isLoggedIn, mockUser.name]); // Re-run if mockUser.name changes (e.g., after profile setup)
+  }, [isLoggedIn, mockUser.name, pathname]); // Add pathname to dependency array
 
   if (!isClient || isLoadingAuth) {
     return (
@@ -121,4 +122,3 @@ export default function MyListingsPage() {
     </div>
   );
 }
-
