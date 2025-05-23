@@ -28,11 +28,19 @@ export default function HomePage() {
     return ["All Categories", ...Array.from(categories).sort()];
   }, []);
 
-  const itemTypes = ["All Types", "Sale", "Auction"];
+  const itemTypes = ["All Types", "Sale", "Auction"]; // Values for SelectItem components
 
   const currentSearchQuery = searchParams.get('search') || '';
   const currentCategoryQuery = searchParams.get('category') || "All Categories";
-  const currentTypeQuery = searchParams.get('type') || "All Types";
+  
+  // For filtering logic, use the direct lowercase param from the URL or null
+  const typeFilterParam = searchParams.get('type'); // e.g., "sale", "auction", or null
+
+  // For the Select component's 'value' prop, find the matching capitalized version from itemTypes
+  // or default to "All Types".
+  const currentTypeForSelect = 
+    itemTypes.find(it => typeFilterParam && it.toLowerCase() === typeFilterParam && it !== "All Types") || 
+    "All Types";
 
 
   useEffect(() => {
@@ -48,7 +56,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isLoggedIn) { 
-      let itemsToDisplay = [...mockItems]; // Create a mutable copy
+      let itemsToDisplay = [...mockItems]; 
 
       if (currentSearchQuery) {
         const lowerCaseQuery = currentSearchQuery.toLowerCase();
@@ -63,11 +71,11 @@ export default function HomePage() {
         itemsToDisplay = itemsToDisplay.filter(item => item.category === currentCategoryQuery);
       }
 
-      if (currentTypeQuery && currentTypeQuery !== "All Types") {
-        itemsToDisplay = itemsToDisplay.filter(item => item.type.toLowerCase() === currentTypeQuery.toLowerCase());
+      // Use the direct lowercase param (typeFilterParam) for filtering
+      if (typeFilterParam) { 
+        itemsToDisplay = itemsToDisplay.filter(item => item.type === typeFilterParam);
       }
       
-      // Sort items: enhanced items first
       itemsToDisplay.sort((a, b) => {
         if (a.isEnhanced && !b.isEnhanced) return -1;
         if (!a.isEnhanced && b.isEnhanced) return 1;
@@ -76,7 +84,7 @@ export default function HomePage() {
 
       setFilteredItems(itemsToDisplay);
     }
-  }, [currentSearchQuery, currentCategoryQuery, currentTypeQuery, isLoggedIn]);
+  }, [currentSearchQuery, currentCategoryQuery, typeFilterParam, isLoggedIn]); // Use typeFilterParam here
 
   const handleFilterChange = (filterType: 'category' | 'type', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -90,7 +98,8 @@ export default function HomePage() {
       if (value === "All Types") {
         params.delete('type');
       } else {
-        params.set('type', value.toLowerCase());
+        // 'value' here is "Sale" or "Auction" from SelectItem
+        params.set('type', value.toLowerCase()); // Store as lowercase in URL
       }
     }
     router.push(`/?${params.toString()}`);
@@ -187,14 +196,15 @@ export default function HomePage() {
             </div>
             <div className="w-full sm:w-36">
               <Label htmlFor="type-filter" className="sr-only">Filter by type</Label>
-              <Select value={currentTypeQuery} onValueChange={(value) => handleFilterChange('type', value)}>
+              {/* Use currentTypeForSelect for the Select's value */}
+              <Select value={currentTypeForSelect} onValueChange={(value) => handleFilterChange('type', value)}>
                 <SelectTrigger id="type-filter" className="w-full">
                   <ListFilter className="h-4 w-4 mr-2 text-muted-foreground" />
                   <SelectValue placeholder="Type..." />
                 </SelectTrigger>
                 <SelectContent>
                   {itemTypes.map(type => (
-                    <SelectItem key={type} value={type}>
+                    <SelectItem key={type} value={type}> {/* SelectItem values are "All Types", "Sale", "Auction" */}
                       {type}
                     </SelectItem>
                   ))}
@@ -208,4 +218,3 @@ export default function HomePage() {
     </div>
   );
 }
-
