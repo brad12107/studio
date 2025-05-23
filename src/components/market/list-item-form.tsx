@@ -27,6 +27,7 @@ import { Info, UploadCloud, Star, Clock, Image as ImageIcon, Trash2, HelpCircle 
 import Link from 'next/link';
 import Image from 'next/image';
 import { addDays } from 'date-fns';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 const MAX_FREE_ITEMS = 3;
 const LISTING_FEE = 0.50;
@@ -84,11 +85,9 @@ const listItemSchema = z.object({
   category: z.string().nonempty({ message: 'Please select a category.' }),
   itemCondition: z.enum(['new', 'like_new', 'good', 'not_working']).optional(),
   imageFiles: z
-    .custom<FileList>() // Type hint for Zod and TypeScript
+    .custom<FileList>()
     .refine(
       (files) => {
-        // On the server, FileList is undefined, this allows schema definition to pass.
-        // On the client, this ensures files is a FileList.
         if (typeof FileList === 'undefined') return true;
         return files instanceof FileList;
       },
@@ -146,6 +145,7 @@ const initialFormValues: ListItemFormValues = {
 
 export function ListItemForm() {
   const { toast } = useToast();
+  const router = useRouter(); // Initialize router
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const form = useForm<ListItemFormValues>({
@@ -279,6 +279,7 @@ export function ListItemForm() {
     }
     form.reset(initialFormValues);
     setImagePreviews([]); 
+    router.push('/my-listings'); // Redirect to My Listings page
   }
 
   return (
