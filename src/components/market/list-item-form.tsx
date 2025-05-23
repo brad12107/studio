@@ -23,9 +23,10 @@ import { useState, useEffect } from 'react';
 import { mockUser, mockItems } from '@/lib/mock-data';
 import type { Item, User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, UploadCloud, Star } from 'lucide-react';
+import { Info, UploadCloud, Star, Clock } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { addDays } from 'date-fns';
 
 const MAX_FREE_ITEMS = 3;
 const LISTING_FEE = 0.50;
@@ -47,8 +48,9 @@ const fileToDataUri = (file: File): Promise<string> => {
 const listItemSchema = z.object({
   name: z.string().min(3, { message: 'Item name must be at least 3 characters.' }).max(100),
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }).max(1000),
-  price: z.coerce.number().positive({ message: 'Price must be a positive number.' }),
+  price: z.coerce.number().positive({ message: 'Price (or starting bid) must be a positive number.' }),
   type: z.enum(['sale', 'auction'], { required_error: 'Please select item type.' }),
+  auctionDurationDays: z.coerce.number().positive("Duration must be a positive number.").optional(),
   category: z.string().min(2, {message: 'Category must be at least 2 characters.'}).max(50),
   imageUrl: z.custom<FileList>((val) => val instanceof FileList && val.length > 0, 'Please select an image.')
     .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE_BYTES, `Max file size is ${MAX_FILE_SIZE_MB}MB.`)
@@ -57,6 +59,14 @@ const listItemSchema = z.object({
       '.jpg, .jpeg, .png, and .webp files are accepted.'
     ),
   isEnhanced: z.boolean().default(false).optional(),
+}).superRefine((data, ctx) => {
+  if (data.type === 'auction' && (data.auctionDurationDays === undefined || data.auctionDurationDays === null || data.auctionDurationDays <= 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Auction duration (in days) is required for auction items and must be greater than 0.",
+      path: ['auctionDurationDays'],
+    });
+  }
 });
 
 type ListItemFormValues = z.infer<typeof listItemSchema>;
@@ -66,6 +76,7 @@ const initialFormValues: ListItemFormValues = {
   description: '',
   price: 0,
   type: 'sale',
+  auctionDurationDays: 7, // Default to 7 days
   category: '',
   imageUrl: undefined as unknown as FileList, 
   isEnhanced: false,
@@ -74,8 +85,6 @@ const initialFormValues: ListItemFormValues = {
 
 export function ListItemForm() {
   const { toast } = useToast();
-  // We use mockUser directly for subscription status and counts for this mock setup
-  // For a real app, this would come from context or a state management solution updated on subscription change
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ListItemFormValues>({
@@ -84,6 +93,7 @@ export function ListItemForm() {
   });
 
   const watchedImageUrl = form.watch('imageUrl');
+  const watchedItemType = form.watch('type');
   const watchedIsEnhanced = form.watch('isEnhanced');
 
   useEffect(() => {
@@ -138,22 +148,29 @@ export function ListItemForm() {
       }
     }
     
+    let auctionEndTimeISO: string | undefined = undefined;
+    if (data.type === 'auction' && data.auctionDurationDays && data.auctionDurationDays > 0) {
+        auctionEndTimeISO = addDays(new Date(), data.auctionDurationDays).toISOString();
+    }
+
     const newItem: Item = {
       id: `item-${Date.now()}`,
       name: data.name,
       description: data.description,
-      price: data.price,
+      price: data.price, // This is starting price for auctions
       type: data.type,
       imageUrl: imageUrlForStorage,
       sellerName: mockUser.name,
       category: data.category,
       isEnhanced: data.isEnhanced,
+      auctionEndTime: auctionEndTimeISO, // Set if auction
+      currentBid: data.type === 'auction' ? undefined : undefined, // Initially no bids
+      bidHistory: data.type === 'auction' ? [] : undefined, // Initially empty history
     };
     mockItems.unshift(newItem); 
 
     let toastDescription = `${data.name} has been successfully listed.`;
     const feeMessages: string[] = [];
-    let enhancementFeeApplied = false;
 
     if (data.isEnhanced) {
       if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
@@ -161,7 +178,6 @@ export function ListItemForm() {
         feeMessages.push(`Free enhanced listing used (${mockUser.enhancedListingsRemaining} remaining).`);
       } else {
         feeMessages.push(`Enhancement fee: £${ENHANCEMENT_FEE.toFixed(2)}`);
-        enhancementFeeApplied = true;
       }
     }
 
@@ -251,7 +267,7 @@ export function ListItemForm() {
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price (£)</FormLabel>
+                  <FormLabel>{watchedItemType === 'auction' ? 'Starting Price (£)' : 'Price (£)'}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" placeholder="e.g., 25.99" {...field} disabled={disableFormFields} />
                   </FormControl>
@@ -282,6 +298,34 @@ export function ListItemForm() {
               )}
             />
           </div>
+
+          {watchedItemType === 'auction' && (
+            <FormField
+              control={form.control}
+              name="auctionDurationDays"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center">
+                     <Clock className="h-5 w-5 mr-2 text-primary" /> Auction Duration (days)
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      step="1" 
+                      min="1"
+                      placeholder="e.g., 7 for one week" 
+                      {...field} 
+                      disabled={disableFormFields} 
+                      value={field.value ?? ''} // Handle potential undefined from optional field
+                      onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
+                    />
+                  </FormControl>
+                  <FormDescription>How many days the auction will run for.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -371,3 +415,4 @@ export function ListItemForm() {
     </div>
   );
 }
+
