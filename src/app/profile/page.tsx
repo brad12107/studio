@@ -209,11 +209,11 @@ export default function ProfilePage() {
       finalAvatarUrl = data.avatarUrl;
     }
 
-    mockUser.name = data.name;
-    if (isCreateMode && data.email) mockUser.email = data.email; 
-    if (data.password) mockUser.password = data.password;  // Update password if provided (for create or edit)
-    mockUser.location = data.location;
-    mockUser.bio = data.bio;
+    mockUser.name = data.name.trim(); // Trim the name
+    if (isCreateMode && data.email) mockUser.email = data.email.trim(); 
+    if (data.password) mockUser.password = data.password;
+    mockUser.location = data.location?.trim();
+    mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
     // Thumbs up/down are not edited here, they are updated by other interactions

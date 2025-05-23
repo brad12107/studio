@@ -33,7 +33,8 @@ export default function MyListingsPage() {
 
   useEffect(() => {
     if (isLoggedIn && mockUser.name) {
-      const filtered = mockItems.filter(item => item.sellerName === mockUser.name)
+      const currentUserName = mockUser.name.trim();
+      const filtered = mockItems.filter(item => item.sellerName?.trim() === currentUserName)
         .sort((a, b) => { // Optional: sort by enhanced or date
             if (a.isEnhanced && !b.isEnhanced) return -1;
             if (!a.isEnhanced && b.isEnhanced) return 1;
