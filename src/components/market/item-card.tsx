@@ -58,7 +58,7 @@ export function ItemCard({ item }: ItemCardProps) {
             {item.type === 'sale' ? <ShoppingCart className="h-3 w-3 mr-1" /> : <Hammer className="h-3 w-3 mr-1" />}
             {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
           </Badge>
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="default">
             <Link href={`/item/${item.id}`}>View Details</Link>
           </Button>
         </div>
@@ -66,3 +66,4 @@ export function ItemCard({ item }: ItemCardProps) {
     </Card>
   );
 }
+
