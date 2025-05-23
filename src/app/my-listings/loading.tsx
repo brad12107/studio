@@ -21,7 +21,8 @@ export default function MyListingsLoading() {
               <Skeleton className="h-6 w-3/4" /> {/* Name */}
               <Skeleton className="h-4 w-full" /> {/* Description line 1 */}
               <Skeleton className="h-4 w-5/6" /> {/* Description line 2 */}
-              <Skeleton className="h-4 w-1/2" /> {/* Category */}
+              <Skeleton className="h-4 w-1/2 mb-1" /> {/* Category */}
+              <Skeleton className="h-4 w-2/3 mb-1" /> {/* Seller Name */}
               <Skeleton className="h-6 w-1/3" /> {/* Price */}
             </div>
             <div className="p-4 border-t">
@@ -36,4 +37,3 @@ export default function MyListingsLoading() {
     </div>
   );
 }
-

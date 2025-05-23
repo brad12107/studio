@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, ShoppingCart, Hammer, Star } from 'lucide-react';
+import { Tag, ShoppingCart, Hammer, Star, User as UserIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ItemCardProps {
@@ -40,9 +40,13 @@ export function ItemCard({ item }: ItemCardProps) {
         <p className="text-sm text-muted-foreground mb-2 line-clamp-2" title={item.description}>
           {item.description}
         </p>
-        <div className="flex items-center text-sm text-muted-foreground mb-2">
+        <div className="flex items-center text-sm text-muted-foreground mb-1">
           <Tag className="h-4 w-4 mr-1.5" />
           <span>{item.category}</span>
+        </div>
+        <div className="flex items-center text-sm text-muted-foreground mb-2">
+          <UserIcon className="h-4 w-4 mr-1.5" />
+          <span>Sold by: {item.sellerName}</span>
         </div>
         <div className="flex items-center text-lg font-bold text-primary">
           <span>£{item.price.toFixed(2)}</span>
