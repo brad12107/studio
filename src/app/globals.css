@@ -1,17 +1,18 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 188 78% 92%; /* Light Blue #E0F7FA */
-    --foreground: 200 15% 27%; /* Dark Grayish Blue #37474F */
+    --background: 220 40% 15%; /* Dark Blue */
+    --foreground: 210 20% 90%; /* Light Grayish Blue for text on dark background */
 
-    --card: 220 50% 25%; /* Dark Slate Blue */
-    --card-foreground: 220 20% 92%; /* Light Cool White */
+    --card: 188 78% 92%; /* Light Blue (like original #E0F7FA) for listings */
+    --card-foreground: 0 0% 7%; /* Very Dark Gray / Black for text on listings */
 
-    --popover: 220 50% 25%; /* Dark Slate Blue */
-    --popover-foreground: 220 20% 92%; /* Light Cool White */
+    --popover: 188 78% 92%; /* Light Blue for popovers (consistent with cards) */
+    --popover-foreground: 0 0% 7%; /* Very Dark Gray / Black for text on popovers */
 
     --primary: 204 88% 68%; /* Soft Blue #64B5F6 */
     --primary-foreground: 0 0% 100%; /* White */
@@ -117,28 +118,22 @@
   }
   body {
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    /*
-      Instructions for custom background image:
-      1. Save your desired background image (e.g., the blue abstract image you provided)
-         into the `public` folder of your Next.js project.
-      2. Rename the image to `app-background.jpg` (or update the URL below if you use a different name/format).
-    */
-    background-image: url('/app-background.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    /* The background-image has been removed as per request */
+    /* background-image: url('/app-background.jpg'); */
+    /* background-size: cover; */
+    /* background-position: center; */
+    /* background-repeat: no-repeat; */
+    /* background-attachment: fixed; */
 
-    @apply text-foreground; /* This ensures direct text on body has a theme color */
-    /* The HSL --background variable will be overlaid by the image, 
-       but is kept for components that might explicitly use it. */
+    /* The body will now use the --background variable for its background color */
+    @apply bg-background text-foreground; /* text-foreground ensures text on body has new light color */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
   main {
     flex-grow: 1;
-    /* Content inside main, like cards, will use their own backgrounds (e.g., --card)
-       which will provide opacity over the body background image. */
+    /* Content inside main, like cards, will use their own backgrounds (e.g., --card) */
   }
 }
+
