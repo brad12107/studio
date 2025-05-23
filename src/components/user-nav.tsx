@@ -16,42 +16,54 @@ import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Import usePathname
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function UserNav() {
-  const user = mockUser;
   const router = useRouter();
+  const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
-  const pathname = usePathname(); // Get current pathname
+  const [currentUserDetails, setCurrentUserDetails] = useState<User | null>(null);
 
   useEffect(() => {
     setIsClient(true);
     const status = localStorage.getItem('isLoggedIn') === 'true';
     setIsUserLoggedIn(status);
 
+    if (status) {
+      setCurrentUserDetails({ ...mockUser }); // Create a new object to ensure state update
+    } else {
+      setCurrentUserDetails(null);
+    }
+
     // This listener handles changes from other tabs/windows
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'isLoggedIn') {
         const newStatus = event.newValue === 'true';
         setIsUserLoggedIn(newStatus);
+        if (newStatus) {
+          setCurrentUserDetails({ ...mockUser }); // Refresh on storage change
+        } else {
+          setCurrentUserDetails(null);
+        }
       }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [pathname]); // Add pathname as a dependency
+  }, [pathname]); // Re-run when pathname changes, refreshing currentUserDetails from mockUser
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    // State will be updated by useEffect on redirection due to pathname change
     window.location.href = '/login'; // Force full reload to ensure state is cleared
   };
 
   const getSubscriptionLabel = () => {
-    if (!user) return 'Standard User';
-    switch (user.subscriptionStatus) {
+    if (!currentUserDetails) return 'Standard User';
+    switch (currentUserDetails.subscriptionStatus) {
       case 'subscribed':
         return 'Basic Plan';
       case 'premium_plus':
@@ -68,7 +80,7 @@ export function UserNav() {
     return null;
   }
 
-  if (!isUserLoggedIn) {
+  if (!isUserLoggedIn || !currentUserDetails) {
     return (
       <Button variant="outline" onClick={() => router.push('/login')}>
         <LogIn className="mr-2 h-4 w-4" />
@@ -82,22 +94,22 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10 border-2 border-primary">
-            <AvatarImage src={user.avatarUrl} alt={user.name || "User Avatar"} data-ai-hint="user avatar" />
-            <AvatarFallback>{user.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
+            <AvatarImage src={currentUserDetails.avatarUrl} alt={currentUserDetails.name || "User Avatar"} data-ai-hint="user avatar" />
+            <AvatarFallback>{currentUserDetails.name ? currentUserDetails.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
+            <p className="text-sm font-medium leading-none">{currentUserDetails.name || "User"}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {getSubscriptionLabel()}
             </p>
-            {user.subscriptionStatus === 'premium_plus' && (
+            {currentUserDetails.subscriptionStatus === 'premium_plus' && (
               <p className="text-xs leading-none text-muted-foreground flex items-center">
                 <Star className="mr-1 h-3 w-3 text-amber-500" />
-                {user.enhancedListingsRemaining || 0} free enhancements left
+                {currentUserDetails.enhancedListingsRemaining || 0} free enhancements left
               </p>
             )}
           </div>
