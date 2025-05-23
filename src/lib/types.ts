@@ -27,8 +27,8 @@ export interface User {
   itemsListedCount: number;
   avatarUrl?: string;
   enhancedListingsRemaining?: number;
-  thumbsUp: number;
-  thumbsDown: number;
+  totalRatings: number;
+  sumOfRatings: number;
 }
 
 export interface Message {

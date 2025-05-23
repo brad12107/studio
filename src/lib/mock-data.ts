@@ -13,8 +13,8 @@ export const mockUser: User = {
   itemsListedCount: 0,
   avatarUrl: 'https://placehold.co/100x100.png',
   enhancedListingsRemaining: 0,
-  thumbsUp: 0,
-  thumbsDown: 0,
+  totalRatings: 0,
+  sumOfRatings: 0,
 };
 
 const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();

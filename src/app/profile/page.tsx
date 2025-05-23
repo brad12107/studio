@@ -23,10 +23,11 @@ import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Camera, Star, StarHalf } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -93,6 +94,32 @@ const profileSchemaEdit = profileSchemaBase.extend({
 type ProfileFormValues = z.infer<typeof profileSchemaCreate>; 
 const defaultAvatarPlaceholder = 'https://placehold.co/100x100.png';
 
+const renderStars = (average: number, total: number) => {
+  if (total === 0) {
+    return <span className="text-xs text-muted-foreground">No ratings yet.</span>;
+  }
+
+  const fullStars = Math.floor(average);
+  const halfStar = average % 1 >= 0.5 ? 1 : 0;
+  const emptyStars = 5 - fullStars - halfStar;
+
+  return (
+    <div className="flex items-center space-x-0.5">
+      {[...Array(fullStars)].map((_, i) => (
+        <Star key={`full-${i}`} className="h-4 w-4 text-amber-400 fill-amber-400" />
+      ))}
+      {halfStar === 1 && <StarHalf key="half" className="h-4 w-4 text-amber-400 fill-amber-400" />}
+      {[...Array(emptyStars)].map((_, i) => (
+        <Star key={`empty-${i}`} className="h-4 w-4 text-amber-400" /> 
+      ))}
+      <span className="ml-1.5 text-xs text-muted-foreground">
+        ({average.toFixed(1)} from {total} ratings)
+      </span>
+    </div>
+  );
+};
+
+
 export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -135,8 +162,10 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    setUserData({...mockUser});
-  }, [mockUser.thumbsUp, mockUser.thumbsDown]);
+    // This effect updates local userData state when mockUser (global) changes
+    // For instance, when ratings are updated elsewhere
+    setUserData({...mockUser}); 
+  }, [mockUser.totalRatings, mockUser.sumOfRatings]); // Add dependencies for ratings
 
   useEffect(() => {
     const currentProfileSchema = isCreateMode ? profileSchemaCreate : profileSchemaEdit;
@@ -223,7 +252,7 @@ export default function ProfilePage() {
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
     
-    setUserData({ ...mockUser });
+    // setUserData({ ...mockUser }); // No longer needed here if mockUser is the source of truth
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -241,6 +270,8 @@ export default function ProfilePage() {
       router.refresh(); 
     }
   }
+  
+  const averageRating = userData.totalRatings > 0 ? userData.sumOfRatings / userData.totalRatings : 0;
 
   return (
     <div className="container mx-auto py-8">
@@ -273,15 +304,8 @@ export default function ProfilePage() {
                         <Camera className="h-8 w-8 text-white" />
                       </div>
                     </FormLabel>
-                    <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
-                      <div className="flex items-center">
-                        <ThumbsUp className="mr-1 h-4 w-4 text-green-500" />
-                        <span>{userData.thumbsUp}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <ThumbsDown className="mr-1 h-4 w-4 text-red-500" />
-                        <span>{userData.thumbsDown}</span>
-                      </div>
+                    <div className="mt-2 flex items-center space-x-2 text-sm text-muted-foreground">
+                       {renderStars(averageRating, userData.totalRatings)}
                     </div>
                     <FormDescription className="text-center mt-1">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
                     <FormControl>
@@ -494,4 +518,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

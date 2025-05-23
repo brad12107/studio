@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User as UserIcon, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User as UserIcon, Star, CheckCircle, Flag, Clock, History, Gavel, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -68,10 +68,11 @@ export default function ItemDetailPage() {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
   const [bidAmount, setBidAmount] = useState<string>('');
   const [isBidDialogOpen, setIsBidDialogOpen] = useState(false);
-  const [feedbackGivenForItem, setFeedbackGivenForItem] = useState<'up' | 'down' | null>(null);
+  const [hasRatedItem, setHasRatedItem] = useState(false);
   const [winningNotificationSent, setWinningNotificationSent] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEligibleForFeedback, setIsEligibleForFeedback] = useState(false);
+  const [hoveredRating, setHoveredRating] = useState(0);
 
 
   const itemId = params.id as string;
@@ -88,11 +89,10 @@ export default function ItemDetailPage() {
             setTimeLeft(calculateTimeLeft(foundItem.auctionEndTime));
           }
         }
-         // Reset feedback state when item changes
-        setFeedbackGivenForItem(null);
+        setHasRatedItem(false); // Reset feedback state when item changes
         setWinningNotificationSent(false); // Reset notification status when item changes/reloads
         setCurrentImageIndex(0); // Reset image index when item changes
-      }, 0); // Short delay to allow state updates from mock data if needed
+      }, 0); 
     }
   }, [itemId]);
 
@@ -170,13 +170,10 @@ export default function ItemDetailPage() {
           mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
         } else {
           const newConvId = `conv-win-${item.id}-${Date.now()}`;
-          // Try to find seller details from mockUser if mockUser IS the seller for some reason, or create a generic one
           let sellerParticipantDetails: Pick<User, 'id' | 'name' | 'avatarUrl'>;
-          if (item.sellerName === mockUser.name) { // Should not happen for a buyer-winner scenario, but good to be safe
+          if (item.sellerName === mockUser.name) { 
             sellerParticipantDetails = { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl || 'https://placehold.co/50x50.png' };
           } else {
-             // Attempt to find a more concrete seller object if your mock data evolves to include multiple users
-            // For now, create a generic one based on sellerName
             sellerParticipantDetails = { 
               id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, 
               name: item.sellerName, 
@@ -226,7 +223,6 @@ export default function ItemDetailPage() {
       enhancementSuccessful = true;
       feeMessage = `Used 1 free enhanced listing. ${mockUser.enhancedListingsRemaining} remaining.`;
     } else {
-      // Assume payment for enhancement if not free
       mockItems[itemIndex].isEnhanced = true;
       enhancementSuccessful = true;
     }
@@ -263,7 +259,7 @@ export default function ItemDetailPage() {
       return;
     }
 
-    const minBid = (item.currentBid || item.price) + 0.01; // Must be at least 1p more
+    const minBid = (item.currentBid || item.price) + 0.01; 
     if (numericBidAmount < minBid) {
       toast({ title: 'Bid Too Low', description: `Your bid must be at least £${minBid.toFixed(2)}.`, variant: 'destructive' });
       return;
@@ -276,7 +272,7 @@ export default function ItemDetailPage() {
     if (!mockItems[itemIndex].bidHistory) {
       mockItems[itemIndex].bidHistory = [];
     }
-    mockItems[itemIndex].bidHistory!.unshift({ // Add to beginning for recent first
+    mockItems[itemIndex].bidHistory!.unshift({ 
       userId: mockUser.id,
       userName: mockUser.name,
       amount: numericBidAmount,
@@ -293,25 +289,18 @@ export default function ItemDetailPage() {
     });
   };
 
-  const handleFeedback = (type: 'up' | 'down') => {
+  const handleRatingSubmit = (rating: number) => {
     if (!item) return;
-    // This still updates the current mockUser's score.
+    // This updates the current mockUser's rating data, as if they were the seller.
     // In a real app, this would target the item.sellerName's user object.
-    if (type === 'up') {
-      mockUser.thumbsUp += 1; 
-      toast({
-        title: 'Positive Feedback Submitted!',
-        description: `You gave ${item.sellerName} a thumbs up (mocked on your profile).`,
-      });
-    } else {
-      mockUser.thumbsDown += 1; 
-      toast({
-        title: 'Negative Feedback Submitted!',
-        description: `You gave ${item.sellerName} a thumbs down (mocked on your profile).`,
-        variant: 'default', 
-      });
-    }
-    setFeedbackGivenForItem(type);
+    mockUser.sumOfRatings += rating;
+    mockUser.totalRatings += 1;
+    
+    toast({
+      title: 'Rating Submitted!',
+      description: `You gave ${item.sellerName} a ${rating}-star rating (mocked on your profile).`,
+    });
+    setHasRatedItem(true);
   };
 
   const handlePreviousImage = () => {
@@ -367,7 +356,7 @@ export default function ItemDetailPage() {
   }
 
   const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
-  const showFeedbackSection = isEligibleForFeedback && !feedbackGivenForItem;
+  const showFeedbackSection = isEligibleForFeedback && !hasRatedItem;
   
   const displayImageUrl = item.imageUrl && item.imageUrl.length > 0 
     ? item.imageUrl[currentImageIndex] 
@@ -391,7 +380,7 @@ export default function ItemDetailPage() {
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="md:rounded-l-lg object-cover"
-              priority // For LCP
+              priority 
               data-ai-hint={`${item.category} product`}
             />
              {item.isEnhanced && ( 
@@ -479,7 +468,7 @@ export default function ItemDetailPage() {
                       {timeLeft.seconds}s
                     </p>
                   )}
-                  { timeLeft.total <= 0 && ( // Show "Auction Ended" if time is up
+                  { timeLeft.total <= 0 && ( 
                     <p className="text-sm text-destructive font-medium">Auction Ended</p>
                   )}
                   {item.bidHistory && item.bidHistory.length > 0 && (
@@ -575,32 +564,34 @@ export default function ItemDetailPage() {
 
               {showFeedbackSection && (
                 <div className="w-full pt-4 mt-4 border-t">
-                  <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>
-                  <div className="flex space-x-3">
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
-                      onClick={() => handleFeedback('up')}
-                      size="lg"
-                    >
-                      <ThumbsUp className="mr-2 h-5 w-5" /> Positive
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => handleFeedback('down')}
-                      size="lg"
-                    >
-                      <ThumbsDown className="mr-2 h-5 w-5" /> Negative
-                    </Button>
+                  <h3 className="text-lg font-semibold mb-3">Rate your transaction with {item.sellerName}</h3>
+                  <div className="flex items-center justify-center space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onMouseEnter={() => setHoveredRating(star)}
+                        onMouseLeave={() => setHoveredRating(0)}
+                        onClick={() => handleRatingSubmit(star)}
+                        className="p-1 focus:outline-none"
+                        aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                      >
+                        <Star
+                          className={cn(
+                            "h-8 w-8 transition-colors",
+                            (hoveredRating || 0) >= star ? "text-amber-400 fill-amber-400" : "text-gray-300"
+                          )}
+                        />
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
-              {feedbackGivenForItem && isEligibleForFeedback && ( // Show this if feedback was given and they were eligible
+              {hasRatedItem && isEligibleForFeedback && ( 
                  <div className="w-full pt-4 mt-4 border-t">
                     <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>
                     <div className="p-3 rounded-md bg-green-50 border border-green-200 text-green-700">
-                      Thank you, your feedback has been submitted!
+                      Thank you, your rating has been submitted!
                     </div>
                   </div>
               )}
@@ -611,5 +602,3 @@ export default function ItemDetailPage() {
     </div>
   );
 }
-
-    
