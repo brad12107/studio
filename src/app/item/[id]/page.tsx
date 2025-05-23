@@ -448,20 +448,20 @@ export default function ItemDetailPage() {
               <p className="text-base leading-relaxed">{item.description}</p>
               
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
-                <div className="flex items-center text-muted-foreground">
+                <div className="flex items-center text-card-foreground">
                   {item.type === 'auction' ? (item.currentBid ? 'Current Bid:' : 'Starting Price:') : 'Price:'} 
-                  <span className="font-semibold text-foreground ml-1">£{(item.currentBid || item.price).toFixed(2)}</span>
+                  <span className="font-semibold text-card-foreground ml-1">£{(item.currentBid || item.price).toFixed(2)}</span>
                 </div>
-                <div className="flex items-center text-muted-foreground">
-                  <Tag className="h-5 w-5 mr-2 text-primary" /> Category: <span className="font-semibold text-foreground ml-1">{item.category}</span>
+                <div className="flex items-center text-card-foreground">
+                  <Tag className="h-5 w-5 mr-2 text-primary" /> Category: <span className="font-semibold text-card-foreground ml-1">{item.category}</span>
                 </div>
-                 <div className="flex items-center text-muted-foreground col-span-2">
+                 <div className="flex items-center text-card-foreground col-span-2">
                   {item.type === 'sale' ? <ShoppingCart className="h-5 w-5 mr-2 text-primary" /> : <Gavel className="h-5 w-5 mr-2 text-primary" />}
-                  Type: <span className="font-semibold text-foreground ml-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
+                  Type: <span className="font-semibold text-card-foreground ml-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
                 </div>
                 {showCondition && (
-                  <div className="flex items-center text-muted-foreground">
-                    <HelpCircle className="h-5 w-5 mr-2 text-primary" /> Condition: <span className="font-semibold text-foreground ml-1">{formatCondition(item.condition)}</span>
+                  <div className="flex items-center text-card-foreground">
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" /> Condition: <span className="font-semibold text-card-foreground ml-1">{formatCondition(item.condition)}</span>
                   </div>
                 )}
               </div>
