@@ -31,6 +31,7 @@ export default function MessagesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false); // For hydration fix
   const [conversations, setConversations] = useState<Conversation[]>(
     mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime())
   );
@@ -54,6 +55,10 @@ export default function MessagesPage() {
     return currentItemForSelectedConv.sellerName === mockUser.name;
   }, [selectedConversation, currentItemForSelectedConv, mockUser.name]);
 
+
+  useEffect(() => {
+    setIsClient(true); // Component has mounted, safe to use client-only features
+  }, []);
 
   useEffect(() => {
     if (currentItemForSelectedConv && currentItemForSelectedConv.type === 'auction' && currentItemForSelectedConv.auctionEndTime) {
@@ -349,7 +354,7 @@ export default function MessagesPage() {
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold truncate text-card-foreground">{otherP.name}</h3>
                       <span className={cn("text-xs", selectedConversation?.id === conv.id ? "text-accent-foreground/80" : "text-muted-foreground")}>
-                        {formatDistanceToNowStrict(new Date(conv.lastMessage.timestamp), { addSuffix: true })}
+                        {isClient ? formatDistanceToNowStrict(new Date(conv.lastMessage.timestamp), { addSuffix: true }) : ''}
                       </span>
                     </div>
                     <p className={cn("text-sm truncate", selectedConversation?.id === conv.id ? "text-accent-foreground/90" : "text-muted-foreground")}>
@@ -541,4 +546,3 @@ export default function MessagesPage() {
     </>
   );
 }
-
