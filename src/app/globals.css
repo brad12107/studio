@@ -8,10 +8,10 @@
     --background: 220 40% 15%; /* Dark Blue */
     --foreground: 210 20% 90%; /* Light Grayish Blue for text on dark background */
 
-    --card: 188 78% 92%; /* Light Blue (like original #E0F7FA) for listings */
+    --card: 195 65% 80%; /* Slightly darker Light Blue for listings */
     --card-foreground: 0 0% 7%; /* Very Dark Gray / Black for text on listings */
 
-    --popover: 188 78% 92%; /* Light Blue for popovers (consistent with cards) */
+    --popover: 195 65% 80%; /* Slightly darker Light Blue for popovers (consistent with cards) */
     --popover-foreground: 0 0% 7%; /* Very Dark Gray / Black for text on popovers */
 
     --primary: 204 88% 68%; /* Soft Blue #64B5F6 */
