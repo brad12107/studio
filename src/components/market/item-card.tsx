@@ -4,14 +4,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Tag, ShoppingCart, Hammer, Star, User as UserIcon } from 'lucide-react';
+import { Tag, ShoppingCart, Hammer, Star, User as UserIcon, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ItemCardProps {
   item: Item;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export function ItemCard({ item }: ItemCardProps) {
+export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
   const primaryImageUrl = item.imageUrl && item.imageUrl.length > 0 ? item.imageUrl[0] : 'https://placehold.co/600x400.png';
 
   return (
@@ -58,9 +61,21 @@ export function ItemCard({ item }: ItemCardProps) {
             {item.type === 'sale' ? <ShoppingCart className="h-3 w-3 mr-1" /> : <Hammer className="h-3 w-3 mr-1" />}
             {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
           </Badge>
-          <Button asChild size="sm" variant="default">
-            <Link href={`/item/${item.id}`}>View Details</Link>
-          </Button>
+          <div className="flex items-center space-x-2">
+            {onEdit && (
+              <Button variant="outline" size="icon" onClick={onEdit} aria-label="Edit item">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="destructive" size="icon" onClick={onDelete} aria-label="Delete item">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+            <Button asChild size="sm" variant="default">
+              <Link href={`/item/${item.id}`}>View Details</Link>
+            </Button>
+          </div>
         </div>
       </CardFooter>
     </Card>
