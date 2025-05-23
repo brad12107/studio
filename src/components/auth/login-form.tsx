@@ -46,7 +46,7 @@ export function LoginForm() {
     <div className="flex items-center justify-center min-h-[calc(100vh-18rem)] py-12">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold">Welcome Back!</CardTitle>
+          <CardTitle className="text-3xl font-bold">Please Log In</CardTitle>
           <CardDescription>Enter your credentials to access Barrow Market Place</CardDescription>
         </CardHeader>
         <CardContent>
