@@ -36,6 +36,27 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const MAX_IMAGES = 15;
 
+const CATEGORIES = [
+  "Apparel",
+  "Furniture",
+  "Home Decor",
+  "Electronics",
+  "Sports",
+  "Books",
+  "Vehicles",
+  "Garden & Outdoors",
+  "Music & Instruments",
+  "Jewellery & Accessories",
+  "Toys & Games",
+  "Art & Crafts",
+  "Health & Beauty",
+  "Pet Supplies",
+  "Property for Rent",
+  "Property for Sale",
+  "Other"
+].sort();
+
+
 // Helper function to convert File to data URI
 const fileToDataUri = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -52,7 +73,7 @@ const listItemSchema = z.object({
   price: z.coerce.number().positive({ message: 'Price (or starting bid) must be a positive number.' }),
   type: z.enum(['sale', 'auction'], { required_error: 'Please select item type.' }),
   auctionDurationDays: z.coerce.number().positive("Duration must be a positive number.").optional(),
-  category: z.string().min(2, {message: 'Category must be at least 2 characters.'}).max(50),
+  category: z.string().nonempty({ message: 'Please select a category.' }),
   imageFiles: z
     .instanceof(FileList)
     .refine((files) => files.length >= 1, 'Please select at least one image.')
@@ -354,9 +375,20 @@ export function ListItemForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Furniture, Electronics, Apparel" {...field} disabled={disableFormFields} />
-                </FormControl>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disableFormFields}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -451,3 +483,5 @@ export function ListItemForm() {
     </div>
   );
 }
+
+    
