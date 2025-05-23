@@ -215,6 +215,39 @@ export let mockItems: Item[] = [
     sellerName: 'Pet Lover Pete',
     category: 'Pet Supplies',
     isEnhanced: false,
+  },
+  {
+    id: '17',
+    name: 'Modern 2-Bed Apartment for Rent',
+    description: 'Spacious 2-bedroom apartment in the city center. Fully furnished, available immediately. £1200/month.',
+    price: 1200, // Price per month for rent
+    type: 'sale', // 'sale' type can represent rentals too for simplicity in this mock
+    imageUrl: 'https://placehold.co/600x400.png',
+    sellerName: 'Landlord Larry',
+    category: 'Property for Rent',
+    isEnhanced: true,
+  },
+  {
+    id: '18',
+    name: 'Charming 3-Bed House for Sale',
+    description: 'Beautiful 3-bedroom detached house with a large garden. Quiet neighborhood. Offers over £250,000.',
+    price: 250000,
+    type: 'sale',
+    imageUrl: 'https://placehold.co/600x400.png',
+    sellerName: 'Realty Rosie',
+    category: 'Property for Sale',
+    isEnhanced: false,
+  },
+  {
+    id: '19',
+    name: 'Studio Flat to Let',
+    description: 'Compact studio flat, ideal for a single professional. Close to transport links. £800/month.',
+    price: 800,
+    type: 'sale',
+    imageUrl: 'https://placehold.co/600x400.png',
+    sellerName: 'Landlord Larry',
+    category: 'Property for Rent',
+    isEnhanced: false,
   }
 ];
 
@@ -278,3 +311,4 @@ export const mockConversations: Conversation[] = [
 export const removeItemFromMockItems = (itemId: string) => {
   mockItems = mockItems.filter(item => item.id !== itemId);
 };
+
