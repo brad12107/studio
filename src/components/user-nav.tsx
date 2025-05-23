@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
-import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn, ShoppingBag } from 'lucide-react';
+import { CreditCard, LogOut, Settings, User as UserIcon, MessageSquare, Star, LogIn, ShoppingBag, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -138,6 +138,12 @@ export function UserNav() {
             <Link href="/subscription">
               <CreditCard className="mr-2 h-4 w-4" />
               <span>Billing & Subscription</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/terms-and-conditions">
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Terms & Conditions</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem disabled>
