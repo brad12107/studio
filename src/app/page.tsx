@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 
 export default function HomePage() {
   const router = useRouter();
@@ -158,13 +159,24 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4 text-center">
+          <div className="mx-auto mb-4 w-32 h-32 relative">
+            <Image 
+              src="/barrow-market-logo.png" 
+              alt="Barrow Market Place Logo" 
+              fill
+              sizes="128px"
+              className="object-contain"
+              priority
+              data-ai-hint="app logo"
+            />
+          </div>
           <CardTitle className="text-3xl font-bold tracking-tight">Welcome to Barrow Market Place!</CardTitle>
           <CardDescription className="text-muted-foreground pt-1">
             Browse items or list your own for sale or auction. Your next great find is just a click away.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex justify-center">
           <Button asChild size="lg" className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
             <Link href="/list-item">
               <PlusCircle className="mr-2 h-5 w-5" />
