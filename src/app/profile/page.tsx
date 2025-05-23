@@ -165,7 +165,7 @@ export default function ProfilePage() {
     // This effect updates local userData state when mockUser (global) changes
     // For instance, when ratings are updated elsewhere
     setUserData({...mockUser}); 
-  }, [mockUser.totalRatings, mockUser.sumOfRatings]); // Add dependencies for ratings
+  }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl]);
 
   useEffect(() => {
     const currentProfileSchema = isCreateMode ? profileSchemaCreate : profileSchemaEdit;
@@ -252,7 +252,7 @@ export default function ProfilePage() {
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl;
     
-    // setUserData({ ...mockUser }); // No longer needed here if mockUser is the source of truth
+    setUserData({ ...mockUser }); 
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                         fileInputRef.current?.click();
                       }}
                     >
-                      <Avatar className="h-24 w-24 border-2 border-primary group-hover:opacity-80 transition-opacity">
+                      <Avatar className="h-28 w-28 border-2 border-primary group-hover:opacity-80 transition-opacity">
                         <AvatarImage src={avatarPreview} alt={form.getValues('name')} data-ai-hint="user profile" />
                         <AvatarFallback>{form.getValues('name')?.substring(0, 2).toUpperCase() || 'AV'}</AvatarFallback>
                       </Avatar>
