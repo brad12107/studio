@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown, HelpCircle } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatDistanceToNowStrict, format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 const ENHANCEMENT_FEE = 1.00;
@@ -70,6 +70,7 @@ export default function ItemDetailPage() {
   const [isBidDialogOpen, setIsBidDialogOpen] = useState(false);
   const [feedbackGivenForItem, setFeedbackGivenForItem] = useState<'up' | 'down' | null>(null);
   const [winningNotificationSent, setWinningNotificationSent] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
 
   const itemId = params.id as string;
@@ -89,6 +90,7 @@ export default function ItemDetailPage() {
          // Reset feedback state when item changes
         setFeedbackGivenForItem(null);
         setWinningNotificationSent(false); // Reset notification status when item changes/reloads
+        setCurrentImageIndex(0); // Reset image index when item changes
       }, 0); // Short delay to allow state updates from mock data if needed
     }
   }, [itemId]);
@@ -105,7 +107,7 @@ export default function ItemDetailPage() {
         setTimeLeft(calculateTimeLeft(item.auctionEndTime));
       }, 1000);
       return () => clearInterval(timer);
-    } else if (item?.type === 'auction' && timeLeft.total <= 0 && !winningNotificationSent) {
+    } else if (item?.type === 'auction' && item?.auctionEndTime && timeLeft.total <= 0 && !winningNotificationSent) {
       // Auction ended, check for winner
       if (item.bidHistory && item.bidHistory.length > 0 && item.bidHistory[0].userId === mockUser.id) {
         // Current user is the winner
@@ -165,7 +167,7 @@ export default function ItemDetailPage() {
         });
       }
     }
-  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast]); // Removed mockUser from deps as it's stable
+  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -268,6 +270,20 @@ export default function ItemDetailPage() {
     setFeedbackGivenForItem(type);
   };
 
+  const handlePreviousImage = () => {
+    if (!item || !item.imageUrl || item.imageUrl.length <= 1) return;
+    setCurrentImageIndex((prevIndex) => (prevIndex === 0 ? item.imageUrl.length - 1 : prevIndex - 1));
+  };
+
+  const handleNextImage = () => {
+    if (!item || !item.imageUrl || item.imageUrl.length <= 1) return;
+    setCurrentImageIndex((prevIndex) => (prevIndex === item.imageUrl.length - 1 ? 0 : prevIndex + 1));
+  };
+
+  const handleDotClick = (index: number) => {
+    setCurrentImageIndex(index);
+  };
+
 
   if (item === undefined) { 
     return (
@@ -276,7 +292,7 @@ export default function ItemDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <Card className="overflow-hidden shadow-xl">
-          <Skeleton className="aspect-[16/9] w-full" />
+          <Skeleton className="aspect-[4/3] w-full md:aspect-auto md:h-[400px] lg:h-[500px]" />
           <CardHeader>
             <Skeleton className="h-8 w-3/4 mb-2" />
             <Skeleton className="h-4 w-1/2" />
@@ -309,7 +325,12 @@ export default function ItemDetailPage() {
   const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
   const auctionEnded = item.type === 'auction' && timeLeft.total <= 0;
   const showFeedbackOptions = (item.type === 'sale' || (item.type === 'auction' && auctionEnded));
-  const primaryImageUrl = item.imageUrl && item.imageUrl.length > 0 ? item.imageUrl[0] : 'https://placehold.co/800x600.png';
+  
+  const displayImageUrl = item.imageUrl && item.imageUrl.length > 0 
+    ? item.imageUrl[currentImageIndex] 
+    : 'https://placehold.co/800x600.png';
+  
+  const showImageNavigation = item.imageUrl && item.imageUrl.length > 1;
   const showCondition = !['Property for Sale', 'Property for Rent'].includes(item.category) && item.condition;
 
 
@@ -320,10 +341,10 @@ export default function ItemDetailPage() {
       </Button>
       <Card className="overflow-hidden shadow-xl">
         <div className="grid md:grid-cols-2">
-          <div className="relative aspect-[4/3] md:aspect-auto">
+          <div className="relative aspect-[4/3] md:aspect-auto md:h-[400px] lg:h-[500px]">
             <Image
-              src={primaryImageUrl}
-              alt={item.name}
+              src={displayImageUrl}
+              alt={`${item.name} - image ${currentImageIndex + 1}`}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="md:rounded-l-lg object-cover"
@@ -334,6 +355,43 @@ export default function ItemDetailPage() {
               <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md z-10">
                 <Star className="mr-1.5 h-4 w-4" /> Enhanced Listing
               </Badge>
+            )}
+            {showImageNavigation && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white h-10 w-10 rounded-full"
+                  onClick={handlePreviousImage}
+                  disabled={currentImageIndex === 0}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white h-10 w-10 rounded-full"
+                  onClick={handleNextImage}
+                  disabled={currentImageIndex === item.imageUrl.length - 1}
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex space-x-2">
+                  {item.imageUrl.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleDotClick(index)}
+                      aria-label={`Go to image ${index + 1}`}
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full transition-colors",
+                        currentImageIndex === index ? "bg-white scale-125" : "bg-white/50 hover:bg-white/75"
+                      )}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
           <div className="flex flex-col">
@@ -508,3 +566,4 @@ export default function ItemDetailPage() {
     </div>
   );
 }
+
