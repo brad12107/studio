@@ -295,13 +295,13 @@ export function ListItemForm() {
         </Alert>
       )}
       {isListingFeeApplicable && !isFreeTrialLimitReached && (
-        <Alert variant="default" className="mb-6 bg-secondary/50">
-          <Info className="h-4 w-4" />
+        <Alert variant="default" className="mb-6 bg-secondary/50 text-card-foreground">
+          <Info className="h-4 w-4 text-card-foreground" />
           <AlertTitle>Listing Fee Applicable</AlertTitle>
           <AlertDescription>
             A standard listing fee of £{LISTING_FEE.toFixed(2)} applies per item.
-            <Link href="/subscription" className="underline hover:text-foreground/80 ml-1">Subscribe</Link> to list for free, or check your current
-            <Link href="/subscription" className="underline hover:text-foreground/80 ml-1">subscription status</Link>.
+            <Link href="/subscription" className="underline hover:text-card-foreground/80 ml-1">Subscribe</Link> to list for free, or check your current
+            <Link href="/subscription" className="underline hover:text-card-foreground/80 ml-1">subscription status</Link>.
           </AlertDescription>
         </Alert>
       )}
