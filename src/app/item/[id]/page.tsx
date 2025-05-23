@@ -2,12 +2,12 @@
 'use client';
 
 import { mockItems, mockUser, mockConversations, mockMessages } from '@/lib/mock-data';
-import type { Item, Message, Conversation } from '@/lib/types';
+import type { Item, Message, Conversation, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User as UserIcon, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +71,7 @@ export default function ItemDetailPage() {
   const [feedbackGivenForItem, setFeedbackGivenForItem] = useState<'up' | 'down' | null>(null);
   const [winningNotificationSent, setWinningNotificationSent] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isEligibleForFeedback, setIsEligibleForFeedback] = useState(false);
 
 
   const itemId = params.id as string;
@@ -99,6 +100,39 @@ export default function ItemDetailPage() {
   useEffect(() => {
     updateItemData();
   }, [updateItemData]);
+
+  // Effect to determine feedback eligibility
+  useEffect(() => {
+    if (!item || !mockUser?.id) {
+        setIsEligibleForFeedback(false);
+        return;
+    }
+
+    let eligible = false;
+
+    // Scenario 1: Logged-in user won the auction for this item
+    if (item.type === 'auction' && timeLeft.total <= 0) {
+        const winningBid = item.bidHistory?.[0]; // Assumes bidHistory is sorted, latest first
+        if (winningBid?.userId === mockUser.id) {
+            eligible = true;
+        }
+    }
+
+    // Scenario 2: Logged-in user had a buy request accepted for this item
+    const relevantAcceptedConversation = mockConversations.find(conv =>
+        conv.itemId === item.id &&
+        conv.buyRequestStatus === 'accepted' &&
+        conv.participants.some(p => p.id === mockUser.id) && // current user is in the conversation
+        item.sellerName !== mockUser.name // current user is not the seller of the item
+    );
+
+    if (relevantAcceptedConversation) {
+        eligible = true;
+    }
+
+    setIsEligibleForFeedback(eligible);
+
+  }, [item, timeLeft.total, mockUser?.id, mockUser?.name]);
 
 
   useEffect(() => {
@@ -136,11 +170,19 @@ export default function ItemDetailPage() {
           mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
         } else {
           const newConvId = `conv-win-${item.id}-${Date.now()}`;
-          const sellerParticipant = { 
-            id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, 
-            name: item.sellerName, 
-            avatarUrl: `https://placehold.co/50x50.png?text=${item.sellerName.substring(0,2).toUpperCase()}` 
-          };
+          // Try to find seller details from mockUser if mockUser IS the seller for some reason, or create a generic one
+          let sellerParticipantDetails: Pick<User, 'id' | 'name' | 'avatarUrl'>;
+          if (item.sellerName === mockUser.name) { // Should not happen for a buyer-winner scenario, but good to be safe
+            sellerParticipantDetails = { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl || 'https://placehold.co/50x50.png' };
+          } else {
+             // Attempt to find a more concrete seller object if your mock data evolves to include multiple users
+            // For now, create a generic one based on sellerName
+            sellerParticipantDetails = { 
+              id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, 
+              name: item.sellerName, 
+              avatarUrl: `https://placehold.co/50x50.png?text=${item.sellerName.substring(0,2).toUpperCase()}` 
+            };
+          }
           
           conversation = {
             id: newConvId,
@@ -148,8 +190,8 @@ export default function ItemDetailPage() {
             itemName: item.name,
             itemImageUrl: itemPrimaryImageUrl,
             participants: [
-              { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
-              sellerParticipant
+              { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl || 'https://placehold.co/50x50.png' },
+              sellerParticipantDetails
             ],
             lastMessage: { content: systemMessage.content, timestamp: systemMessage.timestamp },
             unreadCount: 1, 
@@ -167,7 +209,7 @@ export default function ItemDetailPage() {
         });
       }
     }
-  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast]);
+  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast, mockUser.id, mockUser.name, mockUser.avatarUrl]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -253,6 +295,8 @@ export default function ItemDetailPage() {
 
   const handleFeedback = (type: 'up' | 'down') => {
     if (!item) return;
+    // This still updates the current mockUser's score.
+    // In a real app, this would target the item.sellerName's user object.
     if (type === 'up') {
       mockUser.thumbsUp += 1; 
       toast({
@@ -323,8 +367,7 @@ export default function ItemDetailPage() {
   }
 
   const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
-  const auctionEnded = item.type === 'auction' && timeLeft.total <= 0;
-  const showFeedbackOptions = (item.type === 'sale' || (item.type === 'auction' && auctionEnded));
+  const showFeedbackSection = isEligibleForFeedback && !feedbackGivenForItem;
   
   const displayImageUrl = item.imageUrl && item.imageUrl.length > 0 
     ? item.imageUrl[currentImageIndex] 
@@ -363,7 +406,7 @@ export default function ItemDetailPage() {
                   size="icon"
                   className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white h-10 w-10 rounded-full"
                   onClick={handlePreviousImage}
-                  disabled={currentImageIndex === 0}
+                  disabled={item.imageUrl.length <= 1} 
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -373,7 +416,7 @@ export default function ItemDetailPage() {
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white h-10 w-10 rounded-full"
                   onClick={handleNextImage}
-                  disabled={currentImageIndex === item.imageUrl.length - 1}
+                  disabled={item.imageUrl.length <= 1}
                   aria-label="Next image"
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -398,7 +441,7 @@ export default function ItemDetailPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-3xl font-bold tracking-tight">{item.name}</CardTitle>
               <CardDescription className="text-sm text-muted-foreground flex items-center pt-1">
-                <User className="h-4 w-4 mr-1.5" /> Sold by: {item.sellerName}
+                <UserIcon className="h-4 w-4 mr-1.5" /> Sold by: {item.sellerName}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 flex-grow">
@@ -436,7 +479,7 @@ export default function ItemDetailPage() {
                       {timeLeft.seconds}s
                     </p>
                   )}
-                  {auctionEnded && (
+                  { timeLeft.total <= 0 && ( // Show "Auction Ended" if time is up
                     <p className="text-sm text-destructive font-medium">Auction Ended</p>
                   )}
                   {item.bidHistory && item.bidHistory.length > 0 && (
@@ -511,7 +554,7 @@ export default function ItemDetailPage() {
                   variant="outline"
                   className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700" 
                   onClick={handleEnhanceItem}
-                  disabled={auctionEnded && item.type === 'auction'} 
+                  disabled={item.type === 'auction' && timeLeft.total <= 0} 
                 >
                   <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
@@ -530,34 +573,36 @@ export default function ItemDetailPage() {
                 <Flag className="mr-2 h-5 w-5" /> Report this Item
               </Button>
 
-              {showFeedbackOptions && (
+              {showFeedbackSection && (
                 <div className="w-full pt-4 mt-4 border-t">
                   <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>
-                  {feedbackGivenForItem ? (
+                  <div className="flex space-x-3">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                      onClick={() => handleFeedback('up')}
+                      size="lg"
+                    >
+                      <ThumbsUp className="mr-2 h-5 w-5" /> Positive
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => handleFeedback('down')}
+                      size="lg"
+                    >
+                      <ThumbsDown className="mr-2 h-5 w-5" /> Negative
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {feedbackGivenForItem && isEligibleForFeedback && ( // Show this if feedback was given and they were eligible
+                 <div className="w-full pt-4 mt-4 border-t">
+                    <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>
                     <div className="p-3 rounded-md bg-green-50 border border-green-200 text-green-700">
                       Thank you, your feedback has been submitted!
                     </div>
-                  ) : (
-                    <div className="flex space-x-3">
-                      <Button
-                        variant="outline"
-                        className="flex-1 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
-                        onClick={() => handleFeedback('up')}
-                        size="lg"
-                      >
-                        <ThumbsUp className="mr-2 h-5 w-5" /> Positive
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="flex-1 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => handleFeedback('down')}
-                        size="lg"
-                      >
-                        <ThumbsDown className="mr-2 h-5 w-5" /> Negative
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                  </div>
               )}
             </CardFooter>
           </div>
@@ -567,3 +612,4 @@ export default function ItemDetailPage() {
   );
 }
 
+    
