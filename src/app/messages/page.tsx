@@ -41,6 +41,8 @@ export default function MessagesPage() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [messageToDeleteId, setMessageToDeleteId] = useState<string | null>(null);
+  const [isCurrentAuctionActive, setIsCurrentAuctionActive] = useState(false);
+
 
   const currentItemForSelectedConv = useMemo(() => {
     if (!selectedConversation) return null;
@@ -52,6 +54,14 @@ export default function MessagesPage() {
     return currentItemForSelectedConv.sellerName === mockUser.name;
   }, [selectedConversation, currentItemForSelectedConv, mockUser.name]);
 
+
+  useEffect(() => {
+    if (currentItemForSelectedConv && currentItemForSelectedConv.type === 'auction' && currentItemForSelectedConv.auctionEndTime) {
+      setIsCurrentAuctionActive(new Date(currentItemForSelectedConv.auctionEndTime).getTime() > new Date().getTime());
+    } else {
+      setIsCurrentAuctionActive(false);
+    }
+  }, [currentItemForSelectedConv]);
 
   const getOtherParticipant = useCallback((conv: Conversation | null) => {
     if (!conv) return null;
@@ -119,9 +129,13 @@ export default function MessagesPage() {
       const msgsForConv = mockMessages.filter(msg => {
           if (msg.itemId !== selectedConversation.itemId) return false;
 
+          // System messages are for the recipient (toUserId) or specifically from 'system' to a participant
           if (msg.isSystemMessage) {
-              return currentParticipantsIds.includes(msg.toUserId) || (msg.fromUserId === 'system' && currentParticipantsIds.includes(msg.toUserId));
+              // Show system message if it's addressed TO one of the participants in this conversation
+              // OR if it's from 'system' and TO one of the participants (covers auction win notifications)
+              return currentParticipantsIds.includes(msg.toUserId);
           }
+          // Regular messages need to be between the two participants of the current conversation
           return currentParticipantsIds.includes(msg.fromUserId) && currentParticipantsIds.includes(msg.toUserId);
       })
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -143,7 +157,7 @@ export default function MessagesPage() {
     const otherParticipant = getOtherParticipant(selectedConversation);
     if (!otherParticipant && !isSystem) return; 
 
-    const toUserIdForMsg = isSystem ? (isCurrentUserTheSeller ? otherParticipant!.id : mockUser.id) : otherParticipant!.id;
+    const toUserIdForMsg = isSystem ? (isCurrentUserTheSeller && otherParticipant ? otherParticipant.id : mockUser.id) : otherParticipant!.id;
 
 
     const msg: Message = {
@@ -236,6 +250,12 @@ export default function MessagesPage() {
 
   const handleSendBuyRequest = (e: React.FormEvent) => {
     if (!selectedConversation || !currentItemForSelectedConv || isCurrentUserTheSeller || selectedConversation.isItemSoldOrUnavailable) return;
+
+    // Prevent buy request for active auctions
+    if (currentItemForSelectedConv.type === 'auction' && currentItemForSelectedConv.auctionEndTime && new Date(currentItemForSelectedConv.auctionEndTime).getTime() > new Date().getTime()) {
+        toast({ title: 'Auction Active', description: 'You cannot send a buy request for an item while the auction is still active.', variant: 'default' });
+        return;
+    }
 
     const price = currentItemForSelectedConv.type === 'auction' ? currentItemForSelectedConv.currentBid || currentItemForSelectedConv.price : currentItemForSelectedConv.price;
 
@@ -471,6 +491,7 @@ export default function MessagesPage() {
                     variant="outline" 
                     className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
                     onClick={handleSendBuyRequest}
+                    disabled={isCurrentAuctionActive}
                   >
                     <ShoppingBag className="mr-2 h-4 w-4"/> Request to Buy
                   </Button>
@@ -520,3 +541,4 @@ export default function MessagesPage() {
     </>
   );
 }
+
