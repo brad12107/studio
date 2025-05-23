@@ -34,21 +34,21 @@ export function ItemCard({ item }: ItemCardProps) {
         </div>
       </CardHeader>
       <CardContent className="p-4 flex-grow">
-        <CardTitle className="text-lg font-semibold mb-2 leading-tight truncate" title={item.name}>
+        <CardTitle className="text-lg font-semibold mb-2 leading-tight truncate text-card-foreground" title={item.name}>
           {item.name}
         </CardTitle>
-        <p className="text-sm text-muted-foreground mb-2 line-clamp-2" title={item.description}>
+        <p className="text-sm text-card-foreground mb-2 line-clamp-2" title={item.description}>
           {item.description}
         </p>
-        <div className="flex items-center text-sm text-muted-foreground mb-1">
-          <Tag className="h-4 w-4 mr-1.5" />
+        <div className="flex items-center text-sm text-card-foreground mb-1">
+          <Tag className="h-4 w-4 mr-1.5 text-card-foreground" />
           <span>{item.category}</span>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground mb-2">
-          <UserIcon className="h-4 w-4 mr-1.5" />
+        <div className="flex items-center text-sm text-card-foreground mb-2">
+          <UserIcon className="h-4 w-4 mr-1.5 text-card-foreground" />
           <span>Sold by: {item.sellerName}</span>
         </div>
-        <div className="flex items-center text-lg font-bold text-primary">
+        <div className="flex items-center text-lg font-bold text-card-foreground">
           <span>£{item.price.toFixed(2)}</span>
         </div>
       </CardContent>
@@ -66,4 +66,3 @@ export function ItemCard({ item }: ItemCardProps) {
     </Card>
   );
 }
-
