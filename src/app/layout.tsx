@@ -6,7 +6,9 @@ import './globals.css';
 import { SiteHeader } from '@/components/site-header';
 import { Toaster } from "@/components/ui/toaster";
 import { CopyrightYear } from '@/components/copyright-year';
+import { ClientSessionInitializer } from '@/components/client-session-initializer'; // Import the new component
 
+// Metadata can still be exported from a client component layout
 export const metadata: Metadata = {
   title: 'Barrow Market Place',
   description: 'A place to buy and sell items in your community.',
@@ -19,9 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body 
+      <body
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased flex flex-col min-h-screen`}
       >
+        <ClientSessionInitializer /> {/* Add the client component here */}
         <SiteHeader />
         <main className="flex-grow container mx-auto px-4 py-8">
           {children}
