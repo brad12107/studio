@@ -50,7 +50,10 @@ export default function MyListingsPage() {
     return (
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <Skeleton className="h-8 w-48" /> {/* "My Listings" Title */}
+          <div className="flex items-center">
+            <ShoppingBag className="mr-3 h-8 w-8 text-muted-foreground"/>
+            <Skeleton className="h-8 w-48" /> {/* "My Listings" Title */}
+          </div>
           <Skeleton className="h-11 w-40" /> {/* "List New Item" Button */}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -118,3 +121,4 @@ export default function MyListingsPage() {
     </div>
   );
 }
+

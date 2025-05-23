@@ -90,7 +90,7 @@ export default function ItemDetailPage() {
 
 
   useEffect(() => {
-    if (item?.type === 'auction' && item.auctionEndTime && timeLeft.total > 0) {
+    if (item?.type === 'auction' && item?.auctionEndTime && timeLeft.total > 0) {
       const timer = setInterval(() => {
         setTimeLeft(calculateTimeLeft(item.auctionEndTime));
       }, 1000);
@@ -155,7 +155,7 @@ export default function ItemDetailPage() {
         });
       }
     }
-  }, [item, timeLeft.total, winningNotificationSent, toast, mockUser.id, mockUser.name, mockUser.avatarUrl]);
+  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast, mockUser.id, mockUser.name, mockUser.avatarUrl]);
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -172,6 +172,7 @@ export default function ItemDetailPage() {
       enhancementSuccessful = true;
       feeMessage = `Used 1 free enhanced listing. ${mockUser.enhancedListingsRemaining} remaining.`;
     } else {
+      // Assume payment for enhancement if not free
       mockItems[itemIndex].isEnhanced = true;
       enhancementSuccessful = true;
     }
@@ -241,13 +242,13 @@ export default function ItemDetailPage() {
   const handleFeedback = (type: 'up' | 'down') => {
     if (!item) return;
     if (type === 'up') {
-      mockUser.thumbsUp += 1;
+      mockUser.thumbsUp += 1; // Mock: current user (assumed seller for this context) gets feedback
       toast({
         title: 'Positive Feedback Submitted!',
         description: `You gave ${item.sellerName} a thumbs up (mocked on your profile).`,
       });
     } else {
-      mockUser.thumbsDown += 1;
+      mockUser.thumbsDown += 1; // Mock
       toast({
         title: 'Negative Feedback Submitted!',
         description: `You gave ${item.sellerName} a thumbs down (mocked on your profile).`,
@@ -316,8 +317,8 @@ export default function ItemDetailPage() {
               className="md:rounded-l-lg object-cover"
               data-ai-hint={`${item.category} product`}
             />
-             {isCurrentlyEnhanced && (
-              <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md">
+             {item.isEnhanced && ( // Display badge if item.isEnhanced is true
+              <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md z-10">
                 <Star className="mr-1.5 h-4 w-4" /> Enhanced Listing
               </Badge>
             )}
@@ -429,18 +430,18 @@ export default function ItemDetailPage() {
                 </Dialog>
               )}
 
-              {!isCurrentlyEnhanced && item.sellerName === mockUser.name && ( // Only show enhance if current user is seller
+              {!isCurrentlyEnhanced && item.sellerName === mockUser.name && ( 
                 <Button 
                   size="lg" 
                   variant="outline"
                   className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700" 
                   onClick={handleEnhanceItem}
-                  disabled={auctionEnded && item.type === 'auction'} // Disable if auction ended
+                  disabled={auctionEnded && item.type === 'auction'} 
                 >
                   <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
               ) }
-              {isCurrentlyEnhanced && (
+              {isCurrentlyEnhanced && item.sellerName === mockUser.name && (
                 <div className="flex items-center text-green-600 font-semibold p-3 rounded-md bg-green-50 border border-green-200 w-full md:w-auto shadow-sm">
                   <CheckCircle className="mr-2 h-5 w-5" /> This item is enhanced!
                 </div>
