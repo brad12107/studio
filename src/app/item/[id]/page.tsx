@@ -116,16 +116,16 @@ export default function ItemDetailPage() {
           (c) => c.itemId === item.id && c.participants.some(p => p.id === mockUser.id) && c.participants.some(p => p.name === item.sellerName)
         );
 
+        const itemPrimaryImageUrl = item.imageUrl && item.imageUrl.length > 0 ? item.imageUrl[0] : 'https://placehold.co/100x100.png';
+
         if (conversation) {
           conversation.lastMessage = { content: systemMessage.content, timestamp: systemMessage.timestamp };
-          // Optionally mark as unread for the winner if this logic is handled per user. For mock, assume new message = unread.
           conversation.unreadCount = (conversation.unreadCount || 0) + 1;
-           // Ensure conversations are re-sorted if lastMessage timestamp changes
           mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
         } else {
           const newConvId = `conv-win-${item.id}-${Date.now()}`;
           const sellerParticipant = { 
-            id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, // Consistent seller ID for this item context
+            id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, 
             name: item.sellerName, 
             avatarUrl: `https://placehold.co/50x50.png?text=${item.sellerName.substring(0,2).toUpperCase()}` 
           };
@@ -134,7 +134,7 @@ export default function ItemDetailPage() {
             id: newConvId,
             itemId: item.id,
             itemName: item.name,
-            itemImageUrl: item.imageUrl,
+            itemImageUrl: itemPrimaryImageUrl,
             participants: [
               { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
               sellerParticipant
@@ -155,7 +155,7 @@ export default function ItemDetailPage() {
         });
       }
     }
-  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast, mockUser.id, mockUser.name, mockUser.avatarUrl]);
+  }, [item?.type, item?.auctionEndTime, item?.id, item?.name, item?.sellerName, item?.imageUrl, item?.bidHistory, timeLeft.total, winningNotificationSent, toast]); // Removed mockUser from deps as it's stable
 
   const handleEnhanceItem = () => {
     if (!item) return;
@@ -242,13 +242,13 @@ export default function ItemDetailPage() {
   const handleFeedback = (type: 'up' | 'down') => {
     if (!item) return;
     if (type === 'up') {
-      mockUser.thumbsUp += 1; // Mock: current user (assumed seller for this context) gets feedback
+      mockUser.thumbsUp += 1; 
       toast({
         title: 'Positive Feedback Submitted!',
         description: `You gave ${item.sellerName} a thumbs up (mocked on your profile).`,
       });
     } else {
-      mockUser.thumbsDown += 1; // Mock
+      mockUser.thumbsDown += 1; 
       toast({
         title: 'Negative Feedback Submitted!',
         description: `You gave ${item.sellerName} a thumbs down (mocked on your profile).`,
@@ -299,6 +299,7 @@ export default function ItemDetailPage() {
   const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
   const auctionEnded = item.type === 'auction' && timeLeft.total <= 0;
   const showFeedbackOptions = (item.type === 'sale' || (item.type === 'auction' && auctionEnded));
+  const primaryImageUrl = item.imageUrl && item.imageUrl.length > 0 ? item.imageUrl[0] : 'https://placehold.co/800x600.png';
 
 
   return (
@@ -310,14 +311,15 @@ export default function ItemDetailPage() {
         <div className="grid md:grid-cols-2">
           <div className="relative aspect-[4/3] md:aspect-auto">
             <Image
-              src={item.imageUrl}
+              src={primaryImageUrl}
               alt={item.name}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="md:rounded-l-lg object-cover"
+              priority // For LCP
               data-ai-hint={`${item.category} product`}
             />
-             {item.isEnhanced && ( // Display badge if item.isEnhanced is true
+             {item.isEnhanced && ( 
               <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md z-10">
                 <Star className="mr-1.5 h-4 w-4" /> Enhanced Listing
               </Badge>
@@ -352,7 +354,6 @@ export default function ItemDetailPage() {
                   <h3 className="text-lg font-semibold mb-2 flex items-center">
                     <Clock className="mr-2 h-5 w-5 text-primary" /> Auction Details
                   </h3>
-                  {/* Display current bid if it exists, otherwise starting price already shown above */}
                   {auctionIsActive && (
                     <p className="text-sm text-green-600 font-medium">
                       Time Left: {timeLeft.days > 0 && `${timeLeft.days}d `}
@@ -491,4 +492,3 @@ export default function ItemDetailPage() {
     </div>
   );
 }
-

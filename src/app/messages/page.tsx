@@ -82,12 +82,13 @@ export default function MessagesPage() {
         }
 
         const newConvId = `conv-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}-${Date.now()}`;
+        const itemPrimaryImageUrl = itemForConv?.imageUrl && itemForConv.imageUrl.length > 0 ? itemForConv.imageUrl[0] : 'https://placehold.co/100x100.png';
         
         const newConv: Conversation = {
           id: newConvId,
           itemId: itemIdParam,
           itemName: itemForConv?.name || `Item ${itemIdParam}`,
-          itemImageUrl: itemForConv?.imageUrl || 'https://placehold.co/100x100.png',
+          itemImageUrl: itemPrimaryImageUrl,
           participants: [
             { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
             { id: `seller-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}`, name: sellerNameParam, avatarUrl: `https://placehold.co/50x50.png?text=${sellerNameParam.substring(0,2).toUpperCase()}` }
@@ -119,12 +120,8 @@ export default function MessagesPage() {
           if (msg.itemId !== selectedConversation.itemId) return false;
 
           if (msg.isSystemMessage) {
-              // For system messages, they are relevant if targeted at either participant in the conversation
-              // OR if the 'from' is system and 'to' is one of the participants.
-              // Our system messages are 'from' system 'to' one of the participants (e.g. mockUser or otherParticipant).
               return currentParticipantsIds.includes(msg.toUserId) || (msg.fromUserId === 'system' && currentParticipantsIds.includes(msg.toUserId));
           }
-          // For non-system messages, both sender and receiver must be in the current conversation
           return currentParticipantsIds.includes(msg.fromUserId) && currentParticipantsIds.includes(msg.toUserId);
       })
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -144,7 +141,7 @@ export default function MessagesPage() {
     if (!content.trim() || !selectedConversation) return;
     
     const otherParticipant = getOtherParticipant(selectedConversation);
-    if (!otherParticipant && !isSystem) return; // For user messages, other participant is required
+    if (!otherParticipant && !isSystem) return; 
 
     const toUserIdForMsg = isSystem ? (isCurrentUserTheSeller ? otherParticipant!.id : mockUser.id) : otherParticipant!.id;
 
@@ -270,8 +267,7 @@ export default function MessagesPage() {
         buyRequestStatus: 'accepted' as const,
         isItemSoldOrUnavailable: true,
       };
-      removeItemFromMockItems(selectedConversation.itemId); // Remove item from global list
-      // Update other conversations related to this item to reflect it's sold
+      removeItemFromMockItems(selectedConversation.itemId); 
       setConversations(prevConvs => prevConvs.map(c => {
         if (c.itemId === selectedConversation.itemId && c.id !== updatedConv.id) {
           return {...c, isItemSoldOrUnavailable: true, buyRequestStatus: c.buyRequestStatus === 'pending_seller_response' ? 'declined' : c.buyRequestStatus };
@@ -281,7 +277,7 @@ export default function MessagesPage() {
 
       systemMessageContent = `${mockUser.name} accepted the buy request from ${otherP.name} for ${selectedConversation.itemName}. Item sold.`;
       toast({ title: 'Buy Request Accepted!', description: `${selectedConversation.itemName} has been marked as sold and removed from listings.` });
-    } else { // decline
+    } else { 
       updatedConv = {
         ...selectedConversation,
         buyRequestStatus: 'declined' as const,
@@ -524,4 +520,3 @@ export default function MessagesPage() {
     </>
   );
 }
-

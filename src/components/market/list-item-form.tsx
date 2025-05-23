@@ -21,9 +21,9 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { mockUser, mockItems } from '@/lib/mock-data';
-import type { Item, User } from '@/lib/types';
+import type { Item } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, UploadCloud, Star, Clock } from 'lucide-react';
+import { Info, UploadCloud, Star, Clock, Image as ImageIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { addDays } from 'date-fns';
@@ -34,6 +34,7 @@ const ENHANCEMENT_FEE = 1.00;
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_IMAGES = 15;
 
 // Helper function to convert File to data URI
 const fileToDataUri = (file: File): Promise<string> => {
@@ -52,11 +53,17 @@ const listItemSchema = z.object({
   type: z.enum(['sale', 'auction'], { required_error: 'Please select item type.' }),
   auctionDurationDays: z.coerce.number().positive("Duration must be a positive number.").optional(),
   category: z.string().min(2, {message: 'Category must be at least 2 characters.'}).max(50),
-  imageUrl: z.custom<FileList>((val) => val instanceof FileList && val.length > 0, 'Please select an image.')
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE_BYTES, `Max file size is ${MAX_FILE_SIZE_MB}MB.`)
+  imageFiles: z
+    .instanceof(FileList)
+    .refine((files) => files.length >= 1, 'Please select at least one image.')
+    .refine((files) => files.length <= MAX_IMAGES, `You can upload a maximum of ${MAX_IMAGES} images.`)
     .refine(
-      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
-      '.jpg, .jpeg, .png, and .webp files are accepted.'
+      (files) => Array.from(files).every((file) => file.size <= MAX_FILE_SIZE_BYTES),
+      `Each file size must be ${MAX_FILE_SIZE_MB}MB or less.`
+    )
+    .refine(
+      (files) => Array.from(files).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)),
+      'Only .jpg, .jpeg, .png, and .webp files are accepted.'
     ),
   isEnhanced: z.boolean().default(false).optional(),
 }).superRefine((data, ctx) => {
@@ -76,38 +83,50 @@ const initialFormValues: ListItemFormValues = {
   description: '',
   price: 0,
   type: 'sale',
-  auctionDurationDays: 7, // Default to 7 days
+  auctionDurationDays: 7,
   category: '',
-  imageUrl: undefined as unknown as FileList, 
+  imageFiles: undefined as unknown as FileList, 
   isEnhanced: false,
 };
 
 
 export function ListItemForm() {
   const { toast } = useToast();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const form = useForm<ListItemFormValues>({
     resolver: zodResolver(listItemSchema),
     defaultValues: initialFormValues,
   });
 
-  const watchedImageUrl = form.watch('imageUrl');
+  const watchedImageFiles = form.watch('imageFiles');
   const watchedItemType = form.watch('type');
-  const watchedIsEnhanced = form.watch('isEnhanced');
 
   useEffect(() => {
-    if (watchedImageUrl && watchedImageUrl.length > 0) {
-      const file = watchedImageUrl[0];
-      if (file && ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES) {
-        fileToDataUri(file).then(setImagePreview).catch(console.error);
-      } else {
-        setImagePreview(null); 
-      }
+    if (watchedImageFiles && watchedImageFiles.length > 0) {
+      const filePromises = Array.from(watchedImageFiles)
+        .filter(file => ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES)
+        .slice(0, MAX_IMAGES) // Ensure we don't process more than MAX_IMAGES
+        .map(fileToDataUri);
+      
+      Promise.all(filePromises).then(setImagePreviews).catch(console.error);
     } else {
-      setImagePreview(null); 
+      setImagePreviews([]); 
     }
-  }, [watchedImageUrl]);
+  }, [watchedImageFiles]);
+
+  const handleRemoveImage = (index: number) => {
+    const currentFiles = form.getValues('imageFiles');
+    if (currentFiles) {
+      const newFilesArray = Array.from(currentFiles);
+      newFilesArray.splice(index, 1);
+      
+      // Create a new FileList
+      const dataTransfer = new DataTransfer();
+      newFilesArray.forEach(file => dataTransfer.items.add(file));
+      form.setValue('imageFiles', dataTransfer.files, { shouldValidate: true });
+    }
+  };
 
   const isFreeTrialLimitReached =
     mockUser.subscriptionStatus === 'free_trial' && mockUser.itemsListedCount >= MAX_FREE_ITEMS;
@@ -133,19 +152,22 @@ export function ListItemForm() {
       return;
     }
 
-    let imageUrlForStorage = 'https://placehold.co/600x400.png'; 
-    if (data.imageUrl && data.imageUrl.length > 0) {
+    let imageUrlsForStorage: string[] = [];
+    if (data.imageFiles && data.imageFiles.length > 0) {
       try {
-        imageUrlForStorage = await fileToDataUri(data.imageUrl[0]);
+        const filePromises = Array.from(data.imageFiles).map(fileToDataUri);
+        imageUrlsForStorage = await Promise.all(filePromises);
       } catch (error) {
-        console.error("Error converting image to data URI:", error);
+        console.error("Error converting images to data URI:", error);
         toast({
           title: 'Image Upload Error',
-          description: 'Could not process the image. Please try another one.',
+          description: 'Could not process one or more images. Please try again.',
           variant: 'destructive',
         });
         return;
       }
+    } else { // Should be caught by schema, but as a fallback
+        imageUrlsForStorage = ['https://placehold.co/600x400.png'];
     }
     
     let auctionEndTimeISO: string | undefined = undefined;
@@ -157,15 +179,15 @@ export function ListItemForm() {
       id: `item-${Date.now()}`,
       name: data.name,
       description: data.description,
-      price: data.price, // This is starting price for auctions
+      price: data.price,
       type: data.type,
-      imageUrl: imageUrlForStorage,
+      imageUrl: imageUrlsForStorage,
       sellerName: mockUser.name,
       category: data.category,
       isEnhanced: data.isEnhanced,
-      auctionEndTime: auctionEndTimeISO, // Set if auction
-      currentBid: data.type === 'auction' ? undefined : undefined, // Initially no bids
-      bidHistory: data.type === 'auction' ? [] : undefined, // Initially empty history
+      auctionEndTime: auctionEndTimeISO,
+      currentBid: data.type === 'auction' ? undefined : undefined,
+      bidHistory: data.type === 'auction' ? [] : undefined,
     };
     mockItems.unshift(newItem); 
 
@@ -185,7 +207,6 @@ export function ListItemForm() {
       feeMessages.push(`Listing fee: £${LISTING_FEE.toFixed(2)}`);
     }
     
-
     if (feeMessages.length > 0) {
       toastDescription += ` ${feeMessages.join(' ')} (mock fees applied).`;
     }
@@ -199,7 +220,7 @@ export function ListItemForm() {
       mockUser.itemsListedCount += 1; 
     }
     form.reset(initialFormValues);
-    setImagePreview(null); 
+    setImagePreviews([]); 
   }
 
   return (
@@ -316,7 +337,7 @@ export function ListItemForm() {
                       placeholder="e.g., 7 for one week" 
                       {...field} 
                       disabled={disableFormFields} 
-                      value={field.value ?? ''} // Handle potential undefined from optional field
+                      value={field.value ?? ''} 
                       onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
                     />
                   </FormControl>
@@ -343,33 +364,48 @@ export function ListItemForm() {
 
           <FormField
             control={form.control}
-            name="imageUrl"
+            name="imageFiles"
             render={({ field: { onChange, value, ...rest } }) => ( 
               <FormItem>
                 <FormLabel className="flex items-center">
-                  <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Image
+                  <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Images (1-{MAX_IMAGES})
                 </FormLabel>
                 <FormControl>
                   <Input 
                     type="file" 
                     accept="image/png, image/jpeg, image/webp"
+                    multiple // Allow multiple file selection
                     onChange={(e) => onChange(e.target.files)} 
                     {...rest} 
                     disabled={disableFormFields}
                     className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                   />
                 </FormControl>
-                <FormDescription>Upload an image of your item (Max {MAX_FILE_SIZE_MB}MB, .png, .jpg, .webp).</FormDescription>
+                <FormDescription>Upload images of your item (Max {MAX_IMAGES} files, {MAX_FILE_SIZE_MB}MB each, .png, .jpg, .webp).</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
           
-          {imagePreview && (
-            <div className="mt-4">
-              <FormLabel>Image Preview</FormLabel>
-              <div className="mt-2 relative aspect-video w-full max-w-md rounded-md border border-dashed border-muted-foreground/50 flex items-center justify-center overflow-hidden bg-slate-50">
-                <Image src={imagePreview} alt="Item preview" fill sizes="100vw" className="object-contain" data-ai-hint="item image"/>
+          {imagePreviews.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <FormLabel className="flex items-center"><ImageIcon className="h-5 w-5 mr-2 text-primary" /> Image Previews</FormLabel>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {imagePreviews.map((previewUrl, index) => (
+                  <div key={index} className="relative aspect-square rounded-md border border-muted overflow-hidden group">
+                    <Image src={previewUrl} alt={`Preview ${index + 1}`} fill sizes="10vw" className="object-cover" data-ai-hint="item image preview"/>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(index)}
+                      aria-label={`Remove image ${index + 1}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -415,4 +451,3 @@ export function ListItemForm() {
     </div>
   );
 }
-

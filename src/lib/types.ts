@@ -5,7 +5,7 @@ export interface Item {
   description: string;
   price: number; // For 'sale' type, this is the price. For 'auction', this is the starting price.
   type: 'sale' | 'auction';
-  imageUrl: string;
+  imageUrl: string[]; // Changed from string to string[]
   sellerName: string;
   category: string;
   isEnhanced?: boolean;
@@ -45,7 +45,7 @@ export interface Conversation {
   id: string;
   itemId: string;
   itemName: string;
-  itemImageUrl: string;
+  itemImageUrl: string; // Will be the first image from Item.imageUrl
   participants: Pick<User, 'id' | 'name' | 'avatarUrl'>[];
   lastMessage: Pick<Message, 'content' | 'timestamp'>;
   unreadCount: number;
@@ -53,4 +53,3 @@ export interface Conversation {
   itemPriceAtRequest?: number;
   isItemSoldOrUnavailable?: boolean; // To track if item sold via this or other means
 }
-
