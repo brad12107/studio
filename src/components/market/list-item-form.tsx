@@ -23,7 +23,7 @@ import { useState, useEffect } from 'react';
 import { mockUser, mockItems } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, UploadCloud, Star, Clock, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Info, UploadCloud, Star, Clock, Image as ImageIcon, Trash2, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { addDays } from 'date-fns';
@@ -56,6 +56,14 @@ const CATEGORIES = [
   "Other"
 ].sort();
 
+const ITEM_CONDITIONS = [
+  { value: 'new', label: 'New' },
+  { value: 'like_new', label: 'Like New' },
+  { value: 'good', label: 'Good' },
+  { value: 'not_working', label: 'Not Working' },
+] as const;
+type ItemConditionValue = typeof ITEM_CONDITIONS[number]['value'];
+
 
 // Helper function to convert File to data URI
 const fileToDataUri = (file: File): Promise<string> => {
@@ -74,6 +82,7 @@ const listItemSchema = z.object({
   type: z.enum(['sale', 'auction'], { required_error: 'Please select item type.' }),
   auctionDurationDays: z.coerce.number().positive("Duration must be a positive number.").optional(),
   category: z.string().nonempty({ message: 'Please select a category.' }),
+  itemCondition: z.enum(['new', 'like_new', 'good', 'not_working']).optional(),
   imageFiles: z
     .instanceof(FileList)
     .refine((files) => files.length >= 1, 'Please select at least one image.')
@@ -95,6 +104,14 @@ const listItemSchema = z.object({
       path: ['auctionDurationDays'],
     });
   }
+  const propertyCategories = ["Property for Sale", "Property for Rent"];
+  if (!propertyCategories.includes(data.category) && !data.itemCondition) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please select an item condition.",
+      path: ['itemCondition'],
+    });
+  }
 });
 
 type ListItemFormValues = z.infer<typeof listItemSchema>;
@@ -106,6 +123,7 @@ const initialFormValues: ListItemFormValues = {
   type: 'sale',
   auctionDurationDays: 7,
   category: '',
+  itemCondition: undefined,
   imageFiles: undefined as unknown as FileList, 
   isEnhanced: false,
 };
@@ -122,6 +140,10 @@ export function ListItemForm() {
 
   const watchedImageFiles = form.watch('imageFiles');
   const watchedItemType = form.watch('type');
+  const watchedCategory = form.watch('category');
+
+  const showConditionField = !['Property for Sale', 'Property for Rent'].includes(watchedCategory);
+
 
   useEffect(() => {
     if (watchedImageFiles && watchedImageFiles.length > 0) {
@@ -205,6 +227,7 @@ export function ListItemForm() {
       imageUrl: imageUrlsForStorage,
       sellerName: mockUser.name,
       category: data.category,
+      condition: showConditionField ? data.itemCondition : undefined,
       isEnhanced: data.isEnhanced,
       auctionEndTime: auctionEndTimeISO,
       currentBid: data.type === 'auction' ? undefined : undefined,
@@ -393,6 +416,36 @@ export function ListItemForm() {
               </FormItem>
             )}
           />
+          
+          {showConditionField && (
+             <FormField
+              control={form.control}
+              name="itemCondition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center">
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" /> Item Condition
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={disableFormFields}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select item condition" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {ITEM_CONDITIONS.map(condition => (
+                          <SelectItem key={condition.value} value={condition.value}>
+                            {condition.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
 
           <FormField
             control={form.control}
@@ -483,5 +536,3 @@ export function ListItemForm() {
     </div>
   );
 }
-
-    

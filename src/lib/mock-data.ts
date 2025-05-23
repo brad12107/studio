@@ -31,6 +31,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'John Seller',
     category: 'Apparel',
+    condition: 'good',
     isEnhanced: true,
   },
   {
@@ -42,6 +43,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Alice Collector',
     category: 'Furniture',
+    condition: 'good',
     isEnhanced: false,
     auctionEndTime: oneHourFromNow,
     currentBid: 95,
@@ -59,6 +61,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Crafty Carol',
     category: 'Home Decor',
+    condition: 'new',
     isEnhanced: false,
   },
   {
@@ -70,6 +73,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Gamer Tom',
     category: 'Electronics',
+    condition: 'like_new',
     isEnhanced: false,
   },
   {
@@ -81,6 +85,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Outdoor Dave',
     category: 'Sports',
+    condition: 'good',
     isEnhanced: true,
     auctionEndTime: threeDaysFromNow,
     currentBid: 220,
@@ -97,6 +102,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Bookworm Beth',
     category: 'Books',
+    condition: 'like_new',
     isEnhanced: false,
   },
   {
@@ -108,6 +114,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Driver Dan',
     category: 'Vehicles',
+    condition: 'good',
     isEnhanced: false,
   },
   {
@@ -119,6 +126,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Mechanic Mike',
     category: 'Vehicles',
+    condition: 'not_working',
     isEnhanced: false,
     auctionEndTime: oneDayAgo, // Auction ended
     currentBid: 1350,
@@ -136,6 +144,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Eco Eva',
     category: 'Vehicles',
+    condition: 'like_new',
     isEnhanced: false,
   },
   {
@@ -147,6 +156,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Green Thumb George',
     category: 'Garden & Outdoors',
+    condition: 'like_new',
     isEnhanced: false,
   },
   {
@@ -158,6 +168,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Musician Mia',
     category: 'Music & Instruments',
+    condition: 'good',
     isEnhanced: false,
     auctionEndTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
   },
@@ -170,6 +181,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Jeweler Jess',
     category: 'Jewellery & Accessories',
+    condition: 'new',
     isEnhanced: false,
   },
   {
@@ -181,6 +193,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Gamer Tom',
     category: 'Toys & Games',
+    condition: 'like_new',
     isEnhanced: false,
   },
   {
@@ -192,6 +205,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Artist Andy',
     category: 'Art & Crafts',
+    condition: 'new',
     isEnhanced: false,
   },
    {
@@ -203,6 +217,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Healthy Hannah',
     category: 'Health & Beauty',
+    condition: 'new',
     isEnhanced: true,
   },
   {
@@ -214,6 +229,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Pet Lover Pete',
     category: 'Pet Supplies',
+    condition: 'good',
     isEnhanced: false,
   },
   {
@@ -225,6 +241,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Landlord Larry',
     category: 'Property for Rent',
+    // Condition not applicable
     isEnhanced: true,
   },
   {
@@ -236,6 +253,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Realty Rosie',
     category: 'Property for Sale',
+    // Condition not applicable
     isEnhanced: false,
   },
   {
@@ -247,6 +265,7 @@ export let mockItems: Item[] = [
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Landlord Larry',
     category: 'Property for Rent',
+    // Condition not applicable
     isEnhanced: false,
   }
 ];

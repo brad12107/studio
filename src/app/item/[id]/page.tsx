@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User, Star, CheckCircle, Flag, Clock, History, Gavel, ThumbsUp, ThumbsDown, HelpCircle } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +48,16 @@ const calculateTimeLeft = (endTimeString?: string): TimeLeft => {
   return timeLeft;
 };
 
+const formatCondition = (conditionValue?: Item['condition']): string => {
+  if (!conditionValue) return 'N/A';
+  switch (conditionValue) {
+    case 'new': return 'New';
+    case 'like_new': return 'Like New';
+    case 'good': return 'Good';
+    case 'not_working': return 'Not Working';
+    default: return 'N/A';
+  }
+};
 
 export default function ItemDetailPage() {
   const params = useParams();
@@ -300,6 +310,7 @@ export default function ItemDetailPage() {
   const auctionEnded = item.type === 'auction' && timeLeft.total <= 0;
   const showFeedbackOptions = (item.type === 'sale' || (item.type === 'auction' && auctionEnded));
   const primaryImageUrl = item.imageUrl && item.imageUrl.length > 0 ? item.imageUrl[0] : 'https://placehold.co/800x600.png';
+  const showCondition = !['Property for Sale', 'Property for Rent'].includes(item.category) && item.condition;
 
 
   return (
@@ -347,6 +358,11 @@ export default function ItemDetailPage() {
                   {item.type === 'sale' ? <ShoppingCart className="h-5 w-5 mr-2 text-primary" /> : <Gavel className="h-5 w-5 mr-2 text-primary" />}
                   Type: <span className="font-semibold text-foreground ml-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
                 </div>
+                {showCondition && (
+                  <div className="flex items-center text-muted-foreground">
+                    <HelpCircle className="h-5 w-5 mr-2 text-primary" /> Condition: <span className="font-semibold text-foreground ml-1">{formatCondition(item.condition)}</span>
+                  </div>
+                )}
               </div>
 
               {item.type === 'auction' && (

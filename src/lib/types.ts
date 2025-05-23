@@ -8,6 +8,7 @@ export interface Item {
   imageUrl: string[]; // Changed from string to string[]
   sellerName: string;
   category: string;
+  condition?: 'new' | 'like_new' | 'good' | 'not_working'; // Added item condition
   isEnhanced?: boolean;
   auctionEndTime?: string; // ISO date string, only for auction type
   currentBid?: number; // Only for auction type
