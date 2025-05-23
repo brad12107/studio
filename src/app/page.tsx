@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusCircle, Filter } from 'lucide-react';
+import { PlusCircle, Filter, ListFilter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,8 +28,12 @@ export default function HomePage() {
     return ["All Categories", ...Array.from(categories).sort()];
   }, []);
 
+  const itemTypes = ["All Types", "Sale", "Auction"];
+
   const currentSearchQuery = searchParams.get('search') || '';
   const currentCategoryQuery = searchParams.get('category') || "All Categories";
+  const currentTypeQuery = searchParams.get('type') || "All Types";
+
 
   useEffect(() => {
     setIsClient(true); 
@@ -58,25 +62,36 @@ export default function HomePage() {
       if (currentCategoryQuery && currentCategoryQuery !== "All Categories") {
         itemsToDisplay = itemsToDisplay.filter(item => item.category === currentCategoryQuery);
       }
+
+      if (currentTypeQuery && currentTypeQuery !== "All Types") {
+        itemsToDisplay = itemsToDisplay.filter(item => item.type.toLowerCase() === currentTypeQuery.toLowerCase());
+      }
       
       // Sort items: enhanced items first
       itemsToDisplay.sort((a, b) => {
         if (a.isEnhanced && !b.isEnhanced) return -1;
         if (!a.isEnhanced && b.isEnhanced) return 1;
-        // Optional: Add secondary sort, e.g., by name or date, if desired
         return 0; 
       });
 
       setFilteredItems(itemsToDisplay);
     }
-  }, [currentSearchQuery, currentCategoryQuery, isLoggedIn]);
+  }, [currentSearchQuery, currentCategoryQuery, currentTypeQuery, isLoggedIn]);
 
-  const handleCategoryChange = (category: string) => {
+  const handleFilterChange = (filterType: 'category' | 'type', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (category === "All Categories") {
-      params.delete('category');
-    } else {
-      params.set('category', category);
+    if (filterType === 'category') {
+      if (value === "All Categories") {
+        params.delete('category');
+      } else {
+        params.set('category', value);
+      }
+    } else if (filterType === 'type') {
+      if (value === "All Types") {
+        params.delete('type');
+      } else {
+        params.set('type', value.toLowerCase());
+      }
     }
     router.push(`/?${params.toString()}`);
   };
@@ -85,7 +100,7 @@ export default function HomePage() {
   if (!isClient || isLoadingAuth) {
     return (
         <div className="space-y-8">
-          <Card className="shadow-md">
+          <Card className="shadow-lg">
             <CardHeader className="pb-4">
               <Skeleton className="h-8 w-3/4 mb-2" />
               <Skeleton className="h-4 w-full md:w-2/3 mb-4" />
@@ -97,7 +112,10 @@ export default function HomePage() {
           <section>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <Skeleton className="h-7 w-48" /> {/* Featured Items Title */}
-              <Skeleton className="h-10 w-full sm:w-52" /> {/* Category Filter Skeleton */}
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Skeleton className="h-10 w-full sm:w-48" /> {/* Category Filter Skeleton */}
+                <Skeleton className="h-10 w-full sm:w-36" /> {/* Type Filter Skeleton */}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, i) => (
@@ -150,21 +168,39 @@ export default function HomePage() {
       <section>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold">Featured Items</h2>
-          <div className="w-full sm:w-auto sm:min-w-[200px]">
-            <Label htmlFor="category-filter" className="sr-only">Filter by category</Label>
-            <Select value={currentCategoryQuery} onValueChange={handleCategoryChange}>
-              <SelectTrigger id="category-filter" className="w-full sm:w-auto">
-                <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Filter by category..." />
-              </SelectTrigger>
-              <SelectContent>
-                {allCategories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-48">
+              <Label htmlFor="category-filter" className="sr-only">Filter by category</Label>
+              <Select value={currentCategoryQuery} onValueChange={(value) => handleFilterChange('category', value)}>
+                <SelectTrigger id="category-filter" className="w-full">
+                  <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Category..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCategories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-36">
+              <Label htmlFor="type-filter" className="sr-only">Filter by type</Label>
+              <Select value={currentTypeQuery} onValueChange={(value) => handleFilterChange('type', value)}>
+                <SelectTrigger id="type-filter" className="w-full">
+                  <ListFilter className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {itemTypes.map(type => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
         <ItemList items={filteredItems} />
@@ -172,3 +208,4 @@ export default function HomePage() {
     </div>
   );
 }
+

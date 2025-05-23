@@ -12,7 +12,13 @@ export default function HomePageLoading() {
       </div>
       
       {/* Featured Items Section Title Skeleton */}
-      <Skeleton className="h-7 w-48 mb-6" /> {/* "Featured Items" heading */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <Skeleton className="h-7 w-48" /> {/* "Featured Items" heading */}
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Skeleton className="h-10 w-full sm:w-48" /> {/* Category Filter Skeleton */}
+          <Skeleton className="h-10 w-full sm:w-36" /> {/* Type Filter Skeleton */}
+        </div>
+      </div>
       
       {/* ItemList Skeleton (Grid of ItemCards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -41,3 +47,4 @@ export default function HomePageLoading() {
     </div>
   );
 }
+
