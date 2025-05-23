@@ -84,17 +84,26 @@ const listItemSchema = z.object({
   itemCondition: z.enum(['new', 'like_new', 'good', 'not_working']).optional(),
   imageFiles: z
     .custom<FileList>()
-    .optional() // Optional for edit mode if user doesn't change images
+    .optional() 
     .refine(
-      (files) => files === undefined || files === null || (files.length >=0 && files.length <= MAX_IMAGES),
+      (files) => {
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; // SSR/Optional case
+        return files.length <= MAX_IMAGES;
+      },
       `You can upload a maximum of ${MAX_IMAGES} images.`
     )
     .refine(
-      (files) => files === undefined || files === null || Array.from(files).every((file) => file.size <= MAX_FILE_SIZE_BYTES),
+      (files) => {
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; // SSR/Optional case
+        return Array.from(files).every((file) => file.size <= MAX_FILE_SIZE_BYTES);
+      },
       `Each file size must be ${MAX_FILE_SIZE_MB}MB or less.`
     )
     .refine(
-      (files) => files === undefined || files === null || Array.from(files).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type)),
+      (files) => {
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; // SSR/Optional case
+        return Array.from(files).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type));
+      },
       'Only .jpg, .jpeg, .png, and .webp files are accepted.'
     ),
   isEnhanced: z.boolean().default(false).optional(),
@@ -162,15 +171,15 @@ export function ListItemForm() {
           description: itemToEdit.description,
           price: itemToEdit.price,
           type: itemToEdit.type,
-          auctionDurationDays: itemToEdit.auctionEndTime 
-            ? Math.ceil((new Date(itemToEdit.auctionEndTime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) > 0 
-              ? Math.ceil((new Date(itemToEdit.auctionEndTime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) // Approximation
-              : 1 // Default to 1 if ended or very short
-            : 7, // Default if not set
+          auctionDurationDays: itemToEdit.auctionEndTime
+            ? Math.ceil((new Date(itemToEdit.auctionEndTime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) > 0
+              ? Math.ceil((new Date(itemToEdit.auctionEndTime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+              : 1
+            : 7,
           category: itemToEdit.category,
           itemCondition: itemToEdit.condition,
           isEnhanced: itemToEdit.isEnhanced || false,
-          imageFiles: undefined, // Important: FileList cannot be pre-filled with URLs
+          imageFiles: undefined, 
         });
         setDisplayedImagePreviews(itemToEdit.imageUrl || []);
       } else {
@@ -199,40 +208,30 @@ export function ListItemForm() {
         .filter(file => ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES)
         .slice(0, MAX_IMAGES)
         .map(fileToDataUri);
-      
+
       Promise.all(filePromises).then(setDisplayedImagePreviews).catch(err => {
         console.error("Error creating image previews from new files:", err);
-        // Fallback to existing images if new file processing fails and in edit mode
         if (isEditMode && currentItemBeingEdited) {
           setDisplayedImagePreviews(currentItemBeingEdited.imageUrl || []);
         }
       });
     } else if (isEditMode && currentItemBeingEdited) {
-      // No new files selected by user, keep displaying existing images
       setDisplayedImagePreviews(currentItemBeingEdited.imageUrl || []);
     } else if (!isEditMode) {
-      // Create mode and no files selected yet
       setDisplayedImagePreviews([]);
     }
   }, [watchedImageFiles, isEditMode, currentItemBeingEdited]);
 
 
   const handleRemoveImage = (index: number) => {
-    // This function as-is primarily works for newly staged files (modifies form.getValues('imageFiles'))
-    // For a full edit mode where user can remove *existing* displayed images without uploading new ones,
-    // this would need to modify `displayedImagePreviews` and a separate list of URLs to keep.
-    // For now, we'll keep it simple: this removes from `watchedImageFiles`. If in edit mode
-    // and only existing images are shown, this button might not be effective as `watchedImageFiles` is empty.
-    
     const currentFiles = form.getValues('imageFiles');
     if (currentFiles && typeof FileList !== 'undefined' && currentFiles instanceof FileList) {
       const newFilesArray = Array.from(currentFiles);
       newFilesArray.splice(index, 1);
-      
+
       const dataTransfer = new DataTransfer();
       newFilesArray.forEach(file => dataTransfer.items.add(file));
       form.setValue('imageFiles', dataTransfer.files, { shouldValidate: true });
-      // `displayedImagePreviews` will update via the useEffect watching `watchedImageFiles`
     }
   };
 
@@ -242,7 +241,7 @@ export function ListItemForm() {
 
   const isListingFeeApplicable = mockUser.subscriptionStatus === 'none';
 
-  const disableFormFields = isFreeTrialLimitReached && !isEditMode; // Allow editing even if trial limit reached
+  const disableFormFields = isFreeTrialLimitReached && !isEditMode; 
 
   const getEnhancementFeeText = () => {
     if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
@@ -270,7 +269,7 @@ export function ListItemForm() {
       form.setError("imageFiles", { type: "manual", message: "Please upload at least one image." });
       return;
     }
-    
+
     let finalImageUrls: string[] = [];
     if (data.imageFiles && data.imageFiles.length > 0) {
       try {
@@ -281,9 +280,8 @@ export function ListItemForm() {
         return;
       }
     } else if (isEditMode && currentItemBeingEdited && currentItemBeingEdited.imageUrl.length > 0) {
-      finalImageUrls = currentItemBeingEdited.imageUrl; // Keep existing if no new files selected
+      finalImageUrls = currentItemBeingEdited.imageUrl; 
     } else if (isEditMode && (!finalImageUrls || finalImageUrls.length === 0)) {
-      // If in edit mode, and user somehow cleared all existing previews AND didn't upload new ones
       toast({ title: 'Missing Images', description: 'Please ensure at least one image is present.', variant: 'destructive' });
       form.setError("imageFiles", { type: "manual", message: "Please upload at least one image." });
       return;
@@ -310,21 +308,20 @@ export function ListItemForm() {
     if (isEditMode && currentItemId) {
       const itemIndex = mockItems.findIndex(item => item.id === currentItemId);
       if (itemIndex > -1) {
-        mockItems[itemIndex] = { 
-          ...mockItems[itemIndex], // Preserve original ID, sellerName, bid history etc.
-          ...itemData // Apply updated fields
+        mockItems[itemIndex] = {
+          ...mockItems[itemIndex], 
+          ...itemData 
         };
         toast({ title: 'Item Updated!', description: `${data.name} has been successfully updated.` });
       } else {
         toast({ title: 'Error', description: 'Could not find item to update.', variant: 'destructive' });
         return;
       }
-    } else { // Create mode
+    } else { 
       const newItem: Item = {
         id: `item-${Date.now()}`,
         sellerName: mockUser.name,
         ...itemData,
-        // currentBid and bidHistory are undefined for new items unless explicitly set for auctions
         currentBid: data.type === 'auction' ? undefined : undefined,
         bidHistory: data.type === 'auction' ? [] : undefined,
       };
@@ -345,7 +342,7 @@ export function ListItemForm() {
       if (isListingFeeApplicable) {
         feeMessages.push(`Listing fee: £${LISTING_FEE.toFixed(2)}`);
       }
-      
+
       if (feeMessages.length > 0) {
         toastDescription += ` ${feeMessages.join(' ')} (mock fees applied).`;
       }
@@ -359,15 +356,14 @@ export function ListItemForm() {
         mockUser.itemsListedCount += 1;
       }
     }
-    
-    form.reset(initialFormValues); // Reset form for next listing/clear edit state
+
+    form.reset(initialFormValues); 
     setDisplayedImagePreviews([]);
     router.push('/my-listings');
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-       {/* ... (Alerts for free trial limit and listing fee remain the same) ... */}
        {isFreeTrialLimitReached && !isEditMode && (
         <Alert variant="destructive" className="mb-6">
           <Info className="h-4 w-4" />
@@ -382,7 +378,7 @@ export function ListItemForm() {
          <Alert variant="default" className="mb-6 bg-secondary/50 text-card-foreground">
           <Info className="h-4 w-4 text-card-foreground" />
           <AlertTitle>Listing Fee Applicable</AlertTitle>
-          <AlertDescription className="text-card-foreground"> {/* Ensure description text is also dark */}
+          <AlertDescription className="text-card-foreground">
             A standard listing fee of £{LISTING_FEE.toFixed(2)} applies per item.
             <Link href="/subscription" className="underline hover:text-card-foreground/80 ml-1">Subscribe</Link> to list for free, or check your current
             <Link href="/subscription" className="underline hover:text-card-foreground/80 ml-1">subscription status</Link>.
@@ -399,11 +395,11 @@ export function ListItemForm() {
               <FormItem>
                 <FormLabel>Item Name</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="e.g., Vintage Wooden Chair" 
-                    {...field} 
+                  <Input
+                    placeholder="e.g., Vintage Wooden Chair"
+                    {...field}
                     disabled={disableFormFields && !isEditMode}
-                    className="bg-input text-card-foreground placeholder:text-muted-foreground"
+                    className="bg-input text-black placeholder:text-muted-foreground"
                   />
                 </FormControl>
                 <FormDescription>A short, descriptive name for your item.</FormDescription>
@@ -421,7 +417,7 @@ export function ListItemForm() {
                 <FormControl>
                   <Textarea
                     placeholder="Detailed description of your item, its condition, etc."
-                    className="resize-y min-h-[100px] bg-input text-card-foreground placeholder:text-muted-foreground"
+                    className="resize-y min-h-[100px] bg-input text-black placeholder:text-muted-foreground"
                     {...field}
                     disabled={disableFormFields && !isEditMode}
                   />
@@ -430,7 +426,7 @@ export function ListItemForm() {
               </FormItem>
             )}
           />
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               control={form.control}
@@ -439,13 +435,13 @@ export function ListItemForm() {
                 <FormItem>
                   <FormLabel>{watchedItemType === 'auction' ? 'Starting Price (£)' : 'Price (£)'}</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="e.g., 25.99" 
-                      {...field} 
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g., 25.99"
+                      {...field}
                       disabled={disableFormFields && !isEditMode}
-                      className="bg-input text-card-foreground placeholder:text-muted-foreground"
+                      className="bg-input text-black placeholder:text-muted-foreground"
                     />
                   </FormControl>
                   <FormMessage />
@@ -459,13 +455,13 @@ export function ListItemForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value} // Ensure value is correctly bound
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value} 
                     disabled={disableFormFields && !isEditMode}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-input text-card-foreground">
+                      <SelectTrigger className="bg-input text-black">
                         <SelectValue placeholder="Select item type" />
                       </SelectTrigger>
                     </FormControl>
@@ -490,16 +486,16 @@ export function ListItemForm() {
                      <Clock className="h-5 w-5 mr-2 text-primary" /> Auction Duration (days)
                   </FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      step="1" 
+                    <Input
+                      type="number"
+                      step="1"
                       min="1"
-                      placeholder="e.g., 7 for one week" 
-                      {...field} 
+                      placeholder="e.g., 7 for one week"
+                      {...field}
                       value={field.value ?? ''}
                       onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
                       disabled={disableFormFields && !isEditMode}
-                      className="bg-input text-card-foreground placeholder:text-muted-foreground"
+                      className="bg-input text-black placeholder:text-muted-foreground"
                     />
                   </FormControl>
                   <FormDescription>How many days the auction will run for.</FormDescription>
@@ -515,13 +511,13 @@ export function ListItemForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                 <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value} // Ensure value is correctly bound
+                 <Select
+                    onValueChange={field.onChange}
+                    value={field.value} 
                     disabled={disableFormFields && !isEditMode}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-input text-card-foreground">
+                      <SelectTrigger className="bg-input text-black">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
@@ -537,7 +533,7 @@ export function ListItemForm() {
               </FormItem>
             )}
           />
-          
+
           {showConditionField && (
              <FormField
               control={form.control}
@@ -547,13 +543,13 @@ export function ListItemForm() {
                   <FormLabel className="flex items-center">
                     <HelpCircle className="h-5 w-5 mr-2 text-primary" /> Item Condition
                   </FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value} // Ensure value is correctly bound
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value} 
                     disabled={disableFormFields && !isEditMode}
                   >
                       <FormControl>
-                        <SelectTrigger className="bg-input text-card-foreground">
+                        <SelectTrigger className="bg-input text-black">
                           <SelectValue placeholder="Select item condition" />
                         </SelectTrigger>
                       </FormControl>
@@ -574,20 +570,20 @@ export function ListItemForm() {
           <FormField
             control={form.control}
             name="imageFiles"
-            render={({ field: { onChange, value, ...rest } }) => ( 
+            render={({ field: { onChange, value, ...rest } }) => (
               <FormItem>
                 <FormLabel className="flex items-center">
                   <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Images (1-{MAX_IMAGES})
                 </FormLabel>
                 <FormControl>
-                  <Input 
-                    type="file" 
+                  <Input
+                    type="file"
                     accept="image/png, image/jpeg, image/webp"
-                    multiple 
-                    onChange={(e) => onChange(e.target.files)} 
-                    {...rest} 
+                    multiple
+                    onChange={(e) => onChange(e.target.files)}
+                    {...rest}
                     disabled={disableFormFields && !isEditMode}
-                    className="block w-full text-sm text-card-foreground bg-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 placeholder:text-muted-foreground"
+                    className="block w-full text-sm text-black bg-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 placeholder:text-muted-foreground"
                   />
                 </FormControl>
                 <FormDescription>
@@ -598,17 +594,16 @@ export function ListItemForm() {
               </FormItem>
             )}
           />
-          
+
           {displayedImagePreviews.length > 0 && (
             <div className="mt-4 space-y-2">
-              <FormLabel className="flex items-center"><ImageIcon className="h-5 w-5 mr-2 text-primary" /> 
+              <FormLabel className="flex items-center"><ImageIcon className="h-5 w-5 mr-2 text-primary" />
                 {isEditMode && (!watchedImageFiles || watchedImageFiles.length === 0) ? "Current Image Previews" : "New Image Previews"}
               </FormLabel>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                 {displayedImagePreviews.map((previewUrl, index) => (
                   <div key={index} className="relative aspect-square rounded-md border border-muted overflow-hidden group">
                     <NextImage src={previewUrl} alt={`Preview ${index + 1}`} fill sizes="10vw" className="object-cover" data-ai-hint="item image preview"/>
-                    {/* Only show remove button if these are NEWLY STAGED previews from watchedImageFiles */}
                     {watchedImageFiles && watchedImageFiles.length > 0 && (
                       <Button
                         type="button"
@@ -639,7 +634,7 @@ export function ListItemForm() {
                   </FormLabel>
                   <FormDescription className="text-amber-600">
                     Make your item stand out! Enhanced items appear higher in search results and listings.
-                    {mockUser.subscriptionStatus !== 'premium_plus' || (mockUser.enhancedListingsRemaining || 0) === 0 ? 
+                    {mockUser.subscriptionStatus !== 'premium_plus' || (mockUser.enhancedListingsRemaining || 0) === 0 ?
                      ` This is an optional £${ENHANCEMENT_FEE.toFixed(2)} fee.` : ' Use one of your free monthly enhancements.'}
                   </FormDescription>
                 </div>
@@ -654,11 +649,11 @@ export function ListItemForm() {
               </FormItem>
             )}
           />
-          
-          <Button 
-            type="submit" 
-            className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
-            size="lg" 
+
+          <Button
+            type="submit"
+            className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground"
+            size="lg"
             disabled={(disableFormFields && !isEditMode) || form.formState.isSubmitting}
           >
             {form.formState.isSubmitting ? (isEditMode ? 'Updating...' : 'Listing...') : (isEditMode ? 'Update Item' : 'List Item')}
@@ -668,5 +663,3 @@ export function ListItemForm() {
     </div>
   );
 }
-
-    
