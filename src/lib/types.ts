@@ -29,6 +29,7 @@ export interface User {
   enhancedListingsRemaining?: number;
   totalRatings: number;
   sumOfRatings: number;
+  isAdmin?: boolean; // Added for admin role
 }
 
 export interface Message {

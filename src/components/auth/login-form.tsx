@@ -10,6 +10,7 @@ import { mockUser } from '@/lib/mock-data'; // Import mockUser to check credenti
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Separator } from '../ui/separator';
 
 export function LoginForm() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +44,37 @@ export function LoginForm() {
     setIsLoading(false);
   };
 
+  const handleAdminSetupLogin = async () => {
+    setIsAdminLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate action
+
+    mockUser.name = "Admin User";
+    mockUser.email = "admin@example.com";
+    mockUser.password = "adminpassword"; // In a real app, this would be handled securely
+    mockUser.isAdmin = true;
+    mockUser.avatarUrl = 'https://placehold.co/100x100.png?text=ADM'; // Admin avatar
+    // Reset other fields for admin or set specific admin values
+    mockUser.location = 'Barrow Market Admin Office';
+    mockUser.bio = 'Site Administrator for Barrow Market Place.';
+    mockUser.isProfilePrivate = false;
+    mockUser.subscriptionStatus = 'premium_plus'; // Admins get all features
+    mockUser.itemsListedCount = 0;
+    mockUser.enhancedListingsRemaining = 999; // Effectively unlimited for admin
+    mockUser.totalRatings = 5; // Example admin ratings
+    mockUser.sumOfRatings = 25; // Example admin ratings (5x5 star)
+
+
+    localStorage.setItem('isLoggedIn', 'true');
+    toast({
+      title: 'Admin Account Configured',
+      description: 'You are now logged in as Admin.',
+    });
+    router.push('/');
+    router.refresh();
+    setIsAdminLoading(false);
+  };
+
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-18rem)] py-12">
       <Card className="w-full max-w-md shadow-xl">
@@ -60,8 +93,8 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading}
-                className="bg-white text-card-foreground"
+                disabled={isLoading || isAdminLoading}
+                className="bg-white text-black"
               />
             </div>
             <div className="space-y-2">
@@ -73,14 +106,23 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isLoading}
-                className="bg-white text-card-foreground"
+                disabled={isLoading || isAdminLoading}
+                className="bg-white text-black"
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading} size="default">
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading || isAdminLoading} size="default">
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
+          <Separator className="my-6" />
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={handleAdminSetupLogin} 
+            disabled={isLoading || isAdminLoading}
+          >
+            {isAdminLoading ? 'Setting up Admin...' : 'Set Up Admin & Login'}
+          </Button>
         </CardContent>
         <CardFooter className="flex flex-col items-center space-y-2 pt-4">
           <p className="text-sm text-muted-foreground">

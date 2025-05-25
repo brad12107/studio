@@ -15,6 +15,7 @@ export const mockUser: User = {
   enhancedListingsRemaining: 0,
   totalRatings: 0,
   sumOfRatings: 0,
+  isAdmin: false, // Default to not admin
 };
 
 const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
