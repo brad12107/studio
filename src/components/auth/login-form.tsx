@@ -47,6 +47,7 @@ export function LoginForm() {
   };
 
   const handleAdminSetupLogin = async () => {
+    // This window.prompt() call is what makes the "admin key box" appear immediately.
     const enteredKey = window.prompt("Please enter the Admin Key:");
 
     if (enteredKey === ADMIN_KEY) {
@@ -85,7 +86,7 @@ export function LoginForm() {
         variant: 'destructive',
       });
     }
-    // If enteredKey is null (user pressed Cancel), do nothing.
+    // If enteredKey is null (user pressed Cancel), we do nothing as per previous request to remove "Admin Setup Cancelled" toast.
   };
 
 
