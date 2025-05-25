@@ -19,6 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Flag } from 'lucide-react';
+import { mockMessages, mockConversations, mockUser } from '@/lib/mock-data'; // Import mock data
+import type { Message, Conversation } from '@/lib/types';
 
 const reportItemSchema = z.object({
   reason: z.string().min(10, { message: 'Please provide a reason of at least 10 characters.' }).max(500, {message: 'Reason cannot exceed 500 characters.'}),
@@ -61,16 +63,65 @@ export default function ReportItemPage() {
   }
 
   async function onSubmit(data: ReportItemFormValues) {
+    const decodedItemName = decodeURIComponent(itemName as string);
     // In a real app, you would send this data to your backend
     console.log('Report submitted:', {
       itemId,
-      itemName,
+      itemName: decodedItemName,
       reason: data.reason,
     });
 
+    // Create a message for the admin
+    const adminUserId = 'user123'; // ID of the admin user (mockUser.id when admin is logged in)
+    const adminUserName = 'Admin User'; // Name of the admin user
+    const systemReporterId = 'system-reporter';
+    const systemReporterName = 'System Reporter';
+    const reportConversationId = `conv-reports-${adminUserId}`;
+    const reportConversationItemId = 'system-reports'; // Special itemId for all reports
+
+    const reportContent = `Item Reported: "${decodedItemName}" (ID: ${itemId}). Reason: ${data.reason}`;
+    const newReportMessage: Message = {
+      id: `msg-report-${Date.now()}`,
+      fromUserId: systemReporterId,
+      toUserId: adminUserId, // Message is to the admin
+      itemId: itemId, // Associate with the actual reported item
+      content: reportContent,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      isSystemMessage: true, // Treat as a system message for styling or filtering if needed
+    };
+
+    mockMessages.push(newReportMessage);
+
+    let reportConv = mockConversations.find(conv => conv.id === reportConversationId);
+
+    if (reportConv) {
+      reportConv.lastMessage = { content: `New report for: ${decodedItemName}`, timestamp: newReportMessage.timestamp };
+      reportConv.unreadCount = (reportConv.unreadCount || 0) + 1;
+    } else {
+      reportConv = {
+        id: reportConversationId,
+        itemId: reportConversationItemId, // Generic ID for the reports conversation
+        itemName: 'Item Reports',
+        itemImageUrl: 'https://placehold.co/100x100.png?text=RPT', // Placeholder icon for reports
+        participants: [
+          { id: adminUserId, name: adminUserName, avatarUrl: 'https://placehold.co/100x100.png?text=ADM' },
+          { id: systemReporterId, name: systemReporterName, avatarUrl: 'https://placehold.co/100x100.png?text=SYS' }
+        ],
+        lastMessage: { content: `New report for: ${decodedItemName}`, timestamp: newReportMessage.timestamp },
+        unreadCount: 1,
+        buyRequestStatus: 'none',
+        isItemSoldOrUnavailable: false,
+      };
+      mockConversations.push(reportConv);
+    }
+
+    // Sort conversations to bring the most recent to the top
+    mockConversations.sort((a, b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
+
     toast({
       title: 'Report Submitted',
-      description: `Thank you for reporting "${decodeURIComponent(itemName)}". Our team will review it shortly.`,
+      description: `Thank you for reporting "${decodedItemName}". Our team will review it shortly. A message has also been sent to the admin.`,
     });
 
     // Redirect back to the item detail page
