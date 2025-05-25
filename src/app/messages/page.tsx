@@ -10,7 +10,7 @@ import { mockConversations, mockMessages, mockUser, mockItems, removeItemFromMoc
 import type { Conversation, Message, Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNowStrict } from 'date-fns';
-import { Send, Search as SearchIcon, ArrowLeft, MessageSquare as MessageSquareIcon, Trash2, ShoppingBag, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Send, Search as SearchIcon, ArrowLeft, MessageSquare as MessageSquareIcon, Trash2, ShoppingBag, CheckCircle, XCircle, Info, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
@@ -171,9 +171,11 @@ export default function MessagesPage() {
     if (!content.trim() || !selectedConversation) return;
     
     const otherParticipant = getOtherParticipant(selectedConversation);
-    if (!otherParticipant && !isSystem) return; 
+    if (!otherParticipant && !isSystem && selectedConversation.itemId !== 'system-reports') return; 
 
-    const toUserIdForMsg = isSystem ? (isCurrentUserTheSeller && otherParticipant ? otherParticipant.id : mockUser.id) : otherParticipant!.id;
+    const toUserIdForMsg = isSystem 
+      ? (selectedConversation.itemId === 'system-reports' ? mockUser.id : (isCurrentUserTheSeller && otherParticipant ? otherParticipant.id : mockUser.id)) 
+      : otherParticipant!.id;
 
 
     const msg: Message = {
@@ -352,7 +354,10 @@ export default function MessagesPage() {
           <ScrollArea className="flex-grow">
             {conversations.map((conv) => {
               const otherP = getOtherParticipant(conv);
-              if (!otherP) return null; 
+              if (!otherP && conv.itemId !== 'system-reports') return null; 
+              const displayName = conv.itemId === 'system-reports' ? conv.itemName : otherP?.name;
+              const displayAvatar = conv.itemId === 'system-reports' ? conv.itemImageUrl : otherP?.avatarUrl;
+              
               return (
               <button
                 key={conv.id}
@@ -364,12 +369,12 @@ export default function MessagesPage() {
               >
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={otherP.avatarUrl} alt={otherP.name} data-ai-hint="user avatar"/>
-                    <AvatarFallback>{otherP.name.substring(0,1).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={displayAvatar} alt={displayName} data-ai-hint="user avatar"/>
+                    <AvatarFallback>{displayName?.substring(0,1).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-grow overflow-hidden">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-semibold truncate text-card-foreground">{otherP.name}</h3>
+                      <h3 className="font-semibold truncate text-card-foreground">{displayName}</h3>
                       <span className={cn("text-xs", selectedConversation?.id === conv.id ? "text-accent-foreground/80" : "text-muted-foreground")}>
                         {isClient ? formatDistanceToNowStrict(new Date(conv.lastMessage.timestamp), { addSuffix: true }) : ''}
                       </span>
@@ -400,7 +405,17 @@ export default function MessagesPage() {
                   <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={() => setSelectedConversation(null)}>
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  {otherParticipant && (
+                  {selectedConversation.itemId === 'system-reports' ? (
+                     <>
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={selectedConversation.itemImageUrl} alt={selectedConversation.itemName} data-ai-hint="system icon"/>
+                        <AvatarFallback>{selectedConversation.itemName?.substring(0,1).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                       <div>
+                        <CardTitle className="text-lg text-card-foreground">{selectedConversation.itemName}</CardTitle>
+                      </div>
+                     </>
+                  ) : otherParticipant ? (
                     <>
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={otherParticipant.avatarUrl} alt={otherParticipant.name} data-ai-hint="user avatar"/>
@@ -408,14 +423,12 @@ export default function MessagesPage() {
                       </Avatar>
                       <div>
                         <CardTitle className="text-lg text-card-foreground">{otherParticipant.name}</CardTitle>
-                        {selectedConversation.itemId !== 'system-reports' && (
-                            <p className="text-xs text-muted-foreground">
-                                Regarding: <Link href={`/item/${selectedConversation.itemId}`} className="hover:underline text-primary">{selectedConversation.itemName}</Link>
-                            </p>
-                        )}
+                        <p className="text-xs text-muted-foreground">
+                            Regarding: <Link href={`/item/${selectedConversation.itemId}`} className="hover:underline text-primary">{selectedConversation.itemName}</Link>
+                        </p>
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </div>
                 {isCurrentUserTheSeller && selectedConversation.buyRequestStatus === 'pending_seller_response' && !selectedConversation.isItemSoldOrUnavailable && (
                   <div className="pt-2 flex gap-2 justify-end">
@@ -435,15 +448,34 @@ export default function MessagesPage() {
                     key={msg.id}
                     className={cn(
                       "flex items-end mb-2 group", 
-                      msg.fromUserId === mockUser.id && !msg.isSystemMessage ? "justify-end" : "justify-start", // User's non-system messages on the right
-                      msg.isSystemMessage && "justify-center" // System messages in the center
+                      msg.fromUserId === mockUser.id && !msg.isSystemMessage ? "justify-end" : "justify-start",
+                      msg.isSystemMessage && selectedConversation.itemId !== 'system-reports' && "justify-center",
+                      msg.isSystemMessage && selectedConversation.itemId === 'system-reports' && "justify-start" // Align system reports to the left
                     )}
                   >
                     {msg.isSystemMessage ? (
-                       <div className="my-2 text-center w-full">
-                          <span className="text-xs text-muted-foreground bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full shadow-sm">
-                            {msg.content} ({format(new Date(msg.timestamp), "p")})
-                          </span>
+                       <div className={cn(
+                          "my-2 w-full",
+                          selectedConversation.itemId === 'system-reports' ? "text-left" : "text-center"
+                        )}>
+                          <div className={cn("text-xs text-muted-foreground bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg shadow-sm inline-block", selectedConversation.itemId === 'system-reports' ? "text-left" : "")}>
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                            <p className="text-xs mt-1 text-muted-foreground/80">
+                                ({format(new Date(msg.timestamp), "p")})
+                            </p>
+                            {selectedConversation.itemId === 'system-reports' && msg.itemId && msg.fromUserId === 'system-reporter' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-2" 
+                                asChild
+                              >
+                                <Link href={`/item/${msg.itemId}`}>
+                                  <Eye className="mr-2 h-4 w-4" /> View Reported Item
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
                         </div>
                     ) : msg.fromUserId !== mockUser.id && otherParticipant ? (
                       <div className="flex items-end max-w-[75%]">
@@ -457,7 +489,7 @@ export default function MessagesPage() {
                             "bg-muted text-muted-foreground" 
                           )}
                         >
-                          <p className="text-sm">{msg.content}</p>
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           <p className="text-xs mt-1 text-muted-foreground/80 text-left">
                             {format(new Date(msg.timestamp), "p")}
                           </p>
@@ -471,7 +503,7 @@ export default function MessagesPage() {
                             msg.fromUserId === mockUser.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground" // This case should ideally not be hit if system messages are handled
                           )}
                         >
-                          <p className="text-sm">{msg.content}</p>
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           <p className={cn("text-xs mt-1 text-right", msg.fromUserId === mockUser.id ? "text-primary-foreground/70" : "text-muted-foreground/80" )}>
                             {format(new Date(msg.timestamp), "p")}
                           </p>
@@ -494,7 +526,7 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </ScrollArea>
 
-              {!isCurrentUserTheSeller && selectedConversation.buyRequestStatus !== 'none' && currentItemForSelectedConv && (
+              {!isCurrentUserTheSeller && selectedConversation.itemId !== 'system-reports' && selectedConversation.buyRequestStatus !== 'none' && currentItemForSelectedConv && (
                 <div className={cn("p-3 border-t text-sm font-medium", 
                   selectedConversation.buyRequestStatus === 'accepted' ? 'bg-green-50 text-green-700' :
                   selectedConversation.buyRequestStatus === 'declined' ? 'bg-red-50 text-red-700' :
@@ -537,7 +569,7 @@ export default function MessagesPage() {
                   size="icon" 
                   className="bg-accent hover:bg-accent/90 text-accent-foreground"
                   disabled={!newMessage.trim() || 
-                            !getOtherParticipant(selectedConversation) || 
+                            (selectedConversation.itemId !== 'system-reports' && !getOtherParticipant(selectedConversation)) || 
                             selectedConversation.isItemSoldOrUnavailable || 
                             selectedConversation.buyRequestStatus === 'accepted' || 
                             (isCurrentUserTheSeller && selectedConversation.buyRequestStatus === 'pending_seller_response') ||
