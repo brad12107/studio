@@ -8,11 +8,11 @@
     --background: 220 60% 10%; /* Darker Blue for better contrast with new background */
     --foreground: 210 40% 95%; /* Brighter White/Light Blue for text */
 
-    --card: 210 65% 25%; /* Darker blue for cards, distinct from main bg */
-    --card-foreground: 210 30% 90%; /* Light text for cards */
+    --card: 210 65% 20%; /* Slightly Darker Blue for cards */
+    --card-foreground: 0 0% 0%; /* Black text */
 
-    --popover: 210 65% 25%; /* Consistent with cards */
-    --popover-foreground: 210 30% 90%; /* Consistent with cards */
+    --popover: 210 65% 20%; /* Consistent with cards */
+    --popover-foreground: 0 0% 0%; /* Black text */
 
     --primary: 204 88% 68%; /* Soft Blue #64B5F6 - Keep as is or adjust if needed */
     --primary-foreground: 0 0% 100%; /* White */
@@ -118,13 +118,18 @@
   }
   body {
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    /* Apply the new background image */
-    background-image: url('/new-blue-background.jpg'); /* Make sure to save the image with this name in /public */
+    /* 
+      To use your Firebase Storage image as the background:
+      1. Upload your image to Firebase Storage.
+      2. Get the public Download URL (it will start with https://firebasestorage.googleapis.com/...).
+      3. Uncomment the line below and replace "YOUR_FIREBASE_STORAGE_IMAGE_URL_HERE" with your actual URL.
+    */
+    /* background-image: url("YOUR_FIREBASE_STORAGE_IMAGE_URL_HERE"); */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    /* Fallback background color if the image doesn't load */
+    /* Fallback background color if the image doesn't load or isn't set */
     background-color: hsl(var(--background)); 
     @apply text-foreground; 
     min-height: 100vh;
@@ -137,4 +142,3 @@
     /* background-color: hsla(var(--background), 0.5); /* Example: 50% opaque background color */ 
   }
 }
-
