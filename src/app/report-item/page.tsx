@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Flag } from 'lucide-react';
-import { mockMessages, mockConversations, mockUser } from '@/lib/mock-data'; // Import mock data
+import { mockMessages, mockConversations, mockUser, mockItems } from '@/lib/mock-data'; // Import mockItems
 import type { Message, Conversation } from '@/lib/types';
 
 const reportItemSchema = z.object({
@@ -64,31 +64,35 @@ export default function ReportItemPage() {
 
   async function onSubmit(data: ReportItemFormValues) {
     const decodedItemName = decodeURIComponent(itemName as string);
+    const reportedItem = mockItems.find(item => item.id === itemId);
+    const sellerName = reportedItem ? reportedItem.sellerName : 'Unknown Seller';
+    
     // In a real app, you would send this data to your backend
     console.log('Report submitted:', {
       itemId,
       itemName: decodedItemName,
+      sellerName,
       reason: data.reason,
     });
 
     // Create a message for the admin
-    const adminUserId = 'user123'; // ID of the admin user (mockUser.id when admin is logged in)
-    const adminUserName = 'Admin User'; // Name of the admin user
+    const adminUserId = 'user123'; 
+    const adminUserName = 'Admin User'; 
     const systemReporterId = 'system-reporter';
     const systemReporterName = 'System Reporter';
     const reportConversationId = `conv-reports-${adminUserId}`;
-    const reportConversationItemId = 'system-reports'; // Special itemId for all reports
+    const reportConversationItemId = 'system-reports';
 
-    const reportContent = `Item Reported: "${decodedItemName}" (ID: ${itemId}). Reason: ${data.reason}`;
+    const reportContent = `Item Reported: "${decodedItemName}" (ID: ${itemId}).\nSold by: ${sellerName}.\nReason: ${data.reason}`;
     const newReportMessage: Message = {
       id: `msg-report-${Date.now()}`,
       fromUserId: systemReporterId,
-      toUserId: adminUserId, // Message is to the admin
-      itemId: itemId, // Associate with the actual reported item
+      toUserId: adminUserId, 
+      itemId: itemId, 
       content: reportContent,
       timestamp: new Date().toISOString(),
       isRead: false,
-      isSystemMessage: true, // Treat as a system message for styling or filtering if needed
+      isSystemMessage: true, 
     };
 
     mockMessages.push(newReportMessage);
@@ -101,9 +105,9 @@ export default function ReportItemPage() {
     } else {
       reportConv = {
         id: reportConversationId,
-        itemId: reportConversationItemId, // Generic ID for the reports conversation
+        itemId: reportConversationItemId, 
         itemName: 'Item Reports',
-        itemImageUrl: 'https://placehold.co/100x100.png?text=RPT', // Placeholder icon for reports
+        itemImageUrl: 'https://placehold.co/100x100.png?text=RPT', 
         participants: [
           { id: adminUserId, name: adminUserName, avatarUrl: 'https://placehold.co/100x100.png?text=ADM' },
           { id: systemReporterId, name: systemReporterName, avatarUrl: 'https://placehold.co/100x100.png?text=SYS' }
@@ -116,7 +120,6 @@ export default function ReportItemPage() {
       mockConversations.push(reportConv);
     }
 
-    // Sort conversations to bring the most recent to the top
     mockConversations.sort((a, b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
 
     toast({
@@ -124,7 +127,6 @@ export default function ReportItemPage() {
       description: `Thank you for reporting "${decodedItemName}". Our team will review it shortly. A message has also been sent to the admin.`,
     });
 
-    // Redirect back to the item detail page
     router.push(`/item/${itemId}`);
   }
 
