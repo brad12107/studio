@@ -82,7 +82,7 @@ export function LoginForm() {
       toast({
         title: 'Admin Setup Cancelled',
         description: 'You cancelled the admin key entry.',
-        variant: 'default', // Or 'info' if you have such a variant
+        variant: 'default',
       });
     } else { 
       // User entered something, but it was wrong
