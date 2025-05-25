@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -23,22 +23,24 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+    // Simulate API call or verification delay
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     if (adminKey === ADMIN_KEY) {
+      // Update mockUser to be an admin
       mockUser.name = "Admin User";
-      mockUser.email = "admin@example.com";
-      mockUser.password = "adminpassword";
+      mockUser.email = "admin@example.com"; // Ensure this is unique or handled if needed
+      mockUser.password = "adminpassword"; // For mock purposes
       mockUser.isAdmin = true;
       mockUser.avatarUrl = 'https://placehold.co/100x100.png?text=ADM';
       mockUser.location = 'Barrow Market Admin Office';
       mockUser.bio = 'Site Administrator for Barrow Market Place.';
-      mockUser.isProfilePrivate = false;
-      mockUser.subscriptionStatus = 'premium_plus';
-      mockUser.itemsListedCount = 0;
-      mockUser.enhancedListingsRemaining = 999;
-      mockUser.totalRatings = 5;
-      mockUser.sumOfRatings = 25;
+      mockUser.isProfilePrivate = false; // Admins likely have public-facing roles or settings
+      mockUser.subscriptionStatus = 'premium_plus'; // Admins typically have all features
+      mockUser.itemsListedCount = 0; // Or some relevant admin count
+      mockUser.enhancedListingsRemaining = 999; // Effectively unlimited
+      mockUser.totalRatings = 5; // Example
+      mockUser.sumOfRatings = 25; // Example
 
       localStorage.setItem('isLoggedIn', 'true');
       toast({
@@ -46,7 +48,7 @@ export default function AdminLoginPage() {
         description: 'Welcome, Administrator!',
       });
       router.push('/');
-      router.refresh();
+      router.refresh(); // Ensure layout re-renders with new auth state
     } else {
       toast({
         title: 'Admin Login Failed',
