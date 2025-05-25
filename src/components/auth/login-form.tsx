@@ -10,7 +10,7 @@ import { mockUser } from '@/lib/mock-data';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ShieldCheck } from 'lucide-react';
+// ShieldCheck icon is no longer needed as the dedicated admin login button is removed.
 
 export function LoginForm() {
   const router = useRouter();
@@ -18,7 +18,6 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  // Removed isAdminLoading and handleAdminSetupLogin related states and functions
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,16 +83,7 @@ export function LoginForm() {
           </form>
         </CardContent>
         <CardFooter className="flex flex-col items-center gap-4 pt-6">
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={() => router.push('/admin-login')} // Navigate to admin login page
-            disabled={isLoading}
-          >
-            <ShieldCheck className="mr-2 h-4 w-4" /> 
-            Admin Login Area
-          </Button>
-          
+          {/* Removed Admin Login Area button */}
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 h-auto text-accent">
