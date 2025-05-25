@@ -6,14 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { mockUser } from '@/lib/mock-data'; // Import mockUser to check credentials
+import { mockUser } from '@/lib/mock-data';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Separator } from '../ui/separator';
-import { ShieldCheck } from 'lucide-react'; // Added for admin button icon
-
-const ADMIN_KEY = "135%32£fhj@345";
+import { ShieldCheck } from 'lucide-react';
 
 export function LoginForm() {
   const router = useRouter();
@@ -21,14 +18,13 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdminLoading, setIsAdminLoading] = useState(false);
+  // Removed isAdminLoading and handleAdminSetupLogin related states and functions
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
-    // Check against mockUser's credentials
     if (mockUser.email && email === mockUser.email && mockUser.password && password === mockUser.password) {
       localStorage.setItem('isLoggedIn', 'true');
       toast({
@@ -46,51 +42,6 @@ export function LoginForm() {
     }
     setIsLoading(false);
   };
-
-  const handleAdminSetupLogin = async () => {
-    // This window.prompt() call is what makes the "admin key box" appear immediately.
-    console.log("Attempting to show admin key prompt..."); // Diagnostic log
-    const enteredKey = window.prompt("Please enter the Admin Key:");
-    console.log("Admin key entered by user:", enteredKey); // Diagnostic log
-
-    if (enteredKey === ADMIN_KEY) {
-      setIsAdminLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate action
-
-      mockUser.name = "Admin User";
-      mockUser.email = "admin@example.com";
-      mockUser.password = "adminpassword"; // In a real app, this would be handled securely
-      mockUser.isAdmin = true;
-      mockUser.avatarUrl = 'https://placehold.co/100x100.png?text=ADM'; // Admin avatar
-      mockUser.location = 'Barrow Market Admin Office';
-      mockUser.bio = 'Site Administrator for Barrow Market Place.';
-      mockUser.isProfilePrivate = false;
-      mockUser.subscriptionStatus = 'premium_plus'; // Admins get all features
-      mockUser.itemsListedCount = 0;
-      mockUser.enhancedListingsRemaining = 999; // Effectively unlimited for admin
-      mockUser.totalRatings = 5; // Example admin ratings
-      mockUser.sumOfRatings = 25; // Example admin ratings (5x5 star)
-
-
-      localStorage.setItem('isLoggedIn', 'true');
-      toast({
-        title: 'Admin Account Configured',
-        description: 'You are now logged in as Admin.',
-      });
-      router.push('/');
-      router.refresh();
-      setIsAdminLoading(false);
-    } else if (enteredKey !== null) { 
-      // User entered something, but it was wrong
-      toast({
-        title: 'Admin Setup Failed',
-        description: 'Incorrect Admin Key. Please ensure it is entered exactly.',
-        variant: 'destructive',
-      });
-    }
-    // If enteredKey is null (user pressed Cancel), we do nothing
-  };
-
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-18rem)] py-12">
@@ -110,7 +61,7 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading || isAdminLoading}
+                disabled={isLoading}
                 className="bg-white text-black"
               />
             </div>
@@ -123,11 +74,11 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isLoading || isAdminLoading}
+                disabled={isLoading}
                 className="bg-white text-black"
               />
             </div>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading || isAdminLoading} size="default">
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading} size="default">
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
@@ -136,11 +87,11 @@ export function LoginForm() {
           <Button 
             variant="outline" 
             className="w-full" 
-            onClick={handleAdminSetupLogin} 
-            disabled={isLoading || isAdminLoading}
+            onClick={() => router.push('/admin-login')} // Navigate to admin login page
+            disabled={isLoading}
           >
             <ShieldCheck className="mr-2 h-4 w-4" /> 
-            {isAdminLoading ? 'Setting up Admin...' : 'Admin Quick Setup & Login'}
+            Admin Login Area
           </Button>
           
           <p className="text-sm text-muted-foreground">
