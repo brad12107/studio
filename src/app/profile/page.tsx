@@ -19,22 +19,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { mockUser, bannedEmails, allMockUsers } from '@/lib/mock-data'; // Import bannedEmails and allMockUsers
+import { mockUser, bannedEmails, allMockUsers } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Star, StarHalf } from 'lucide-react';
+import { Camera, Star, StarHalf, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { storage } from '@/lib/firebase'; // Import Firebase storage
+import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const ADMIN_KEY = "135%32£fhj@345"; // Define Admin Key
 
 const fileToDataUri = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -50,17 +51,17 @@ const profileSchemaBase = z.object({
   location: z.string().max(100, { message: 'Location cannot exceed 100 characters.' }).optional(),
   bio: z.string().max(250, { message: 'Bio cannot exceed 250 characters.' }).optional(),
   isProfilePrivate: z.boolean().default(false),
-  avatarUrl: z.custom<FileList | string | undefined>() // Can be FileList for upload or string for existing URL
+  avatarUrl: z.custom<FileList | string | undefined>()
     .optional()
     .refine((value) => {
-      if (value instanceof FileList && value.length > 0) {
+      if (typeof FileList !== 'undefined' && value instanceof FileList && value.length > 0) {
         const file = value[0];
         return file.size <= MAX_AVATAR_SIZE_BYTES;
       }
       return true;
     }, `Max avatar size is ${MAX_AVATAR_SIZE_MB}MB.`)
     .refine((value) => {
-      if (value instanceof FileList && value.length > 0) {
+      if (typeof FileList !== 'undefined' && value instanceof FileList && value.length > 0) {
         const file = value[0];
         return ACCEPTED_AVATAR_TYPES.includes(file.type);
       }
@@ -78,10 +79,23 @@ const profileSchemaCreate = profileSchemaBase.extend({
   agreedToTerms: z.boolean().refine(value => value === true, {
     message: "You must agree to the Terms and Conditions to create an account."
   }),
-}).refine(data => data.password === data.confirmPassword, {
+  isAdminAccount: z.boolean().default(false).optional(),
+  adminKey: z.string().optional(),
+})
+.refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
+})
+.superRefine((data, ctx) => {
+  if (data.isAdminAccount && (!data.adminKey || data.adminKey.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Admin Key is required if creating an admin account.",
+      path: ['adminKey'],
+    });
+  }
 });
+
 
 const profileSchemaEdit = profileSchemaBase.extend({
   email: z.string().email({ message: "Please enter a valid email address." }).optional(),
@@ -134,6 +148,7 @@ export default function ProfilePage() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdminKeyInput, setShowAdminKeyInput] = useState(false);
 
 
   const form = useForm<ProfileFormValues>({
@@ -150,6 +165,8 @@ export default function ProfilePage() {
         avatarUrl: undefined,
         agreedToCodeOfConduct: false,
         agreedToTerms: false,
+        isAdminAccount: false,
+        adminKey: '',
       }
     : {
         name: userData.name || '',
@@ -160,14 +177,14 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: true, // Default to true for existing users, assuming they agreed before
-        agreedToTerms: true, // Default to true for existing users
+        agreedToCodeOfConduct: true, 
+        agreedToTerms: true, 
       },
   });
 
   useEffect(() => {
     setUserData({...mockUser});
-  }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl]);
+  }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl, mockUser.isAdmin]);
 
   useEffect(() => {
     const currentProfileSchema = isCreateMode ? profileSchemaCreate : profileSchemaEdit;
@@ -176,26 +193,36 @@ export default function ProfilePage() {
       ? {
           name: '', email: '', password: '', confirmPassword: '', location: '', bio: '',
           isProfilePrivate: false, avatarUrl: undefined, agreedToCodeOfConduct: false, agreedToTerms: false,
+          isAdminAccount: false, adminKey: '',
         }
       : {
           name: userData.name || '',
           email: userData.email || '',
-          password: '', // Keep password fields blank on edit load for security
+          password: '', 
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined,
           agreedToCodeOfConduct: true,
-          agreedToTerms: true, // Though terms agreement is mainly for creation, keep consistent for form reset
+          agreedToTerms: true, 
         },
       { resolver: zodResolver(currentProfileSchema) }
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
+    setShowAdminKeyInput(isCreateMode ? form.getValues('isAdminAccount') || false : false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData.name, userData.email, userData.location, userData.bio, userData.isProfilePrivate, userData.avatarUrl, isCreateMode]);
 
 
   const watchedAvatarUrl = form.watch('avatarUrl');
+  const watchedIsAdminAccount = form.watch('isAdminAccount');
+
+  useEffect(() => {
+    if (isCreateMode) {
+        setShowAdminKeyInput(watchedIsAdminAccount || false);
+    }
+  }, [watchedIsAdminAccount, isCreateMode]);
+
 
   useEffect(() => {
     if (watchedAvatarUrl instanceof FileList && watchedAvatarUrl.length > 0) {
@@ -230,6 +257,22 @@ export default function ProfilePage() {
       setIsSubmitting(false);
       return;
     }
+
+    if (isCreateMode && data.isAdminAccount) {
+      if (data.adminKey !== ADMIN_KEY) {
+        toast({
+          title: 'Admin Account Creation Failed',
+          description: 'The Admin Key provided is incorrect.',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      mockUser.isAdmin = true;
+    } else if (isCreateMode) {
+      mockUser.isAdmin = false; 
+    }
+
 
     let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl; 
 
@@ -267,28 +310,26 @@ export default function ProfilePage() {
 
     mockUser.name = data.name.trim();
     if (isCreateMode && data.email) mockUser.email = data.email.trim();
-    // Only update password if one is provided (especially important for edit mode)
+    
     if (data.password) mockUser.password = data.password; 
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
+    // Admin status handled above based on adminKey
 
     if (isCreateMode) {
-      mockUser.id = `user-${Date.now()}`; // Assign a new ID for a new user
-      // Add the newly created user to allMockUsers
-      // Ensure not to add if an object with the same ID already exists (though unlikely with Date.now())
+      mockUser.id = `user-${Date.now()}`; 
+      
       const userExists = allMockUsers.find(u => u.id === mockUser.id);
       if (!userExists) {
-        allMockUsers.push({ ...mockUser }); // Add a copy
+        allMockUsers.push({ ...mockUser }); 
       }
     } else {
-      // Update the user in allMockUsers if they exist
       const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
       if (userIndex > -1) {
         allMockUsers[userIndex] = { ...mockUser };
       } else {
-        // This case might happen if mockUser was somehow not in allMockUsers
         allMockUsers.push({ ...mockUser });
       }
     }
@@ -394,8 +435,8 @@ export default function ProfilePage() {
                         placeholder="you@example.com"
                         {...field}
                         className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
-                        readOnly={!isCreateMode && !!userData.email} // Readonly in edit mode if email exists
-                        disabled={!isCreateMode && !!userData.email}  // Disabled in edit mode if email exists
+                        readOnly={!isCreateMode && !!userData.email} 
+                        disabled={!isCreateMode && !!userData.email}  
                       />
                     </FormControl>
                      {!isCreateMode && !!userData.email && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
@@ -404,37 +445,33 @@ export default function ProfilePage() {
                 )}
               />
 
-              {(isCreateMode || !isCreateMode ) && ( // Show password fields for create mode, and optionally for edit mode
-                <>
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{isCreateMode ? 'Password' : 'New Password (optional)'}</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
-                        </FormControl>
-                         {!isCreateMode && <FormDescription>Leave blank to keep current password.</FormDescription>}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{isCreateMode ? 'Confirm Password' : 'Confirm New Password'}</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{isCreateMode ? 'Password' : 'New Password (optional)'}</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                    </FormControl>
+                      {!isCreateMode && <FormDescription>Leave blank to keep current password.</FormDescription>}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{isCreateMode ? 'Confirm Password' : 'Confirm New Password'}</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -493,30 +530,75 @@ export default function ProfilePage() {
               />
 
               {isCreateMode && (
-                <FormField
-                  control={form.control}
-                  name="agreedToTerms"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          id="termsAndConditionsCheckbox"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel htmlFor="termsAndConditionsCheckbox">
-                          I have read and agree to the{' '}
-                          <Link href="/terms-and-conditions" className="underline hover:text-primary" target="_blank">
-                            Terms and Conditions
-                          </Link>.
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
+                <>
+                  <FormField
+                    control={form.control}
+                    name="isAdminAccount"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base flex items-center">
+                            <ShieldCheck className="mr-2 h-5 w-5 text-primary" /> Create as Admin Account?
+                          </FormLabel>
+                          <FormDescription>
+                            Select this to create an administrator account. You will need the Admin Key.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  {showAdminKeyInput && (
+                    <FormField
+                      control={form.control}
+                      name="adminKey"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Admin Key</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="Enter Admin Key"
+                              {...field}
+                              value={field.value || ''}
+                              className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="agreedToTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            id="termsAndConditionsCheckbox"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel htmlFor="termsAndConditionsCheckbox">
+                            I have read and agree to the{' '}
+                            <Link href="/terms-and-conditions" className="underline hover:text-primary" target="_blank">
+                              Terms and Conditions
+                            </Link>.
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </>
               )}
 
               <FormField
@@ -561,3 +643,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+    
