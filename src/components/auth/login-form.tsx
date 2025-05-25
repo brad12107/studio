@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Separator } from '../ui/separator';
+import { ShieldCheck } from 'lucide-react'; // Added for admin button icon
 
 const ADMIN_KEY = "135%32£fhj@345";
 
@@ -137,7 +138,8 @@ export function LoginForm() {
             onClick={handleAdminSetupLogin} 
             disabled={isLoading || isAdminLoading}
           >
-            {isAdminLoading ? 'Setting up Admin...' : 'Set Up Admin & Login'}
+            <ShieldCheck className="mr-2 h-4 w-4" /> 
+            {isAdminLoading ? 'Setting up Admin...' : 'Admin Quick Setup & Login'}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col items-center space-y-2 pt-4">
