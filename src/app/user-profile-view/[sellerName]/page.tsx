@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, User as UserIcon, ShieldAlert } from 'lucide-react'; // Changed User to UserIcon to avoid conflict
 import { useEffect, useState } from 'react';
 import { mockUser, mockItems, bannedEmails, allMockUsers } from '@/lib/mock-data';
-import type { User } from '@/lib/types';
+import type { User, Item } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function UserProfileViewPage() {
@@ -24,23 +24,28 @@ export default function UserProfileViewPage() {
         const name = decodeURIComponent(params.sellerName);
         setDecodedSellerName(name);
 
-        // Attempt to find the seller's email from mockItems
-        const itemFromSeller = mockItems.find(item => item.sellerName === name);
-        if (itemFromSeller && itemFromSeller.sellerEmail) {
-          setSellerEmailForBan(itemFromSeller.sellerEmail);
-          if (bannedEmails.includes(itemFromSeller.sellerEmail)) {
-            setIsBanned(true);
-          }
+        // Attempt to find the seller's email
+        // First try from allMockUsers if the user has an account
+        const userObject = allMockUsers.find(u => u.name === name);
+        let emailToSet: string | null = null;
+
+        if (userObject && userObject.email) {
+          emailToSet = userObject.email;
         } else {
-          // Fallback: try finding in allMockUsers if no item email is directly available (less likely for this page's context)
-          const userObject = allMockUsers.find(u => u.name === name);
-          if (userObject && userObject.email) {
-            setSellerEmailForBan(userObject.email);
-             if (bannedEmails.includes(userObject.email)) {
-              setIsBanned(true);
-            }
+          // Fallback: try finding in mockItems if no direct user account email is found
+          const itemFromSeller = mockItems.find(item => item.sellerName === name);
+          if (itemFromSeller && itemFromSeller.sellerEmail) {
+            emailToSet = itemFromSeller.sellerEmail;
           }
         }
+        
+        if (emailToSet) {
+            setSellerEmailForBan(emailToSet);
+            if (bannedEmails.includes(emailToSet)) {
+              setIsBanned(true);
+            }
+        }
+
       } catch (error) {
         console.error("Error decoding seller name:", error);
         setDecodedSellerName("Invalid Seller Name");
@@ -69,11 +74,29 @@ export default function UserProfileViewPage() {
 
     bannedEmails.push(sellerEmailForBan);
     setIsBanned(true);
+
+    // Remove user's listings
+    let itemsRemovedCount = 0;
+    const originalLength = mockItems.length;
+    const updatedMockItems = mockItems.filter(item => {
+      if (item.sellerEmail === sellerEmailForBan) {
+        itemsRemovedCount++;
+        return false; // Exclude item
+      }
+      return true; // Keep item
+    });
+    // Directly modify the exported mockItems array for global effect in this mock setup
+    mockItems.length = 0; // Clear original array
+    updatedMockItems.forEach(item => mockItems.push(item)); // Push back filtered items
+
+
     toast({
       title: 'User Banned',
-      description: `The email ${sellerEmailForBan} associated with ${decodedSellerName} has been banned. They will not be able to create new accounts with this email.`,
+      description: `The email ${sellerEmailForBan} associated with ${decodedSellerName} has been banned. Their ${itemsRemovedCount} listing(s) have also been removed.`,
     });
     // In a real app, you might also want to take further actions like deactivating listings, etc.
+    // Force a refresh to reflect changes if any listings were on a page the admin might navigate back to.
+    router.refresh();
   };
 
   const canAdminBanThisUser = mockUser.isAdmin && decodedSellerName !== mockUser.name;
@@ -124,3 +147,4 @@ export default function UserProfileViewPage() {
     </div>
   );
 }
+
