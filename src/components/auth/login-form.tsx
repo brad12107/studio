@@ -48,8 +48,8 @@ export function LoginForm() {
   };
 
   const handleAdminSetupLogin = async () => {
-    console.log("Attempting to show admin key prompt..."); // Diagnostic log
     // This window.prompt() call is what makes the "admin key box" appear immediately.
+    console.log("Attempting to show admin key prompt..."); // Diagnostic log
     const enteredKey = window.prompt("Please enter the Admin Key:");
     console.log("Admin key entered by user:", enteredKey); // Diagnostic log
 
@@ -143,12 +143,6 @@ export function LoginForm() {
             {isAdminLoading ? 'Setting up Admin...' : 'Admin Quick Setup & Login'}
           </Button>
           
-          <div className="flex items-center w-full">
-            <Separator className="flex-grow" />
-            <span className="px-2 text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-grow" />
-          </div>
-
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 h-auto text-accent">
