@@ -88,7 +88,7 @@ export function LoginForm() {
         variant: 'destructive',
       });
     }
-    // If enteredKey is null (user pressed Cancel), we do nothing as per previous request
+    // If enteredKey is null (user pressed Cancel), we do nothing
   };
 
 
@@ -131,7 +131,8 @@ export function LoginForm() {
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
-          <Separator className="my-6" />
+        </CardContent>
+        <CardFooter className="flex flex-col items-center gap-4 pt-6">
           <Button 
             variant="outline" 
             className="w-full" 
@@ -141,8 +142,13 @@ export function LoginForm() {
             <ShieldCheck className="mr-2 h-4 w-4" /> 
             {isAdminLoading ? 'Setting up Admin...' : 'Admin Quick Setup & Login'}
           </Button>
-        </CardContent>
-        <CardFooter className="flex flex-col items-center space-y-2 pt-4">
+          
+          <div className="flex items-center w-full">
+            <Separator className="flex-grow" />
+            <span className="px-2 text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-grow" />
+          </div>
+
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 h-auto text-accent">
