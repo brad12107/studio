@@ -125,8 +125,8 @@
       3. Uncomment the line below.
       4. Replace "YOUR_FIREBASE_STORAGE_HTTPS_DOWNLOAD_URL_HERE" with the actual Download URL you copied.
          Example: background-image: url("https://firebasestorage.googleapis.com/v0/b/your-project-id.appspot.com/o/images%2Fblue%20background.avif?alt=media&token=your-token-here");
-    */
-    /* background-image: url("YOUR_FIREBASE_STORAGE_HTTPS_DOWNLOAD_URL_HERE"); */
+    
+     /* background-image: url("https://firebasestorage.googleapis.com/v0/b/community-market-rgnru.firebasestorage.app/o/images%2Fblue%20background.avif?alt=media&token=4bfa869c-5c1e-4eec-9b16-ff4a0a20054c"); */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
