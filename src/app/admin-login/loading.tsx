@@ -1,6 +1,6 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ShieldCheck } from 'lucide-react';
 
 export default function AdminLoginLoading() {
