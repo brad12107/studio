@@ -80,7 +80,7 @@ export function UserNav() {
     return null;
   }
 
-  if (!isUserLoggedIn || !currentUserDetails) {
+  if (!isUserLoggedIn && pathname !== '/login') {
     return (
       <Button variant="outline" onClick={() => router.push('/login')}>
         <LogIn className="mr-2 h-4 w-4" />
@@ -88,6 +88,33 @@ export function UserNav() {
       </Button>
     );
   }
+
+  if (!isUserLoggedIn && pathname === '/login') {
+    return null; // Don't show login button on login page
+  }
+
+  if (!currentUserDetails && isUserLoggedIn) {
+    // This can happen briefly if loggedIn status is true but details haven't synced
+    // Or if mockUser is somehow empty while loggedIn.
+    // Return a minimal loading state or null.
+    return null;
+  }
+  
+  // Ensure currentUserDetails is not null before trying to access its properties
+  if (!currentUserDetails) {
+    // This case should ideally not be reached if !isUserLoggedIn covers it,
+    // but as a safeguard:
+    if (pathname !== '/login') {
+        return (
+          <Button variant="outline" onClick={() => router.push('/login')}>
+            <LogIn className="mr-2 h-4 w-4" />
+            Login
+          </Button>
+        );
+    }
+    return null; // Don't show anything on login page if no user details and not logged in
+  }
+
 
   return (
     <DropdownMenu>
