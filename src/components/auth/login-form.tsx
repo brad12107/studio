@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Separator } from '../ui/separator';
 
+const ADMIN_KEY = "135%32£fhj@345";
+
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -45,33 +47,44 @@ export function LoginForm() {
   };
 
   const handleAdminSetupLogin = async () => {
-    setIsAdminLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate action
+    const enteredKey = window.prompt("Please enter the Admin Key:");
 
-    mockUser.name = "Admin User";
-    mockUser.email = "admin@example.com";
-    mockUser.password = "adminpassword"; // In a real app, this would be handled securely
-    mockUser.isAdmin = true;
-    mockUser.avatarUrl = 'https://placehold.co/100x100.png?text=ADM'; // Admin avatar
-    // Reset other fields for admin or set specific admin values
-    mockUser.location = 'Barrow Market Admin Office';
-    mockUser.bio = 'Site Administrator for Barrow Market Place.';
-    mockUser.isProfilePrivate = false;
-    mockUser.subscriptionStatus = 'premium_plus'; // Admins get all features
-    mockUser.itemsListedCount = 0;
-    mockUser.enhancedListingsRemaining = 999; // Effectively unlimited for admin
-    mockUser.totalRatings = 5; // Example admin ratings
-    mockUser.sumOfRatings = 25; // Example admin ratings (5x5 star)
+    if (enteredKey === ADMIN_KEY) {
+      setIsAdminLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate action
+
+      mockUser.name = "Admin User";
+      mockUser.email = "admin@example.com";
+      mockUser.password = "adminpassword"; // In a real app, this would be handled securely
+      mockUser.isAdmin = true;
+      mockUser.avatarUrl = 'https://placehold.co/100x100.png?text=ADM'; // Admin avatar
+      // Reset other fields for admin or set specific admin values
+      mockUser.location = 'Barrow Market Admin Office';
+      mockUser.bio = 'Site Administrator for Barrow Market Place.';
+      mockUser.isProfilePrivate = false;
+      mockUser.subscriptionStatus = 'premium_plus'; // Admins get all features
+      mockUser.itemsListedCount = 0;
+      mockUser.enhancedListingsRemaining = 999; // Effectively unlimited for admin
+      mockUser.totalRatings = 5; // Example admin ratings
+      mockUser.sumOfRatings = 25; // Example admin ratings (5x5 star)
 
 
-    localStorage.setItem('isLoggedIn', 'true');
-    toast({
-      title: 'Admin Account Configured',
-      description: 'You are now logged in as Admin.',
-    });
-    router.push('/');
-    router.refresh();
-    setIsAdminLoading(false);
+      localStorage.setItem('isLoggedIn', 'true');
+      toast({
+        title: 'Admin Account Configured',
+        description: 'You are now logged in as Admin.',
+      });
+      router.push('/');
+      router.refresh();
+      setIsAdminLoading(false);
+    } else if (enteredKey !== null) { // User entered something, but it was wrong
+      toast({
+        title: 'Admin Setup Failed',
+        description: 'Incorrect Admin Key.',
+        variant: 'destructive',
+      });
+    }
+    // If enteredKey is null, it means the user pressed "Cancel" on the prompt, so do nothing.
   };
 
 
@@ -138,3 +151,4 @@ export function LoginForm() {
     </div>
   );
 }
+
