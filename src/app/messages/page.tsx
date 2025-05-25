@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mockConversations, mockMessages, mockUser, mockItems, removeItemFromMockItems } from '@/lib/mock-data';
-import type { Conversation, Message, Item } from '@/lib/types';
+import type { Conversation, Message, Item, User as UserType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNowStrict } from 'date-fns';
-import { Send, Search as SearchIcon, ArrowLeft, MessageSquare as MessageSquareIcon, Trash2, ShoppingBag, CheckCircle, XCircle, Info, Eye } from 'lucide-react';
+import { Send, Search as SearchIcon, ArrowLeft, MessageSquare as MessageSquareIcon, Trash2, ShoppingBag, CheckCircle, XCircle, Info, Eye, User as UserIconLucide } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import {
   AlertDialog,
@@ -31,7 +31,7 @@ export default function MessagesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false); // For hydration fix
+  const [isClient, setIsClient] = useState(false); 
   const [conversations, setConversations] = useState<Conversation[]>(
     mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime())
   );
@@ -57,7 +57,7 @@ export default function MessagesPage() {
 
 
   useEffect(() => {
-    setIsClient(true); // Component has mounted, safe to use client-only features
+    setIsClient(true); 
   }, []);
 
   useEffect(() => {
@@ -68,10 +68,11 @@ export default function MessagesPage() {
     }
   }, [currentItemForSelectedConv]);
 
-  const getOtherParticipant = useCallback((conv: Conversation | null) => {
-    if (!conv) return null;
-    return conv.participants.find(p => p.id !== mockUser.id);
-  }, []);
+  const getOtherParticipant = useCallback((conv: Conversation | null): UserType | null => {
+    if (!conv || !mockUser?.id) return null;
+    const other = conv.participants.find(p => p.id !== mockUser.id);
+    return other ? (other as UserType) : null;
+  }, [mockUser?.id]);
 
   useEffect(() => {
     const itemIdParam = searchParams.get('itemId');
@@ -105,7 +106,7 @@ export default function MessagesPage() {
           itemName: itemForConv?.name || `Item ${itemIdParam}`,
           itemImageUrl: itemPrimaryImageUrl,
           participants: [
-            { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
+            { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl || 'https://placehold.co/50x50.png?text=ME' },
             { id: `seller-${itemIdParam}-${sellerNameParam.replace(/\s+/g, '-')}`, name: sellerNameParam, avatarUrl: `https://placehold.co/50x50.png?text=${sellerNameParam.substring(0,2).toUpperCase()}` }
           ],
           lastMessage: { content: `Started conversation about ${itemForConv?.name || `Item ID: ${itemIdParam}`}.`, timestamp: new Date().toISOString() },
@@ -135,22 +136,16 @@ export default function MessagesPage() {
 
       const msgsForConv = mockMessages.filter(msg => {
         if (isAdminReportsConversation) {
-          // For admin reports, messages are from 'system-reporter' to the admin (mockUser.id)
-          // The msg.itemId will be the ID of the actual item reported.
-          // We show the message if it's a system message, to the admin, from the system-reporter.
           if (msg.isSystemMessage && msg.toUserId === mockUser.id && msg.fromUserId === 'system-reporter') {
             return true;
           }
-          return false; // Don't show other messages in the system-reports conversation for now
+          return false; 
         } else {
-          // Standard conversation logic for item-specific chats
           if (msg.itemId !== selectedConversation.itemId) return false;
 
           if (msg.isSystemMessage) {
-            // Show system message if it's addressed TO one of the participants in this conversation
             return currentParticipantsIds.includes(msg.toUserId);
           }
-          // Regular messages need to be between the two participants of the current conversation
           return currentParticipantsIds.includes(msg.fromUserId) && currentParticipantsIds.includes(msg.toUserId);
         }
       })
@@ -159,7 +154,7 @@ export default function MessagesPage() {
     } else {
       setMessages([]);
     }
-  }, [selectedConversation, mockUser.id]); // Added mockUser.id as it is used in filter logic
+  }, [selectedConversation, mockUser.id]); 
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -182,7 +177,7 @@ export default function MessagesPage() {
       id: `msg-${Date.now()}`,
       fromUserId: isSystem ? 'system' : mockUser.id,
       toUserId: toUserIdForMsg, 
-      itemId: selectedConversation.itemId, // For system messages related to buy requests, this will be the item's ID. For reports, this will be 'system-reports' if sent *within* that special conversation (not the case for incoming reports)
+      itemId: selectedConversation.itemId, 
       content: content,
       timestamp: new Date().toISOString(),
       isRead: false, 
@@ -369,7 +364,7 @@ export default function MessagesPage() {
               >
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={displayAvatar} alt={displayName} data-ai-hint="user avatar"/>
+                    <AvatarImage src={displayAvatar || undefined} alt={displayName} data-ai-hint="user avatar"/>
                     <AvatarFallback>{displayName?.substring(0,1).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-grow overflow-hidden">
@@ -418,7 +413,7 @@ export default function MessagesPage() {
                   ) : otherParticipant ? (
                     <>
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={otherParticipant.avatarUrl} alt={otherParticipant.name} data-ai-hint="user avatar"/>
+                        <AvatarImage src={otherParticipant.avatarUrl || undefined} alt={otherParticipant.name} data-ai-hint="user avatar"/>
                         <AvatarFallback>{otherParticipant.name.substring(0,1).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
@@ -443,14 +438,20 @@ export default function MessagesPage() {
                 )}
               </CardHeader>
               <ScrollArea className="flex-grow p-4 space-y-1 bg-background"> 
-                {messages.map((msg) => (
+                {messages.map((msg) => {
+                  const reportedItemForMessage = (selectedConversation.itemId === 'system-reports' && msg.itemId && msg.fromUserId === 'system-reporter') 
+                                                  ? mockItems.find(item => item.id === msg.itemId) 
+                                                  : null;
+                  const sellerNameForMessage = reportedItemForMessage ? reportedItemForMessage.sellerName : null;
+                  
+                  return (
                   <div
                     key={msg.id}
                     className={cn(
                       "flex items-end mb-2 group", 
                       msg.fromUserId === mockUser.id && !msg.isSystemMessage ? "justify-end" : "justify-start",
                       msg.isSystemMessage && selectedConversation.itemId !== 'system-reports' && "justify-center",
-                      msg.isSystemMessage && selectedConversation.itemId === 'system-reports' && "justify-start" // Align system reports to the left
+                      msg.isSystemMessage && selectedConversation.itemId === 'system-reports' && "justify-start" 
                     )}
                   >
                     {msg.isSystemMessage ? (
@@ -464,23 +465,31 @@ export default function MessagesPage() {
                                 ({format(new Date(msg.timestamp), "p")})
                             </p>
                             {selectedConversation.itemId === 'system-reports' && msg.itemId && msg.fromUserId === 'system-reporter' && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="mt-2" 
-                                asChild
-                              >
-                                <Link href={`/item/${msg.itemId}`}>
-                                  <Eye className="mr-2 h-4 w-4" /> View Reported Item
-                                </Link>
-                              </Button>
+                              <div className="mt-2 space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  asChild
+                                >
+                                  <Link href={`/item/${msg.itemId}`}>
+                                    <Eye className="mr-2 h-4 w-4" /> View Reported Item
+                                  </Link>
+                                </Button>
+                                {sellerNameForMessage && (
+                                  <Button variant="outline" size="sm" asChild>
+                                    <Link href={`/user-profile-view/${encodeURIComponent(sellerNameForMessage)}`}>
+                                      <UserIconLucide className="mr-2 h-4 w-4" /> View Seller Profile
+                                    </Link>
+                                  </Button>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
                     ) : msg.fromUserId !== mockUser.id && otherParticipant ? (
                       <div className="flex items-end max-w-[75%]">
                          <Avatar className="h-7 w-7 mr-2 mb-1 hidden group-hover:flex">
-                            <AvatarImage src={otherParticipant.avatarUrl} alt={otherParticipant.name} />
+                            <AvatarImage src={otherParticipant.avatarUrl || undefined} alt={otherParticipant.name} />
                             <AvatarFallback>{otherParticipant.name.substring(0,1).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div
@@ -500,7 +509,7 @@ export default function MessagesPage() {
                         <div
                           className={cn(
                             "max-w-[70%] p-3 rounded-lg shadow-md",
-                            msg.fromUserId === mockUser.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground" // This case should ideally not be hit if system messages are handled
+                            msg.fromUserId === mockUser.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground" 
                           )}
                         >
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -522,7 +531,7 @@ export default function MessagesPage() {
                       </>
                     )}
                   </div>
-                ))}
+                )})}
                 <div ref={messagesEndRef} />
               </ScrollArea>
 
@@ -606,5 +615,7 @@ export default function MessagesPage() {
     </>
   );
 }
+
+    
 
     
