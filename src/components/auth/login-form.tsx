@@ -47,8 +47,10 @@ export function LoginForm() {
   };
 
   const handleAdminSetupLogin = async () => {
+    console.log("Attempting to show admin key prompt..."); // Diagnostic log
     // This window.prompt() call is what makes the "admin key box" appear immediately.
     const enteredKey = window.prompt("Please enter the Admin Key:");
+    console.log("Admin key entered by user:", enteredKey); // Diagnostic log
 
     if (enteredKey === ADMIN_KEY) {
       setIsAdminLoading(true);
@@ -59,7 +61,6 @@ export function LoginForm() {
       mockUser.password = "adminpassword"; // In a real app, this would be handled securely
       mockUser.isAdmin = true;
       mockUser.avatarUrl = 'https://placehold.co/100x100.png?text=ADM'; // Admin avatar
-      // Reset other fields for admin or set specific admin values
       mockUser.location = 'Barrow Market Admin Office';
       mockUser.bio = 'Site Administrator for Barrow Market Place.';
       mockUser.isProfilePrivate = false;
@@ -86,7 +87,7 @@ export function LoginForm() {
         variant: 'destructive',
       });
     }
-    // If enteredKey is null (user pressed Cancel), we do nothing as per previous request to remove "Admin Setup Cancelled" toast.
+    // If enteredKey is null (user pressed Cancel), we do nothing as per previous request
   };
 
 
