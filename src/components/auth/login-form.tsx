@@ -77,14 +77,7 @@ export function LoginForm() {
       router.push('/');
       router.refresh();
       setIsAdminLoading(false);
-    } else if (enteredKey === null) {
-      // User pressed Cancel or closed the prompt
-      toast({
-        title: 'Admin Setup Cancelled',
-        description: 'You cancelled the admin key entry.',
-        variant: 'default',
-      });
-    } else { 
+    } else if (enteredKey !== null) { 
       // User entered something, but it was wrong
       toast({
         title: 'Admin Setup Failed',
@@ -92,6 +85,7 @@ export function LoginForm() {
         variant: 'destructive',
       });
     }
+    // If enteredKey is null (user pressed Cancel), do nothing.
   };
 
 
