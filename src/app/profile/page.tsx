@@ -19,11 +19,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { mockUser } from '@/lib/mock-data';
+import { mockUser, bannedEmails, allMockUsers } from '@/lib/mock-data'; // Import bannedEmails and allMockUsers
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Star, StarHalf, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Camera, Star, StarHalf } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -160,8 +160,8 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: true,
-        agreedToTerms: true,
+        agreedToCodeOfConduct: true, // Default to true for existing users, assuming they agreed before
+        agreedToTerms: true, // Default to true for existing users
       },
   });
 
@@ -180,13 +180,13 @@ export default function ProfilePage() {
       : {
           name: userData.name || '',
           email: userData.email || '',
-          password: '',
+          password: '', // Keep password fields blank on edit load for security
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined,
           agreedToCodeOfConduct: true,
-          agreedToTerms: true,
+          agreedToTerms: true, // Though terms agreement is mainly for creation, keep consistent for form reset
         },
       { resolver: zodResolver(currentProfileSchema) }
     );
@@ -206,11 +206,9 @@ export default function ProfilePage() {
           setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
-        // If file is invalid, reset to previous valid or default preview
         setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
       }
     } else if (typeof watchedAvatarUrl === 'string') {
-      // This case handles when form.reset is called with an existing avatar URL string
       setAvatarPreview(watchedAvatarUrl);
     } else if (!watchedAvatarUrl && isCreateMode) {
       setAvatarPreview(defaultAvatarPlaceholder);
@@ -222,7 +220,18 @@ export default function ProfilePage() {
 
   async function onSubmit(data: ProfileFormValues) {
     setIsSubmitting(true);
-    let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl; // Start with existing or undefined
+
+    if (isCreateMode && data.email && bannedEmails.includes(data.email)) {
+      toast({
+        title: 'Account Creation Failed',
+        description: 'This email address has been banned and cannot be used to create an account.',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl; 
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
@@ -236,12 +245,11 @@ export default function ProfilePage() {
         return;
       }
       try {
-        // Upload to Firebase Storage
         const avatarFileName = `avatar-${mockUser.id || Date.now()}-${file.name}`;
         const avatarRef = storageRef(storage, `avatars/${mockUser.id || 'guest'}/${avatarFileName}`);
         const snapshot = await uploadBytes(avatarRef, file);
         finalAvatarUrl = await getDownloadURL(snapshot.ref);
-        setAvatarPreview(finalAvatarUrl); // Update preview with Firebase URL
+        setAvatarPreview(finalAvatarUrl); 
       } catch (error) {
         console.error("Error uploading avatar to Firebase Storage:", error);
         toast({
@@ -252,18 +260,39 @@ export default function ProfilePage() {
         setIsSubmitting(false);
         return;
       }
-    } else if (typeof data.avatarUrl === 'string') { // If it's already a URL (e.g., from initial load)
+    } else if (typeof data.avatarUrl === 'string') { 
       finalAvatarUrl = data.avatarUrl;
     }
 
 
     mockUser.name = data.name.trim();
     if (isCreateMode && data.email) mockUser.email = data.email.trim();
-    if (data.password) mockUser.password = data.password; // In real app, hash this
+    // Only update password if one is provided (especially important for edit mode)
+    if (data.password) mockUser.password = data.password; 
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
+
+    if (isCreateMode) {
+      mockUser.id = `user-${Date.now()}`; // Assign a new ID for a new user
+      // Add the newly created user to allMockUsers
+      // Ensure not to add if an object with the same ID already exists (though unlikely with Date.now())
+      const userExists = allMockUsers.find(u => u.id === mockUser.id);
+      if (!userExists) {
+        allMockUsers.push({ ...mockUser }); // Add a copy
+      }
+    } else {
+      // Update the user in allMockUsers if they exist
+      const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
+      if (userIndex > -1) {
+        allMockUsers[userIndex] = { ...mockUser };
+      } else {
+        // This case might happen if mockUser was somehow not in allMockUsers
+        allMockUsers.push({ ...mockUser });
+      }
+    }
+
 
     setUserData({ ...mockUser });
 
@@ -365,17 +394,17 @@ export default function ProfilePage() {
                         placeholder="you@example.com"
                         {...field}
                         className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
-                        readOnly={!isCreateMode}
-                        disabled={!isCreateMode}
+                        readOnly={!isCreateMode && !!userData.email} // Readonly in edit mode if email exists
+                        disabled={!isCreateMode && !!userData.email}  // Disabled in edit mode if email exists
                       />
                     </FormControl>
-                     {!isCreateMode && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
+                     {!isCreateMode && !!userData.email && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {(isCreateMode || !isCreateMode ) && (
+              {(isCreateMode || !isCreateMode ) && ( // Show password fields for create mode, and optionally for edit mode
                 <>
                   <FormField
                     control={form.control}
@@ -384,7 +413,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>{isCreateMode ? 'Password' : 'New Password (optional)'}</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
                          {!isCreateMode && <FormDescription>Leave blank to keep current password.</FormDescription>}
                         <FormMessage />
@@ -398,7 +427,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>{isCreateMode ? 'Confirm Password' : 'Confirm New Password'}</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

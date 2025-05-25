@@ -7,6 +7,7 @@ export interface Item {
   type: 'sale' | 'auction';
   imageUrl: string[]; // Changed from string to string[]
   sellerName: string;
+  sellerEmail?: string; // Added seller's email
   category: string;
   condition?: 'new' | 'like_new' | 'good' | 'not_working'; // Added item condition
   isEnhanced?: boolean;

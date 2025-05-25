@@ -18,6 +18,9 @@ export const mockUser: User = {
   isAdmin: false, // Default to not admin
 };
 
+export let allMockUsers: User[] = [{ ...mockUser }]; // Initialize with the main mockUser
+export let bannedEmails: string[] = [];
+
 const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -31,6 +34,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'John Seller',
+    sellerEmail: 'john.seller@example.com',
     category: 'Apparel',
     condition: 'good',
     isEnhanced: true,
@@ -43,6 +47,7 @@ export let mockItems: Item[] = [
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Alice Collector',
+    sellerEmail: 'alice.collector@example.com',
     category: 'Furniture',
     condition: 'good',
     isEnhanced: false,
@@ -61,6 +66,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Crafty Carol',
+    sellerEmail: 'crafty.carol@example.com',
     category: 'Home Decor',
     condition: 'new',
     isEnhanced: false,
@@ -73,6 +79,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Gamer Tom',
+    sellerEmail: 'gamer.tom@example.com',
     category: 'Electronics',
     condition: 'like_new',
     isEnhanced: false,
@@ -85,6 +92,7 @@ export let mockItems: Item[] = [
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Outdoor Dave',
+    sellerEmail: 'outdoor.dave@example.com',
     category: 'Sports',
     condition: 'good',
     isEnhanced: true,
@@ -102,6 +110,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Bookworm Beth',
+    sellerEmail: 'bookworm.beth@example.com',
     category: 'Books',
     condition: 'like_new',
     isEnhanced: false,
@@ -114,6 +123,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Driver Dan',
+    sellerEmail: 'driver.dan@example.com',
     category: 'Vehicles',
     condition: 'good',
     isEnhanced: false,
@@ -126,6 +136,7 @@ export let mockItems: Item[] = [
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Mechanic Mike',
+    sellerEmail: 'mechanic.mike@example.com',
     category: 'Vehicles',
     condition: 'not_working',
     isEnhanced: false,
@@ -144,6 +155,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Eco Eva',
+    sellerEmail: 'eco.eva@example.com',
     category: 'Vehicles',
     condition: 'like_new',
     isEnhanced: false,
@@ -156,6 +168,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Green Thumb George',
+    sellerEmail: 'george.green@example.com',
     category: 'Garden & Outdoors',
     condition: 'like_new',
     isEnhanced: false,
@@ -168,6 +181,7 @@ export let mockItems: Item[] = [
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Musician Mia',
+    sellerEmail: 'mia.music@example.com',
     category: 'Music & Instruments',
     condition: 'good',
     isEnhanced: false,
@@ -181,6 +195,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Jeweler Jess',
+    sellerEmail: 'jess.jewels@example.com',
     category: 'Jewellery & Accessories',
     condition: 'new',
     isEnhanced: false,
@@ -192,7 +207,8 @@ export let mockItems: Item[] = [
     price: 50,
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Gamer Tom',
+    sellerName: 'Gamer Tom', // Re-using Gamer Tom
+    sellerEmail: 'gamer.tom@example.com',
     category: 'Toys & Games',
     condition: 'like_new',
     isEnhanced: false,
@@ -205,6 +221,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Artist Andy',
+    sellerEmail: 'andy.artist@example.com',
     category: 'Art & Crafts',
     condition: 'new',
     isEnhanced: false,
@@ -217,6 +234,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Healthy Hannah',
+    sellerEmail: 'hannah.health@example.com',
     category: 'Health & Beauty',
     condition: 'new',
     isEnhanced: true,
@@ -229,6 +247,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Pet Lover Pete',
+    sellerEmail: 'pete.pets@example.com',
     category: 'Pet Supplies',
     condition: 'good',
     isEnhanced: false,
@@ -241,6 +260,7 @@ export let mockItems: Item[] = [
     type: 'sale', // 'sale' type can represent rentals too for simplicity in this mock
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Landlord Larry',
+    sellerEmail: 'larry.landlord@example.com',
     category: 'Property for Rent',
     // Condition not applicable
     isEnhanced: true,
@@ -253,6 +273,7 @@ export let mockItems: Item[] = [
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Realty Rosie',
+    sellerEmail: 'rosie.realty@example.com',
     category: 'Property for Sale',
     // Condition not applicable
     isEnhanced: false,
@@ -264,7 +285,8 @@ export let mockItems: Item[] = [
     price: 800,
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Landlord Larry',
+    sellerName: 'Landlord Larry', // Re-using Landlord Larry
+    sellerEmail: 'larry.landlord@example.com',
     category: 'Property for Rent',
     // Condition not applicable
     isEnhanced: false,
@@ -278,9 +300,6 @@ export const mockMessages: Message[] = [
   { id: 'msg4', fromUserId: mockUser.id, toUserId: 'user456', itemId: '3', content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString(), isRead: true },
 ];
 
-// Update participant names in mockConversations based on mockUser
-mockUser.name = ''; // Or whatever name is set during profile creation simulation
-mockUser.avatarUrl = mockUser.avatarUrl || 'https://placehold.co/50x50.png';
 
 export const mockConversations: Conversation[] = [
   {
@@ -329,5 +348,8 @@ export const mockConversations: Conversation[] = [
 
 // Function to remove an item from mockItems array by ID
 export const removeItemFromMockItems = (itemId: string) => {
-  mockItems = mockItems.filter(item => item.id !== itemId);
+  const itemIndex = mockItems.findIndex(item => item.id === itemId);
+  if (itemIndex > -1) {
+    mockItems.splice(itemIndex, 1);
+  }
 };
