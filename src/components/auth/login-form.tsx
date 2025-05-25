@@ -77,14 +77,21 @@ export function LoginForm() {
       router.push('/');
       router.refresh();
       setIsAdminLoading(false);
-    } else if (enteredKey !== null) { // User entered something, but it was wrong
+    } else if (enteredKey === null) {
+      // User pressed Cancel or closed the prompt
+      toast({
+        title: 'Admin Setup Cancelled',
+        description: 'You cancelled the admin key entry.',
+        variant: 'default', // Or 'info' if you have such a variant
+      });
+    } else { 
+      // User entered something, but it was wrong
       toast({
         title: 'Admin Setup Failed',
-        description: 'Incorrect Admin Key.',
+        description: 'Incorrect Admin Key. Please ensure it is entered exactly.',
         variant: 'destructive',
       });
     }
-    // If enteredKey is null, it means the user pressed "Cancel" on the prompt, so do nothing.
   };
 
 
@@ -151,4 +158,3 @@ export function LoginForm() {
     </div>
   );
 }
-
