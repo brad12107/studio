@@ -23,11 +23,14 @@ import { mockUser } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Star, StarHalf } from 'lucide-react';
+import { Camera, Star, StarHalf, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { storage } from '@/lib/firebase'; // Import Firebase storage
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+
 
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
@@ -47,7 +50,7 @@ const profileSchemaBase = z.object({
   location: z.string().max(100, { message: 'Location cannot exceed 100 characters.' }).optional(),
   bio: z.string().max(250, { message: 'Bio cannot exceed 250 characters.' }).optional(),
   isProfilePrivate: z.boolean().default(false),
-  avatarUrl: z.custom<FileList | string | undefined>()
+  avatarUrl: z.custom<FileList | string | undefined>() // Can be FileList for upload or string for existing URL
     .optional()
     .refine((value) => {
       if (value instanceof FileList && value.length > 0) {
@@ -81,17 +84,16 @@ const profileSchemaCreate = profileSchemaBase.extend({
 });
 
 const profileSchemaEdit = profileSchemaBase.extend({
-  email: z.string().email({ message: "Please enter a valid email address." }).optional(), // Email might not be editable
+  email: z.string().email({ message: "Please enter a valid email address." }).optional(),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }).optional(),
   confirmPassword: z.string().min(6, { message: "Please confirm your password." }).optional(),
-  // agreedToTerms is not needed for edit schema as it's an account creation step
-}).refine(data => !data.password || data.password === data.confirmPassword, { 
+}).refine(data => !data.password || data.password === data.confirmPassword, {
   message: "Passwords do not match.",
   path: ["confirmPassword"],
 });
 
 
-type ProfileFormValues = z.infer<typeof profileSchemaCreate>; 
+type ProfileFormValues = z.infer<typeof profileSchemaCreate>;
 const defaultAvatarPlaceholder = 'https://placehold.co/100x100.png';
 
 const renderStars = (average: number, total: number) => {
@@ -110,7 +112,7 @@ const renderStars = (average: number, total: number) => {
       ))}
       {halfStar === 1 && <StarHalf key="half" className="h-4 w-4 text-amber-400 fill-amber-400" />}
       {[...Array(emptyStars)].map((_, i) => (
-        <Star key={`empty-${i}`} className="h-4 w-4 text-amber-400" /> 
+        <Star key={`empty-${i}`} className="h-4 w-4 text-amber-400" />
       ))}
       <span className="ml-1.5 text-xs text-muted-foreground">
         ({average.toFixed(1)} from {total} ratings)
@@ -131,6 +133,8 @@ export default function ProfilePage() {
     isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder)
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(isCreateMode ? profileSchemaCreate : profileSchemaEdit),
@@ -145,26 +149,24 @@ export default function ProfilePage() {
         isProfilePrivate: false,
         avatarUrl: undefined,
         agreedToCodeOfConduct: false,
-        agreedToTerms: false, // Default for create mode
+        agreedToTerms: false,
       }
     : {
         name: userData.name || '',
-        email: userData.email || '', 
-        password: '', 
+        email: userData.email || '',
+        password: '',
         confirmPassword: '',
         location: userData.location || '',
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
-        avatarUrl: userData.avatarUrl || undefined, 
-        agreedToCodeOfConduct: true, 
-        agreedToTerms: true, // Assume true for existing users; not validated in edit mode
+        avatarUrl: userData.avatarUrl || undefined,
+        agreedToCodeOfConduct: true,
+        agreedToTerms: true,
       },
   });
 
   useEffect(() => {
-    // This effect updates local userData state when mockUser (global) changes
-    // For instance, when ratings are updated elsewhere
-    setUserData({...mockUser}); 
+    setUserData({...mockUser});
   }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl]);
 
   useEffect(() => {
@@ -177,20 +179,20 @@ export default function ProfilePage() {
         }
       : {
           name: userData.name || '',
-          email: userData.email || '', 
-          password: '', 
+          email: userData.email || '',
+          password: '',
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
-          avatarUrl: userData.avatarUrl || undefined, 
-          agreedToCodeOfConduct: true, 
+          avatarUrl: userData.avatarUrl || undefined,
+          agreedToCodeOfConduct: true,
           agreedToTerms: true,
         },
-      { resolver: zodResolver(currentProfileSchema) } 
+      { resolver: zodResolver(currentProfileSchema) }
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData.name, userData.email, userData.location, userData.bio, userData.isProfilePrivate, userData.avatarUrl, isCreateMode]); 
+  }, [userData.name, userData.email, userData.location, userData.bio, userData.isProfilePrivate, userData.avatarUrl, isCreateMode]);
 
 
   const watchedAvatarUrl = form.watch('avatarUrl');
@@ -204,9 +206,11 @@ export default function ProfilePage() {
           setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
+        // If file is invalid, reset to previous valid or default preview
         setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
       }
     } else if (typeof watchedAvatarUrl === 'string') {
+      // This case handles when form.reset is called with an existing avatar URL string
       setAvatarPreview(watchedAvatarUrl);
     } else if (!watchedAvatarUrl && isCreateMode) {
       setAvatarPreview(defaultAvatarPlaceholder);
@@ -217,7 +221,8 @@ export default function ProfilePage() {
 
 
   async function onSubmit(data: ProfileFormValues) {
-    let finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder);
+    setIsSubmitting(true);
+    let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl; // Start with existing or undefined
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
@@ -227,32 +232,40 @@ export default function ProfilePage() {
           description: `Max size ${MAX_AVATAR_SIZE_MB}MB. Accepted types: JPG, PNG, WEBP.`,
           variant: 'destructive',
         });
+        setIsSubmitting(false);
         return;
       }
       try {
-        finalAvatarUrl = await fileToDataUri(file);
+        // Upload to Firebase Storage
+        const avatarFileName = `avatar-${mockUser.id || Date.now()}-${file.name}`;
+        const avatarRef = storageRef(storage, `avatars/${mockUser.id || 'guest'}/${avatarFileName}`);
+        const snapshot = await uploadBytes(avatarRef, file);
+        finalAvatarUrl = await getDownloadURL(snapshot.ref);
+        setAvatarPreview(finalAvatarUrl); // Update preview with Firebase URL
       } catch (error) {
-        console.error("Error converting avatar to data URI:", error);
+        console.error("Error uploading avatar to Firebase Storage:", error);
         toast({
           title: 'Avatar Upload Error',
-          description: 'Could not process the avatar image. Please try another one.',
+          description: 'Could not upload the avatar image. Please try another one.',
           variant: 'destructive',
         });
+        setIsSubmitting(false);
         return;
       }
-    } else if (typeof data.avatarUrl === 'string') {
+    } else if (typeof data.avatarUrl === 'string') { // If it's already a URL (e.g., from initial load)
       finalAvatarUrl = data.avatarUrl;
     }
 
+
     mockUser.name = data.name.trim();
-    if (isCreateMode && data.email) mockUser.email = data.email.trim(); 
-    if (data.password) mockUser.password = data.password;
+    if (isCreateMode && data.email) mockUser.email = data.email.trim();
+    if (data.password) mockUser.password = data.password; // In real app, hash this
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
-    mockUser.avatarUrl = finalAvatarUrl;
-    
-    setUserData({ ...mockUser }); 
+    mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
+
+    setUserData({ ...mockUser });
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -267,10 +280,11 @@ export default function ProfilePage() {
         title: 'Profile Saved!',
         description: 'Your information has been updated.',
       });
-      router.refresh(); 
+      router.refresh();
     }
+    setIsSubmitting(false);
   }
-  
+
   const averageRating = userData.totalRatings > 0 ? userData.sumOfRatings / userData.totalRatings : 0;
 
   return (
@@ -312,7 +326,7 @@ export default function ProfilePage() {
                        <Input
                         id="avatar-upload-input"
                         type="file"
-                        accept="image/png, image/jpeg, image/webp"
+                        accept={ACCEPTED_AVATAR_TYPES.join(',')}
                         className="hidden"
                         ref={fileInputRef}
                         onChange={(e) => {
@@ -338,7 +352,7 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="email"
@@ -346,13 +360,13 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="you@example.com" 
-                        {...field} 
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        {...field}
                         className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
-                        readOnly={!isCreateMode} 
-                        disabled={!isCreateMode} 
+                        readOnly={!isCreateMode}
+                        disabled={!isCreateMode}
                       />
                     </FormControl>
                      {!isCreateMode && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
@@ -360,7 +374,7 @@ export default function ProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               {(isCreateMode || !isCreateMode ) && (
                 <>
                   <FormField
@@ -400,7 +414,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Delivery/Pick Up Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" />
+                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" />
                     </FormControl>
                     <FormDescription>Your preferred location for item exchange (optional).</FormDescription>
                     <FormMessage />
@@ -507,9 +521,9 @@ export default function ProfilePage() {
                 type="submit"
                 size="lg"
                 className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground"
-                disabled={form.formState.isSubmitting}
+                disabled={isSubmitting}
                 >
-                {form.formState.isSubmitting ? (isCreateMode ? 'Creating Account...' : 'Saving...') : (isCreateMode ? 'Create Account' : 'Save Profile')}
+                {isSubmitting ? (isCreateMode ? 'Creating Account...' : 'Saving...') : (isCreateMode ? 'Create Account' : 'Save Profile')}
               </Button>
             </form>
           </Form>

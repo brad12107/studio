@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // Added useRef
 import { mockUser, mockItems } from '@/lib/mock-data';
 import type { Item } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -28,6 +28,8 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { addDays } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { storage } from '@/lib/firebase'; // Import Firebase storage
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const MAX_FREE_ITEMS = 3;
 const LISTING_FEE = 0.50;
@@ -63,7 +65,6 @@ const ITEM_CONDITIONS = [
   { value: 'good', label: 'Good' },
   { value: 'not_working', label: 'Not Working' },
 ] as const;
-type ItemConditionValue = typeof ITEM_CONDITIONS[number]['value'];
 
 const fileToDataUri = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -84,24 +85,24 @@ const listItemSchema = z.object({
   itemCondition: z.enum(['new', 'like_new', 'good', 'not_working']).optional(),
   imageFiles: z
     .custom<FileList>()
-    .optional() 
+    .optional()
     .refine(
       (files) => {
-        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; // SSR/Optional case
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true;
         return files.length <= MAX_IMAGES;
       },
       `You can upload a maximum of ${MAX_IMAGES} images.`
     )
     .refine(
       (files) => {
-        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; // SSR/Optional case
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true;
         return Array.from(files).every((file) => file.size <= MAX_FILE_SIZE_BYTES);
       },
       `Each file size must be ${MAX_FILE_SIZE_MB}MB or less.`
     )
     .refine(
       (files) => {
-        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; // SSR/Optional case
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true;
         return Array.from(files).every((file) => ACCEPTED_IMAGE_TYPES.includes(file.type));
       },
       'Only .jpg, .jpeg, .png, and .webp files are accepted.'
@@ -144,11 +145,13 @@ export function ListItemForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const imageFilesInputRef = useRef<HTMLInputElement>(null); // Ref for file input
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentItemId, setCurrentItemId] = useState<string | null>(null);
   const [currentItemBeingEdited, setCurrentItemBeingEdited] = useState<Item | null>(null);
   const [displayedImagePreviews, setDisplayedImagePreviews] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
   const form = useForm<ListItemFormValues>({
@@ -174,13 +177,14 @@ export function ListItemForm() {
           auctionDurationDays: itemToEdit.auctionEndTime
             ? Math.ceil((new Date(itemToEdit.auctionEndTime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) > 0
               ? Math.ceil((new Date(itemToEdit.auctionEndTime).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-              : 1
-            : 7,
+              : 1 // Default to 1 if ended or very close
+            : 7, // Default for new auctions
           category: itemToEdit.category,
           itemCondition: itemToEdit.condition,
           isEnhanced: itemToEdit.isEnhanced || false,
-          imageFiles: undefined, 
+          imageFiles: undefined, // Reset file input
         });
+        // Display existing images from URLs (could be Firebase URLs or placehold.co)
         setDisplayedImagePreviews(itemToEdit.imageUrl || []);
       } else {
         toast({ title: 'Error', description: 'Item not found for editing.', variant: 'destructive' });
@@ -207,17 +211,20 @@ export function ListItemForm() {
       const filePromises = Array.from(watchedImageFiles)
         .filter(file => ACCEPTED_IMAGE_TYPES.includes(file.type) && file.size <= MAX_FILE_SIZE_BYTES)
         .slice(0, MAX_IMAGES)
-        .map(fileToDataUri);
+        .map(fileToDataUri); // These are for local preview only
 
       Promise.all(filePromises).then(setDisplayedImagePreviews).catch(err => {
         console.error("Error creating image previews from new files:", err);
+        // If error, and in edit mode, fall back to existing images for preview
         if (isEditMode && currentItemBeingEdited) {
           setDisplayedImagePreviews(currentItemBeingEdited.imageUrl || []);
         }
       });
     } else if (isEditMode && currentItemBeingEdited) {
+      // If no new files are selected in edit mode, keep showing existing images
       setDisplayedImagePreviews(currentItemBeingEdited.imageUrl || []);
     } else if (!isEditMode) {
+       // If not edit mode and no files, clear previews
       setDisplayedImagePreviews([]);
     }
   }, [watchedImageFiles, isEditMode, currentItemBeingEdited]);
@@ -225,6 +232,7 @@ export function ListItemForm() {
 
   const handleRemoveImage = (index: number) => {
     const currentFiles = form.getValues('imageFiles');
+    // This logic is for removing files from the FileList input before upload
     if (currentFiles && typeof FileList !== 'undefined' && currentFiles instanceof FileList) {
       const newFilesArray = Array.from(currentFiles);
       newFilesArray.splice(index, 1);
@@ -232,6 +240,17 @@ export function ListItemForm() {
       const dataTransfer = new DataTransfer();
       newFilesArray.forEach(file => dataTransfer.items.add(file));
       form.setValue('imageFiles', dataTransfer.files, { shouldValidate: true });
+
+      // Update previews based on the modified FileList
+      const filePromises = newFilesArray.map(fileToDataUri);
+      Promise.all(filePromises).then(setDisplayedImagePreviews);
+
+    } else if (isEditMode && currentItemBeingEdited) {
+      // This logic would be for removing already uploaded images (requires more complex state)
+      // For now, we are replacing all images on edit if new ones are selected.
+      // To remove an existing image, user would re-upload the desired set.
+      // If you want to support removing specific Firebase URLs, this needs different handling.
+      toast({title: "Info", description: "To change existing images, please upload a new set of images."});
     }
   };
 
@@ -241,7 +260,7 @@ export function ListItemForm() {
 
   const isListingFeeApplicable = mockUser.subscriptionStatus === 'none';
 
-  const disableFormFields = isFreeTrialLimitReached && !isEditMode; 
+  const disableFormFields = isFreeTrialLimitReached && !isEditMode;
 
   const getEnhancementFeeText = () => {
     if (mockUser.subscriptionStatus === 'premium_plus' && (mockUser.enhancedListingsRemaining || 0) > 0) {
@@ -251,12 +270,14 @@ export function ListItemForm() {
   };
 
   async function onSubmit(data: ListItemFormValues) {
+    setIsSubmitting(true);
     if (isFreeTrialLimitReached && !isEditMode) {
       toast({
         title: 'Listing Limit Reached',
         description: `You have listed ${mockUser.itemsListedCount} of ${MAX_FREE_ITEMS} items allowed in your free trial. Please subscribe to list more items.`,
         variant: 'destructive',
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -267,24 +288,35 @@ export function ListItemForm() {
         variant: 'destructive',
       });
       form.setError("imageFiles", { type: "manual", message: "Please upload at least one image." });
+      setIsSubmitting(false);
       return;
     }
 
     let finalImageUrls: string[] = [];
     if (data.imageFiles && data.imageFiles.length > 0) {
       try {
-        finalImageUrls = await Promise.all(Array.from(data.imageFiles).map(fileToDataUri));
+        finalImageUrls = await Promise.all(Array.from(data.imageFiles).map(async (file, index) => {
+          const itemIdForPath = currentItemId || `item-temp-${Date.now()}`;
+          const fileName = `item-${itemIdForPath}-image-${index}-${file.name}`;
+          const imageRef = storageRef(storage, `items/${itemIdForPath}/${fileName}`);
+          const snapshot = await uploadBytes(imageRef, file);
+          return getDownloadURL(snapshot.ref);
+        }));
       } catch (error) {
-        console.error("Error converting images to data URI:", error);
-        toast({ title: 'Image Upload Error', description: 'Could not process one or more images.', variant: 'destructive' });
+        console.error("Error uploading images to Firebase Storage:", error);
+        toast({ title: 'Image Upload Error', description: 'Could not upload one or more images to Firebase.', variant: 'destructive' });
+        setIsSubmitting(false);
         return;
       }
     } else if (isEditMode && currentItemBeingEdited && currentItemBeingEdited.imageUrl.length > 0) {
-      finalImageUrls = currentItemBeingEdited.imageUrl; 
-    } else if (isEditMode && (!finalImageUrls || finalImageUrls.length === 0)) {
-      toast({ title: 'Missing Images', description: 'Please ensure at least one image is present.', variant: 'destructive' });
-      form.setError("imageFiles", { type: "manual", message: "Please upload at least one image." });
-      return;
+      // If in edit mode and no new files selected, keep existing Firebase URLs
+      finalImageUrls = currentItemBeingEdited.imageUrl;
+    } else if (isEditMode && (!currentItemBeingEdited?.imageUrl || currentItemBeingEdited.imageUrl.length === 0) && (!data.imageFiles || data.imageFiles.length === 0) ){
+      // In edit mode, if there were no previous images and no new ones are uploaded
+       toast({ title: 'Missing Images', description: 'Please ensure at least one image is present for the listing.', variant: 'destructive' });
+       form.setError("imageFiles", { type: "manual", message: "Please upload at least one image." });
+       setIsSubmitting(false);
+       return;
     }
 
 
@@ -293,7 +325,7 @@ export function ListItemForm() {
         auctionEndTimeISO = addDays(new Date(), data.auctionDurationDays).toISOString();
     }
 
-    const itemData: Omit<Item, 'id' | 'sellerName' | 'currentBid' | 'bidHistory'> = {
+    const itemBaseData = {
       name: data.name,
       description: data.description,
       price: data.price,
@@ -309,20 +341,24 @@ export function ListItemForm() {
       const itemIndex = mockItems.findIndex(item => item.id === currentItemId);
       if (itemIndex > -1) {
         mockItems[itemIndex] = {
-          ...mockItems[itemIndex], 
-          ...itemData 
+          ...mockItems[itemIndex],
+          ...itemBaseData,
+          // Ensure currentBid and bidHistory are preserved correctly for auctions
+          currentBid: data.type === 'auction' ? mockItems[itemIndex].currentBid : undefined,
+          bidHistory: data.type === 'auction' ? mockItems[itemIndex].bidHistory : undefined,
         };
         toast({ title: 'Item Updated!', description: `${data.name} has been successfully updated.` });
       } else {
         toast({ title: 'Error', description: 'Could not find item to update.', variant: 'destructive' });
+        setIsSubmitting(false);
         return;
       }
-    } else { 
+    } else {
       const newItem: Item = {
-        id: `item-${Date.now()}`,
+        id: `item-${Date.now()}`, // Generate new ID
         sellerName: mockUser.name,
-        ...itemData,
-        currentBid: data.type === 'auction' ? undefined : undefined,
+        ...itemBaseData,
+        currentBid: data.type === 'auction' ? undefined : undefined, // Or initial price as bid?
         bidHistory: data.type === 'auction' ? [] : undefined,
       };
       mockItems.unshift(newItem);
@@ -357,8 +393,12 @@ export function ListItemForm() {
       }
     }
 
-    form.reset(initialFormValues); 
+    form.reset(initialFormValues);
+    if(imageFilesInputRef.current) {
+        imageFilesInputRef.current.value = ""; // Clear file input
+    }
     setDisplayedImagePreviews([]);
+    setIsSubmitting(false);
     router.push('/my-listings');
   }
 
@@ -398,7 +438,7 @@ export function ListItemForm() {
                   <Input
                     placeholder="e.g., Vintage Wooden Chair"
                     {...field}
-                    disabled={disableFormFields && !isEditMode}
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                     className="bg-input text-black placeholder:text-muted-foreground"
                   />
                 </FormControl>
@@ -419,7 +459,7 @@ export function ListItemForm() {
                     placeholder="Detailed description of your item, its condition, etc."
                     className="resize-y min-h-[100px] bg-input text-black placeholder:text-muted-foreground"
                     {...field}
-                    disabled={disableFormFields && !isEditMode}
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />
@@ -440,7 +480,7 @@ export function ListItemForm() {
                       step="0.01"
                       placeholder="e.g., 25.99"
                       {...field}
-                      disabled={disableFormFields && !isEditMode}
+                      disabled={(disableFormFields && !isEditMode) || isSubmitting}
                       className="bg-input text-black placeholder:text-muted-foreground"
                     />
                   </FormControl>
@@ -457,8 +497,8 @@ export function ListItemForm() {
                   <FormLabel>Type</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    value={field.value} 
-                    disabled={disableFormFields && !isEditMode}
+                    value={field.value}
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                   >
                     <FormControl>
                       <SelectTrigger className="bg-input text-black">
@@ -494,7 +534,7 @@ export function ListItemForm() {
                       {...field}
                       value={field.value ?? ''}
                       onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
-                      disabled={disableFormFields && !isEditMode}
+                      disabled={(disableFormFields && !isEditMode) || isSubmitting}
                       className="bg-input text-black placeholder:text-muted-foreground"
                     />
                   </FormControl>
@@ -513,8 +553,8 @@ export function ListItemForm() {
                 <FormLabel>Category</FormLabel>
                  <Select
                     onValueChange={field.onChange}
-                    value={field.value} 
-                    disabled={disableFormFields && !isEditMode}
+                    value={field.value}
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                   >
                     <FormControl>
                       <SelectTrigger className="bg-input text-black">
@@ -545,8 +585,8 @@ export function ListItemForm() {
                   </FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    value={field.value} 
-                    disabled={disableFormFields && !isEditMode}
+                    value={field.value}
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                   >
                       <FormControl>
                         <SelectTrigger className="bg-input text-black">
@@ -570,7 +610,7 @@ export function ListItemForm() {
           <FormField
             control={form.control}
             name="imageFiles"
-            render={({ field: { onChange, value, ...rest } }) => (
+            render={({ field: { onChange, value, ...rest } }) => ( // value is intentionally not used directly with file input
               <FormItem>
                 <FormLabel className="flex items-center">
                   <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Images (1-{MAX_IMAGES})
@@ -578,17 +618,18 @@ export function ListItemForm() {
                 <FormControl>
                   <Input
                     type="file"
-                    accept="image/png, image/jpeg, image/webp"
+                    accept={ACCEPTED_IMAGE_TYPES.join(',')}
                     multiple
-                    onChange={(e) => onChange(e.target.files)}
-                    {...rest}
-                    disabled={disableFormFields && !isEditMode}
+                    onChange={(e) => onChange(e.target.files)} // RHF handles the FileList here
+                    {...rest} // Passes name, onBlur, etc.
+                    ref={imageFilesInputRef} // Assign ref here
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                     className="block w-full text-sm text-black bg-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 placeholder:text-muted-foreground"
                   />
                 </FormControl>
                 <FormDescription>
                   {isEditMode ? 'Upload new images to replace existing ones, or leave empty to keep current images. ' : ''}
-                  Max {MAX_IMAGES} files, {MAX_FILE_SIZE_MB}MB each, .png, .jpg, .webp.
+                  Max {MAX_IMAGES} files, {MAX_FILE_SIZE_MB}MB each. Accepted: .png, .jpg, .webp.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -604,7 +645,7 @@ export function ListItemForm() {
                 {displayedImagePreviews.map((previewUrl, index) => (
                   <div key={index} className="relative aspect-square rounded-md border border-muted overflow-hidden group">
                     <NextImage src={previewUrl} alt={`Preview ${index + 1}`} fill sizes="10vw" className="object-cover" data-ai-hint="item image preview"/>
-                    {watchedImageFiles && watchedImageFiles.length > 0 && (
+                    {(watchedImageFiles && watchedImageFiles.length > 0) && ( // Only show delete for newly staged files
                       <Button
                         type="button"
                         variant="destructive"
@@ -612,6 +653,7 @@ export function ListItemForm() {
                         className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => handleRemoveImage(index)}
                         aria-label={`Remove image ${index + 1}`}
+                        disabled={isSubmitting}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -642,7 +684,7 @@ export function ListItemForm() {
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={(disableFormFields && !isEditMode) || form.formState.isSubmitting}
+                    disabled={(disableFormFields && !isEditMode) || isSubmitting}
                     className="data-[state=checked]:bg-amber-500"
                   />
                 </FormControl>
@@ -654,9 +696,9 @@ export function ListItemForm() {
             type="submit"
             className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground"
             size="lg"
-            disabled={(disableFormFields && !isEditMode) || form.formState.isSubmitting}
+            disabled={(disableFormFields && !isEditMode) || isSubmitting}
           >
-            {form.formState.isSubmitting ? (isEditMode ? 'Updating...' : 'Listing...') : (isEditMode ? 'Update Item' : 'List Item')}
+            {isSubmitting ? (isEditMode ? 'Updating...' : 'Listing...') : (isEditMode ? 'Update Item' : 'List Item')}
           </Button>
         </form>
       </Form>
