@@ -2,12 +2,12 @@
 'use client';
 
 import { mockItems, mockUser, mockConversations, mockMessages } from '@/lib/mock-data';
-import type { Item, Message, Conversation, User } from '@/lib/types';
+import type { Item, Message, Conversation, User as UserType } from '@/lib/types'; // Renamed User to UserType
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User as UserIcon, Star, CheckCircle, Flag, Clock, History, Gavel, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Tag, Hammer, ShoppingCart, User as UserIcon, Star, CheckCircle, Flag, Clock, History, Gavel, HelpCircle, ChevronLeft, ChevronRight, Truck, ShieldAlert } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -63,7 +63,7 @@ export default function ItemDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const [item, setItem] = useState<Item | null | undefined>(undefined); // undefined for loading state
+  const [item, setItem] = useState<Item | null | undefined>(undefined);
   const [isCurrentlyEnhanced, setIsCurrentlyEnhanced] = useState(false);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
   const [bidAmount, setBidAmount] = useState<string>('');
@@ -79,20 +79,19 @@ export default function ItemDetailPage() {
 
   const updateItemData = useCallback(() => {
     if (itemId) {
-      // Simulate fetching item data
       setTimeout(() => {
         const foundItem = mockItems.find(i => i.id === itemId);
-        setItem(foundItem || null); // null if not found, to trigger notFound
+        setItem(foundItem || null);
         if (foundItem) {
           setIsCurrentlyEnhanced(foundItem.isEnhanced || false);
           if (foundItem.type === 'auction' && foundItem.auctionEndTime) {
             setTimeLeft(calculateTimeLeft(foundItem.auctionEndTime));
           }
         }
-        setHasRatedItem(false); // Reset feedback state when item changes
-        setWinningNotificationSent(false); // Reset notification status when item changes/reloads
-        setCurrentImageIndex(0); // Reset image index when item changes
-      }, 0); 
+        setHasRatedItem(false);
+        setWinningNotificationSent(false);
+        setCurrentImageIndex(0);
+      }, 0);
     }
   }, [itemId]);
 
@@ -101,7 +100,6 @@ export default function ItemDetailPage() {
     updateItemData();
   }, [updateItemData]);
 
-  // Effect to determine feedback eligibility
   useEffect(() => {
     if (!item || !mockUser?.id) {
         setIsEligibleForFeedback(false);
@@ -110,28 +108,24 @@ export default function ItemDetailPage() {
 
     let eligible = false;
 
-    // Scenario 1: Logged-in user won the auction for this item
     if (item.type === 'auction' && timeLeft.total <= 0) {
-        const winningBid = item.bidHistory?.[0]; // Assumes bidHistory is sorted, latest first
+        const winningBid = item.bidHistory?.[0];
         if (winningBid?.userId === mockUser.id) {
             eligible = true;
         }
     }
 
-    // Scenario 2: Logged-in user had a buy request accepted for this item
     const relevantAcceptedConversation = mockConversations.find(conv =>
         conv.itemId === item.id &&
         conv.buyRequestStatus === 'accepted' &&
-        conv.participants.some(p => p.id === mockUser.id) && // current user is in the conversation
-        item.sellerName !== mockUser.name // current user is not the seller of the item
+        conv.participants.some(p => p.id === mockUser.id) &&
+        item.sellerName !== mockUser.name
     );
 
     if (relevantAcceptedConversation) {
         eligible = true;
     }
-
     setIsEligibleForFeedback(eligible);
-
   }, [item, timeLeft.total, mockUser?.id, mockUser?.name]);
 
 
@@ -142,14 +136,12 @@ export default function ItemDetailPage() {
       }, 1000);
       return () => clearInterval(timer);
     } else if (item?.type === 'auction' && item?.auctionEndTime && timeLeft.total <= 0 && !winningNotificationSent) {
-      // Auction ended, check for winner
       if (item.bidHistory && item.bidHistory.length > 0 && item.bidHistory[0].userId === mockUser.id) {
-        // Current user is the winner
         const winningMsgContent = `Congratulations! You won the auction for "${item.name}". Please go to your messages to finalize the purchase with ${item.sellerName}. You can send a buy request there.`;
         const systemMessage: Message = {
           id: `msg-win-${item.id}-${Date.now()}`,
-          fromUserId: 'system', 
-          toUserId: mockUser.id, 
+          fromUserId: 'system',
+          toUserId: mockUser.id,
           itemId: item.id,
           content: winningMsgContent,
           timestamp: new Date().toISOString(),
@@ -170,14 +162,14 @@ export default function ItemDetailPage() {
           mockConversations.sort((a,b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
         } else {
           const newConvId = `conv-win-${item.id}-${Date.now()}`;
-          let sellerParticipantDetails: Pick<User, 'id' | 'name' | 'avatarUrl'>;
-          if (item.sellerName === mockUser.name) { 
+          let sellerParticipantDetails: Pick<UserType, 'id' | 'name' | 'avatarUrl'>;
+          if (item.sellerName === mockUser.name) {
             sellerParticipantDetails = { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl || 'https://placehold.co/50x50.png' };
           } else {
-            sellerParticipantDetails = { 
-              id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`, 
-              name: item.sellerName, 
-              avatarUrl: `https://placehold.co/50x50.png?text=${item.sellerName.substring(0,2).toUpperCase()}` 
+            sellerParticipantDetails = {
+              id: `seller-${item.id}-${item.sellerName.replace(/\s+/g, '-')}`,
+              name: item.sellerName,
+              avatarUrl: `https://placehold.co/50x50.png?text=${item.sellerName.substring(0,2).toUpperCase()}`
             };
           }
           
@@ -191,18 +183,18 @@ export default function ItemDetailPage() {
               sellerParticipantDetails
             ],
             lastMessage: { content: systemMessage.content, timestamp: systemMessage.timestamp },
-            unreadCount: 1, 
+            unreadCount: 1,
             buyRequestStatus: 'none',
-            isItemSoldOrUnavailable: false, 
+            isItemSoldOrUnavailable: false,
           };
           mockConversations.unshift(conversation);
         }
         
         setWinningNotificationSent(true);
-        toast({ 
-            title: "Auction Won!", 
+        toast({
+            title: "Auction Won!",
             description: `You won the auction for ${item.name}. Check your messages to complete the purchase.`,
-            duration: 7000 
+            duration: 7000
         });
       }
     }
@@ -228,7 +220,7 @@ export default function ItemDetailPage() {
     }
     
     if (enhancementSuccessful) {
-      setItem({ ...mockItems[itemIndex] }); 
+      setItem({ ...mockItems[itemIndex] });
       setIsCurrentlyEnhanced(true);
       toast({
         title: 'Item Enhanced!',
@@ -259,7 +251,7 @@ export default function ItemDetailPage() {
       return;
     }
 
-    const minBid = (item.currentBid || item.price) + 0.01; 
+    const minBid = (item.currentBid || item.price) + 0.01;
     if (numericBidAmount < minBid) {
       toast({ title: 'Bid Too Low', description: `Your bid must be at least £${minBid.toFixed(2)}.`, variant: 'destructive' });
       return;
@@ -272,7 +264,7 @@ export default function ItemDetailPage() {
     if (!mockItems[itemIndex].bidHistory) {
       mockItems[itemIndex].bidHistory = [];
     }
-    mockItems[itemIndex].bidHistory!.unshift({ 
+    mockItems[itemIndex].bidHistory!.unshift({
       userId: mockUser.id,
       userName: mockUser.name,
       amount: numericBidAmount,
@@ -291,8 +283,6 @@ export default function ItemDetailPage() {
 
   const handleRatingSubmit = (rating: number) => {
     if (!item) return;
-    // This updates the current mockUser's rating data, as if they were the seller.
-    // In a real app, this would target the item.sellerName's user object.
     mockUser.sumOfRatings += rating;
     mockUser.totalRatings += 1;
     
@@ -318,7 +308,7 @@ export default function ItemDetailPage() {
   };
 
 
-  if (item === undefined) { 
+  if (item === undefined) {
     return (
       <div className="container mx-auto py-8">
         <Button variant="outline" onClick={() => router.back()} className="mb-6">
@@ -358,8 +348,8 @@ export default function ItemDetailPage() {
   const auctionIsActive = item.type === 'auction' && timeLeft.total > 0;
   const showFeedbackSection = isEligibleForFeedback && !hasRatedItem;
   
-  const displayImageUrl = item.imageUrl && item.imageUrl.length > 0 
-    ? item.imageUrl[currentImageIndex] 
+  const displayImageUrl = item.imageUrl && item.imageUrl.length > 0
+    ? item.imageUrl[currentImageIndex]
     : 'https://placehold.co/800x600.png';
   
   const showImageNavigation = item.imageUrl && item.imageUrl.length > 1;
@@ -380,10 +370,10 @@ export default function ItemDetailPage() {
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="md:rounded-l-lg object-cover"
-              priority 
+              priority
               data-ai-hint={`${item.category} product`}
             />
-             {item.isEnhanced && ( 
+             {item.isEnhanced && (
               <Badge variant="default" className="absolute top-2 right-2 bg-amber-400 text-amber-900 shadow-md z-10">
                 <Star className="mr-1.5 h-4 w-4" /> Enhanced Listing
               </Badge>
@@ -395,7 +385,7 @@ export default function ItemDetailPage() {
                   size="icon"
                   className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/30 hover:bg-black/50 text-white h-10 w-10 rounded-full"
                   onClick={handlePreviousImage}
-                  disabled={item.imageUrl.length <= 1} 
+                  disabled={item.imageUrl.length <= 1}
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -428,17 +418,17 @@ export default function ItemDetailPage() {
           </div>
           <div className="flex flex-col">
             <CardHeader className="pb-4">
-              <CardTitle className="text-3xl font-bold tracking-tight">{item.name}</CardTitle>
+              <CardTitle className="text-3xl font-bold tracking-tight text-card-foreground">{item.name}</CardTitle>
               <CardDescription className="text-sm text-muted-foreground flex items-center pt-1">
                 <UserIcon className="h-4 w-4 mr-1.5" /> Sold by: {item.sellerName}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 flex-grow">
-              <p className="text-base leading-relaxed">{item.description}</p>
+              <p className="text-base leading-relaxed text-card-foreground">{item.description}</p>
               
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
                 <div className="flex items-center text-card-foreground">
-                  {item.type === 'auction' ? (item.currentBid ? 'Current Bid:' : 'Starting Price:') : 'Price:'} 
+                  {item.type === 'auction' ? (item.currentBid ? 'Current Bid:' : 'Starting Price:') : 'Price:'}
                   <span className="font-semibold text-card-foreground ml-1">£{(item.currentBid || item.price).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center text-card-foreground">
@@ -453,11 +443,15 @@ export default function ItemDetailPage() {
                     <HelpCircle className="h-5 w-5 mr-2 text-primary" /> Condition: <span className="font-semibold text-card-foreground ml-1">{formatCondition(item.condition)}</span>
                   </div>
                 )}
+                <div className="flex items-center text-card-foreground">
+                  <Truck className="h-5 w-5 mr-2 text-primary" />
+                  {item.canDeliver ? 'Delivery Available' : 'Collection Only'}
+                </div>
               </div>
 
               {item.type === 'auction' && (
                 <div className="mt-4 p-4 border rounded-lg bg-secondary/30">
-                  <h3 className="text-lg font-semibold mb-2 flex items-center">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center text-card-foreground">
                     <Clock className="mr-2 h-5 w-5 text-primary" /> Auction Details
                   </h3>
                   {auctionIsActive && (
@@ -468,7 +462,7 @@ export default function ItemDetailPage() {
                       {timeLeft.seconds}s
                     </p>
                   )}
-                  { timeLeft.total <= 0 && ( 
+                  { timeLeft.total <= 0 && (
                     <p className="text-sm text-destructive font-medium">Auction Ended</p>
                   )}
                   {item.bidHistory && item.bidHistory.length > 0 && (
@@ -477,7 +471,7 @@ export default function ItemDetailPage() {
                         <History className="mr-1.5 h-3 w-3" /> Bid History (Recent First)
                       </h4>
                       <ul className="text-xs space-y-0.5 max-h-24 overflow-y-auto">
-                        {item.bidHistory.slice(0, 5).map((bid, index) => ( 
+                        {item.bidHistory.slice(0, 5).map((bid, index) => (
                           <li key={index} className="text-muted-foreground">
                             £{bid.amount.toFixed(2)} by {bid.userName === mockUser.name ? <b>You</b> : bid.userName} ({formatDistanceToNowStrict(new Date(bid.timestamp), { addSuffix: true })})
                           </li>
@@ -490,9 +484,9 @@ export default function ItemDetailPage() {
 
             </CardContent>
             <CardFooter className="border-t p-6 print:hidden flex-col items-start space-y-4">
-              <Button 
-                size="lg" 
-                className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground" 
+              <Button
+                size="lg"
+                className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground"
                 onClick={() => router.push(`/messages?itemId=${item.id}&sellerName=${encodeURIComponent(item.sellerName)}`)}
               >
                 <MessageSquare className="mr-2 h-5 w-5" /> Contact Seller
@@ -509,7 +503,7 @@ export default function ItemDetailPage() {
                     <DialogHeader>
                       <DialogTitle>Place Your Bid on {item.name}</DialogTitle>
                       <DialogDescription>
-                        Current bid is £{(item.currentBid || item.price).toFixed(2)}. 
+                        Current bid is £{(item.currentBid || item.price).toFixed(2)}.
                         Enter an amount greater than this.
                       </DialogDescription>
                     </DialogHeader>
@@ -537,13 +531,13 @@ export default function ItemDetailPage() {
                 </Dialog>
               )}
 
-              {!isCurrentlyEnhanced && item.sellerName === mockUser.name && ( 
-                <Button 
-                  size="lg" 
+              {!isCurrentlyEnhanced && item.sellerName === mockUser.name && (
+                <Button
+                  size="lg"
                   variant="outline"
-                  className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700" 
+                  className="w-full md:w-auto border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
                   onClick={handleEnhanceItem}
-                  disabled={item.type === 'auction' && timeLeft.total <= 0} 
+                  disabled={(item.type === 'auction' && timeLeft.total <= 0)}
                 >
                   <Star className="mr-2 h-5 w-5" /> {getEnhancementButtonText()}
                 </Button>
@@ -564,7 +558,7 @@ export default function ItemDetailPage() {
 
               {showFeedbackSection && (
                 <div className="w-full pt-4 mt-4 border-t">
-                  <h3 className="text-lg font-semibold mb-3">Rate your transaction with {item.sellerName}</h3>
+                  <h3 className="text-lg font-semibold mb-3 text-card-foreground">Rate your transaction with {item.sellerName}</h3>
                   <div className="flex items-center justify-center space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -587,9 +581,9 @@ export default function ItemDetailPage() {
                   </div>
                 </div>
               )}
-              {hasRatedItem && isEligibleForFeedback && ( 
+              {hasRatedItem && isEligibleForFeedback && (
                  <div className="w-full pt-4 mt-4 border-t">
-                    <h3 className="text-lg font-semibold mb-3">Feedback for {item.sellerName}</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-card-foreground">Feedback for {item.sellerName}</h3>
                     <div className="p-3 rounded-md bg-green-50 border border-green-200 text-green-700">
                       Thank you, your rating has been submitted!
                     </div>

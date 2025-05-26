@@ -3,9 +3,9 @@ import type { Item, User, Message, Conversation } from './types';
 
 export const mockUser: User = {
   id: 'user123',
-  name: '', // Will be set during profile creation
-  email: '', // Will be set during profile creation
-  password: '', // Will be set during profile creation
+  name: '',
+  email: '',
+  password: '',
   location: 'Barrow Market Hall, Duke Street',
   bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
   isProfilePrivate: false,
@@ -15,10 +15,10 @@ export const mockUser: User = {
   enhancedListingsRemaining: 0,
   totalRatings: 0,
   sumOfRatings: 0,
-  isAdmin: false, // Default to not admin
+  isAdmin: false,
 };
 
-export let allMockUsers: User[] = [{ ...mockUser }]; // Initialize with the main mockUser
+export let allMockUsers: User[] = [{ ...mockUser }];
 export let bannedEmails: string[] = [];
 
 const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -38,12 +38,13 @@ export let mockItems: Item[] = [
     category: 'Apparel',
     condition: 'good',
     isEnhanced: true,
+    canDeliver: true,
   },
   {
     id: '2',
     name: 'Antique Wooden Chair',
     description: 'Beautifully carved antique wooden chair. A true collector\'s item. Auction ends soon!',
-    price: 85, // Starting price
+    price: 85,
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Alice Collector',
@@ -56,7 +57,8 @@ export let mockItems: Item[] = [
     bidHistory: [
       { userId: 'user456', userName: 'Bidder Bob', amount: 90, timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
       { userId: 'user789', userName: 'Auction Alex', amount: 95, timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
-    ]
+    ],
+    canDeliver: false,
   },
   {
     id: '3',
@@ -70,6 +72,7 @@ export let mockItems: Item[] = [
     category: 'Home Decor',
     condition: 'new',
     isEnhanced: false,
+    canDeliver: true,
   },
   {
     id: '4',
@@ -83,12 +86,13 @@ export let mockItems: Item[] = [
     category: 'Electronics',
     condition: 'like_new',
     isEnhanced: false,
+    canDeliver: false,
   },
   {
     id: '5',
     name: 'Mountain Bike - Auction',
     description: 'Used mountain bike, good condition, recently serviced. Size L. Auction running for a few days.',
-    price: 200, // Starting price
+    price: 200,
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Outdoor Dave',
@@ -100,7 +104,8 @@ export let mockItems: Item[] = [
     currentBid: 220,
     bidHistory: [
        { userId: 'user101', userName: 'Cyclist Chris', amount: 220, timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString() },
-    ]
+    ],
+    canDeliver: false,
   },
   {
     id: '6',
@@ -114,6 +119,7 @@ export let mockItems: Item[] = [
     category: 'Books',
     condition: 'like_new',
     isEnhanced: false,
+    canDeliver: true,
   },
   {
     id: '7',
@@ -127,12 +133,13 @@ export let mockItems: Item[] = [
     category: 'Vehicles',
     condition: 'good',
     isEnhanced: false,
+    canDeliver: false,
   },
   {
     id: '8',
     name: 'Classic Motorbike Project - Ended Auction',
     description: 'Vintage motorbike, needs some TLC. Great project for an enthusiast. Sold as seen.',
-    price: 1200, // Starting price
+    price: 1200,
     type: 'auction',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Mechanic Mike',
@@ -140,12 +147,13 @@ export let mockItems: Item[] = [
     category: 'Vehicles',
     condition: 'not_working',
     isEnhanced: false,
-    auctionEndTime: oneDayAgo, // Auction ended
+    auctionEndTime: oneDayAgo,
     currentBid: 1350,
     bidHistory: [
       { userId: 'user202', userName: 'BikeLover', amount: 1300, timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
       { userId: 'user303', userName: 'FixItFelix', amount: 1350, timestamp: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString() },
-    ]
+    ],
+    canDeliver: false,
   },
   {
     id: '9',
@@ -159,6 +167,7 @@ export let mockItems: Item[] = [
     category: 'Vehicles',
     condition: 'like_new',
     isEnhanced: false,
+    canDeliver: true,
   },
   {
     id: '10',
@@ -172,6 +181,7 @@ export let mockItems: Item[] = [
     category: 'Garden & Outdoors',
     condition: 'like_new',
     isEnhanced: false,
+    canDeliver: false,
   },
   {
     id: '11',
@@ -185,7 +195,8 @@ export let mockItems: Item[] = [
     category: 'Music & Instruments',
     condition: 'good',
     isEnhanced: false,
-    auctionEndTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+    auctionEndTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    canDeliver: true,
   },
   {
     id: '12',
@@ -199,6 +210,7 @@ export let mockItems: Item[] = [
     category: 'Jewellery & Accessories',
     condition: 'new',
     isEnhanced: false,
+    canDeliver: true,
   },
   {
     id: '13',
@@ -207,11 +219,12 @@ export let mockItems: Item[] = [
     price: 50,
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Gamer Tom', // Re-using Gamer Tom
+    sellerName: 'Gamer Tom',
     sellerEmail: 'gamer.tom@example.com',
     category: 'Toys & Games',
     condition: 'like_new',
     isEnhanced: false,
+    canDeliver: false,
   },
   {
     id: '14',
@@ -225,6 +238,7 @@ export let mockItems: Item[] = [
     category: 'Art & Crafts',
     condition: 'new',
     isEnhanced: false,
+    canDeliver: true,
   },
    {
     id: '15',
@@ -238,6 +252,7 @@ export let mockItems: Item[] = [
     category: 'Health & Beauty',
     condition: 'new',
     isEnhanced: true,
+    canDeliver: true,
   },
   {
     id: '16',
@@ -251,19 +266,20 @@ export let mockItems: Item[] = [
     category: 'Pet Supplies',
     condition: 'good',
     isEnhanced: false,
+    canDeliver: false,
   },
   {
     id: '17',
     name: 'Modern 2-Bed Apartment for Rent',
     description: 'Spacious 2-bedroom apartment in the city center. Fully furnished, available immediately. £1200/month.',
-    price: 1200, // Price per month for rent
-    type: 'sale', // 'sale' type can represent rentals too for simplicity in this mock
+    price: 1200,
+    type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
     sellerName: 'Landlord Larry',
     sellerEmail: 'larry.landlord@example.com',
     category: 'Property for Rent',
-    // Condition not applicable
     isEnhanced: true,
+    canDeliver: false, // Typically not applicable
   },
   {
     id: '18',
@@ -275,8 +291,8 @@ export let mockItems: Item[] = [
     sellerName: 'Realty Rosie',
     sellerEmail: 'rosie.realty@example.com',
     category: 'Property for Sale',
-    // Condition not applicable
     isEnhanced: false,
+    canDeliver: false, // Typically not applicable
   },
   {
     id: '19',
@@ -285,11 +301,11 @@ export let mockItems: Item[] = [
     price: 800,
     type: 'sale',
     imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Landlord Larry', // Re-using Landlord Larry
+    sellerName: 'Landlord Larry',
     sellerEmail: 'larry.landlord@example.com',
     category: 'Property for Rent',
-    // Condition not applicable
     isEnhanced: false,
+    canDeliver: false, // Typically not applicable
   }
 ];
 
@@ -336,7 +352,7 @@ export const mockConversations: Conversation[] = [
     itemName: 'Retro Gaming Console',
     itemImageUrl: (mockItems.find(item => item.id === '4')?.imageUrl[0] || 'https://placehold.co/100x100.png'),
     participants: [
-      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl }, // Assuming mockUser is the buyer
+      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
       { id: 'seller-GamerTom', name: 'Gamer Tom', avatarUrl: 'https://placehold.co/50x50.png?text=GT' }
     ],
     lastMessage: { content: 'Interested in the console.', timestamp: new Date().toISOString() },
@@ -346,7 +362,6 @@ export const mockConversations: Conversation[] = [
   }
 ];
 
-// Function to remove an item from mockItems array by ID
 export const removeItemFromMockItems = (itemId: string) => {
   const itemIndex = mockItems.findIndex(item => item.id === itemId);
   if (itemIndex > -1) {

@@ -5,15 +5,16 @@ export interface Item {
   description: string;
   price: number; // For 'sale' type, this is the price. For 'auction', this is the starting price.
   type: 'sale' | 'auction';
-  imageUrl: string[]; // Changed from string to string[]
+  imageUrl: string[];
   sellerName: string;
-  sellerEmail?: string; // Added seller's email
+  sellerEmail?: string;
   category: string;
-  condition?: 'new' | 'like_new' | 'good' | 'not_working'; // Added item condition
+  condition?: 'new' | 'like_new' | 'good' | 'not_working';
   isEnhanced?: boolean;
   auctionEndTime?: string; // ISO date string, only for auction type
   currentBid?: number; // Only for auction type
-  bidHistory?: { userId: string; userName: string; amount: number; timestamp: string }[]; // Only for auction type
+  bidHistory?: { userId: string; userName: string; amount: number; timestamp: string }[];
+  canDeliver?: boolean; // Added for delivery option
 }
 
 export interface User {
@@ -30,7 +31,7 @@ export interface User {
   enhancedListingsRemaining?: number;
   totalRatings: number;
   sumOfRatings: number;
-  isAdmin?: boolean; // Added for admin role
+  isAdmin?: boolean;
 }
 
 export interface Message {
@@ -41,18 +42,18 @@ export interface Message {
   content: string;
   timestamp: string; // ISO string for simplicity
   isRead: boolean;
-  isSystemMessage?: boolean; // Added for buy request system messages
+  isSystemMessage?: boolean;
 }
 
 export interface Conversation {
   id: string;
   itemId: string;
   itemName: string;
-  itemImageUrl: string; // Will be the first image from Item.imageUrl
+  itemImageUrl: string;
   participants: Pick<User, 'id' | 'name' | 'avatarUrl'>[];
   lastMessage: Pick<Message, 'content' | 'timestamp'>;
   unreadCount: number;
   buyRequestStatus: 'none' | 'pending_seller_response' | 'accepted' | 'declined';
   itemPriceAtRequest?: number;
-  isItemSoldOrUnavailable?: boolean; // To track if item sold via this or other means
+  isItemSoldOrUnavailable?: boolean;
 }
