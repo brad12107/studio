@@ -75,7 +75,6 @@ const fileToDataUri = (file: File): Promise<string> => {
   });
 };
 
-// Helper variable for Zod schema refinement context
 let isEditModeRef = false;
 
 const listItemSchema = z.object({
@@ -92,8 +91,8 @@ const listItemSchema = z.object({
     .optional()
     .refine(
       (files) => {
-        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; 
-        if (files.length === 0 && !isEditModeRef) return false; 
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true;
+        if (files.length === 0 && !isEditModeRef) return false;
         return true;
       },
       { message: 'Please select at least one image for a new listing.' }
@@ -167,12 +166,24 @@ export function ListItemForm() {
   const [displayedImagePreviews, setDisplayedImagePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+
+  const form = useForm<ListItemFormValues>({
+    resolver: zodResolver(listItemSchema),
+    defaultValues: initialFormValues,
+  });
+
+  const watchedImageFiles = form.watch('imageFiles');
+  const watchedItemType = form.watch('type');
+  const watchedCategory = form.watch('category');
+  const showConditionField = !['Property for Sale', 'Property for Rent'].includes(watchedCategory);
+
+
   useEffect(() => {
     const mode = searchParams.get('mode');
     const itemId = searchParams.get('itemId');
     const currentIsEditMode = mode === 'edit';
     setIsEditMode(currentIsEditMode);
-    isEditModeRef = currentIsEditMode; // Update global ref for Zod schema
+    isEditModeRef = currentIsEditMode; 
 
     if (currentIsEditMode && itemId) {
       setCurrentItemId(itemId);
@@ -193,7 +204,7 @@ export function ListItemForm() {
           itemCondition: itemToEdit.condition,
           canDeliver: itemToEdit.canDeliver || false,
           isEnhanced: itemToEdit.isEnhanced || false,
-          imageFiles: undefined, // Reset file input
+          imageFiles: undefined, 
         });
         setDisplayedImagePreviews(itemToEdit.imageUrl || []);
       } else {
@@ -207,13 +218,7 @@ export function ListItemForm() {
       setDisplayedImagePreviews([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, router, toast]); // form is not added to avoid re-triggering reset on every form state change
-
-
-  const watchedImageFiles = form.watch('imageFiles');
-  const watchedItemType = form.watch('type');
-  const watchedCategory = form.watch('category');
-  const showConditionField = !['Property for Sale', 'Property for Rent'].includes(watchedCategory);
+  }, [searchParams, router, toast]); 
 
 
   useEffect(() => {
@@ -236,10 +241,6 @@ export function ListItemForm() {
     }
   }, [watchedImageFiles, isEditMode, currentItemBeingEdited]);
 
-  const form = useForm<ListItemFormValues>({
-    resolver: zodResolver(listItemSchema),
-    defaultValues: initialFormValues,
-  });
 
   const handleRemoveImage = (index: number) => {
     const currentFiles = form.getValues('imageFiles');
@@ -251,21 +252,13 @@ export function ListItemForm() {
       newFilesArray.forEach(file => dataTransfer.items.add(file));
       form.setValue('imageFiles', dataTransfer.files, { shouldValidate: true });
       
-      // Update previews directly from the newFilesArray
       const filePromises = newFilesArray.map(fileToDataUri);
       Promise.all(filePromises).then(setDisplayedImagePreviews);
 
     } else if (isEditMode && currentItemBeingEdited) {
-        // If we want to allow removing existing images in edit mode without uploading new ones,
-        // we'd need to manage `displayedImagePreviews` and `currentItemBeingEdited.imageUrl` more carefully.
-        // For now, if new files are not being managed, this branch won't do much to persisted URLs.
-        // This part of the logic might need further refinement if "removing existing Firebase URLs" is a requirement.
         const updatedPreviews = [...displayedImagePreviews];
         updatedPreviews.splice(index,1);
         setDisplayedImagePreviews(updatedPreviews);
-        // To actually remove from Firebase, we'd need to update currentItemBeingEdited.imageUrl here and then
-        // in onSubmit, if no new imageFiles are provided, use this modified currentItemBeingEdited.imageUrl.
-        // This adds complexity, so for now, we rely on uploading a new set to replace.
         toast({title: "Info", description: "To fully remove existing images, save the listing after removing them here or upload new images to replace them."});
     }
   };
@@ -306,23 +299,22 @@ export function ListItemForm() {
         finalImageUrls = await Promise.all(
           Array.from(data.imageFiles).map(async (file, index) => {
             const itemIdForPath = currentItemId || `item-temp-${Date.now()}`;
-            const sanitizedFileName = file.name.replace(/\s+/g, '_'); // Sanitize filename
+            const sanitizedFileName = file.name.replace(/\s+/g, '_');
             const fileName = `item-${itemIdForPath}-image-${index}-${sanitizedFileName}`;
             const imageRef = storageRef(storage, `items/${itemIdForPath}/${fileName}`);
             const snapshot = await uploadBytes(imageRef, file);
             return getDownloadURL(snapshot.ref);
           })
         );
-        uploadToast.dismiss(); // Dismiss loading toast
+        uploadToast.dismiss();
       } catch (error) {
         console.error("Error uploading images to Firebase Storage:", error);
         let errorMessage = 'Could not upload one or more images. Please try again.';
-        // Check for specific Firebase error codes if possible
         if (error && typeof error === 'object' && 'code' in error) {
             const firebaseError = error as { code: string; message: string };
             if (firebaseError.code === 'storage/unauthorized') {
                 errorMessage = 'Image upload failed: Unauthorized. Please check Firebase Storage rules.';
-            } else if (firebaseError.code === 'storage/object-not-found') { // Or other relevant codes
+            } else if (firebaseError.code === 'storage/object-not-found') { 
                 errorMessage = 'Image upload failed: Storage object not found. This might indicate an issue with the storage path.';
             }
         }
@@ -334,7 +326,6 @@ export function ListItemForm() {
       finalImageUrls = currentItemBeingEdited.imageUrl;
     }
     
-    // Final check: ensure there's at least one image if creating, or if editing and original had none.
     if (finalImageUrls.length === 0) {
         if (!isEditMode || (isEditMode && (!currentItemBeingEdited?.imageUrl || currentItemBeingEdited.imageUrl.length === 0))) {
             toast({ title: 'Missing Images', description: 'Listings must have at least one image. Please upload an image.', variant: 'destructive' });
@@ -369,7 +360,7 @@ export function ListItemForm() {
         mockItems[itemIndex] = {
           ...mockItems[itemIndex],
           ...itemBaseData,
-          currentBid: data.type === 'auction' ? mockItems[itemIndex].currentBid : undefined, // Preserve bid history on edit if type is still auction
+          currentBid: data.type === 'auction' ? mockItems[itemIndex].currentBid : undefined, 
           bidHistory: data.type === 'auction' ? mockItems[itemIndex].bidHistory : undefined,
         };
         toast({ title: 'Item Updated!', description: `${data.name} has been successfully updated.` });
@@ -421,9 +412,9 @@ export function ListItemForm() {
 
     form.reset(initialFormValues);
     if(imageFilesInputRef.current) {
-        imageFilesInputRef.current.value = ""; // Clear file input
+        imageFilesInputRef.current.value = ""; 
     }
-    setDisplayedImagePreviews([]); // Clear previews
+    setDisplayedImagePreviews([]); 
     setIsSubmitting(false);
     router.push('/my-listings');
   }
@@ -660,7 +651,7 @@ export function ListItemForm() {
           <FormField
             control={form.control}
             name="imageFiles"
-            render={({ field: { onChange, value, ...rest } }) => ( // value is not directly used on Input type="file"
+            render={({ field: { onChange, value, ...rest } }) => ( 
               <FormItem>
                 <FormLabel className="flex items-center">
                   <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Images (1-{MAX_IMAGES})
@@ -670,7 +661,7 @@ export function ListItemForm() {
                     type="file"
                     accept={ACCEPTED_IMAGE_TYPES.join(',')}
                     multiple
-                    onChange={(e) => onChange(e.target.files)} // Pass FileList to RHF
+                    onChange={(e) => onChange(e.target.files)} 
                     {...rest}
                     ref={imageFilesInputRef}
                     disabled={(disableFormFields && !isEditMode) || isSubmitting}
