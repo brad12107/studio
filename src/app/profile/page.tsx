@@ -189,7 +189,6 @@ export default function ProfilePage() {
       ...mockUser,
       totalRatings: mockUser.totalRatings || 0,
       sumOfRatings: mockUser.sumOfRatings || 0,
-      // Removed thumbsUp/Down as they are replaced by star rating
     });
   }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl, mockUser.isAdmin]);
 
@@ -340,13 +339,12 @@ export default function ProfilePage() {
       if (userIndex > -1) {
         allMockUsers[userIndex] = { ...mockUser };
       } else {
-        // This case should ideally not happen if mockUser is the source of truth for edits
         allMockUsers.push({ ...mockUser });
       }
     }
 
 
-    setUserData({ ...mockUser }); // Update local state which triggers re-render
+    setUserData({ ...mockUser }); 
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -367,7 +365,7 @@ export default function ProfilePage() {
   }
 
   const averageRating = userData.totalRatings > 0 ? userData.sumOfRatings / userData.totalRatings : 0;
-  const showBlurredFields = watchedIsProfilePrivate && !(userData.isAdmin || false); // Blur if private AND current user is NOT admin
+  const showBlurredFields = watchedIsProfilePrivate && !(userData.isAdmin || false); 
 
   return (
     <div className="container mx-auto py-8">
@@ -426,7 +424,7 @@ export default function ProfilePage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel className="text-foreground">Full Name</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Your full name" 
@@ -444,7 +442,7 @@ export default function ProfilePage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel className="text-foreground">Email Address</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
@@ -472,7 +470,7 @@ export default function ProfilePage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-foreground">Password</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
@@ -485,7 +483,7 @@ export default function ProfilePage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel className="text-foreground">Confirm Password</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
@@ -496,14 +494,14 @@ export default function ProfilePage() {
                 </>
               )}
               
-              {!isCreateMode && ( // Password change fields for edit mode
+              {!isCreateMode && ( 
                 <>
                   <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>New Password (optional)</FormLabel>
+                        <FormLabel className="text-foreground">New Password (optional)</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
@@ -517,7 +515,7 @@ export default function ProfilePage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormLabel className="text-foreground">Confirm New Password</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
                         </FormControl>
@@ -534,7 +532,7 @@ export default function ProfilePage() {
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Delivery/Pick Up Location</FormLabel>
+                    <FormLabel className="text-foreground">Delivery/Pick Up Location</FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="e.g., Your City, Postcode, or specific address" 
@@ -559,7 +557,7 @@ export default function ProfilePage() {
                 name="bio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bio</FormLabel>
+                    <FormLabel className="text-foreground">Bio</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Tell us a little about yourself..."
@@ -580,7 +578,7 @@ export default function ProfilePage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">Keep Profile Private</FormLabel>
+                      <FormLabel className="text-base text-foreground">Keep Profile Private</FormLabel>
                       <FormDescription>
                        When enabled, your email address and delivery/pick-up location will be hidden from other regular users on your public profile. Administrators may still see this information. Your name, avatar, and bio will remain visible. On this page, if private and you are not an admin, these fields will appear blurred and be read-only.
                       </FormDescription>
@@ -603,7 +601,7 @@ export default function ProfilePage() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base flex items-center">
+                          <FormLabel className="text-base flex items-center text-foreground">
                             <ShieldCheck className="mr-2 h-5 w-5 text-primary" /> Create as Admin Account?
                           </FormLabel>
                           <FormDescription>
@@ -625,7 +623,7 @@ export default function ProfilePage() {
                       name="adminKey"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Admin Key</FormLabel>
+                          <FormLabel className="text-foreground">Admin Key</FormLabel>
                           <FormControl>
                             <Input
                               type="password"
@@ -653,7 +651,7 @@ export default function ProfilePage() {
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel htmlFor="termsAndConditionsCheckbox">
+                          <FormLabel htmlFor="termsAndConditionsCheckbox" className="text-foreground">
                             I have read and agree to the{' '}
                             <Link href="/terms-and-conditions" className="underline hover:text-primary" target="_blank">
                               Terms and Conditions
@@ -680,7 +678,7 @@ export default function ProfilePage() {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel htmlFor="codeOfConductCheckbox">
+                      <FormLabel htmlFor="codeOfConductCheckbox" className="text-foreground">
                         I agree to the Barrow Market Place Code of Conduct.
                       </FormLabel>
                       <FormDescription>
@@ -712,3 +710,5 @@ export default function ProfilePage() {
     
 
       
+
+    
