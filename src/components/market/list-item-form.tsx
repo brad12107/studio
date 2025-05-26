@@ -28,7 +28,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { addDays } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { storage } from '@/lib/firebase';
+import { storage } from '@/lib/firebase'; // Ensure storage is imported
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const MAX_FREE_ITEMS = 3;
@@ -91,8 +91,8 @@ const listItemSchema = z.object({
     .optional()
     .refine(
       (files) => {
-        if (typeof FileList === 'undefined' || files === undefined || files === null) return true; 
-        if (files.length === 0 && !isEditModeRef) return false; 
+        if (typeof FileList === 'undefined' || files === undefined || files === null) return true;
+        if (files.length === 0 && !isEditModeRef) return false;
         return true;
       },
       { message: 'Please select at least one image for a new listing.' }
@@ -170,7 +170,7 @@ export function ListItemForm() {
     resolver: zodResolver(listItemSchema),
     defaultValues: initialFormValues,
   });
-  
+
   const watchedImageFiles = form.watch('imageFiles');
   const watchedItemType = form.watch('type');
   const watchedCategory = form.watch('category');
@@ -182,7 +182,7 @@ export function ListItemForm() {
     const itemId = searchParams.get('itemId');
     const currentIsEditMode = mode === 'edit';
     setIsEditMode(currentIsEditMode);
-    isEditModeRef = currentIsEditMode; 
+    isEditModeRef = currentIsEditMode;
 
     if (currentIsEditMode && itemId) {
       setCurrentItemId(itemId);
@@ -203,7 +203,7 @@ export function ListItemForm() {
           itemCondition: itemToEdit.condition,
           canDeliver: itemToEdit.canDeliver || false,
           isEnhanced: itemToEdit.isEnhanced || false,
-          imageFiles: undefined, 
+          imageFiles: undefined,
         });
         setDisplayedImagePreviews(itemToEdit.imageUrl || []);
       } else {
@@ -217,7 +217,7 @@ export function ListItemForm() {
       setDisplayedImagePreviews([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, router, toast]); 
+  }, [searchParams, router, toast]);
 
 
   useEffect(() => {
@@ -250,7 +250,7 @@ export function ListItemForm() {
       const dataTransfer = new DataTransfer();
       newFilesArray.forEach(file => dataTransfer.items.add(file));
       form.setValue('imageFiles', dataTransfer.files, { shouldValidate: true });
-      
+
       const filePromises = newFilesArray.map(fileToDataUri);
       Promise.all(filePromises).then(setDisplayedImagePreviews);
 
@@ -258,11 +258,6 @@ export function ListItemForm() {
         const updatedPreviews = [...displayedImagePreviews];
         updatedPreviews.splice(index,1);
         setDisplayedImagePreviews(updatedPreviews);
-        // For edit mode, if new files are not selected after removing a preview, the original images will be kept upon save unless user explicitly uploads new ones.
-        // To truly remove, they'd need to save after clearing the previews (which is not directly tied to 'imageFiles' field here for existing images).
-        // Or upload an empty FileList which is not standard.
-        // Better to instruct: To remove existing images, upload a new set, or save. If no new files are uploaded, existing are kept.
-        // This logic is handled in onSubmit where if imageFiles is empty, existing imageUrls are retained for edit mode.
     }
   };
 
@@ -299,48 +294,69 @@ export function ListItemForm() {
     let uploadToastControls: { id: string; dismiss: () => void; update: (props: any) => void; } | null = null;
 
     if (data.imageFiles && data.imageFiles.length > 0) {
+      if (!storage) {
+        console.error("Firebase Storage is not configured. Cannot upload images.");
+        toast({
+          title: 'Image Upload Error',
+          description: 'Image storage service is not configured. Please contact support or try again later.',
+          variant: 'destructive',
+          duration: 7000
+        });
+        setIsSubmitting(false);
+        return;
+      }
       console.log("[ListItemForm] Attempting to upload images:", data.imageFiles.length, "file(s)");
       uploadToastControls = toast({ title: 'Uploading Images...', description: 'Please wait while your images are being uploaded.', duration: 999999 });
       try {
-        const uploadedUrls = await Promise.all(
-          Array.from(data.imageFiles).map(async (file, index) => {
-            const itemIdForPath = currentItemId || `item-temp-${Date.now() + index}`; // Unique temp ID per file
-            const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_'); // Robust sanitization
-            const fileName = `item-${itemIdForPath}-image-${index}-${sanitizedFileName}`;
-            const imageRef = storageRef(storage, `items/${itemIdForPath}/${fileName}`);
-            
-            console.log(`[ListItemForm] Uploading file: ${file.name} to path: items/${itemIdForPath}/${fileName}`);
-            
-            const snapshot = await uploadBytes(imageRef, file);
-            console.log(`[ListItemForm] File ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
-            
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            console.log(`[ListItemForm] Got download URL for ${file.name}: ${downloadURL}`);
-            
-            return downloadURL;
-          })
-        );
-        finalImageUrls = uploadedUrls.filter(url => typeof url === 'string'); // Ensure all are strings
-        console.log("[ListItemForm] All images processed. Resulting URLs:", finalImageUrls);
+        const uploadedUrlsPromises = Array.from(data.imageFiles).map(async (file, index) => {
+          const itemIdForPath = currentItemId || `item-temp-${Date.now() + index}`;
+          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
+          const fileName = `item-${itemIdForPath}-image-${index}-${sanitizedFileName}`;
+          const imageRef = storageRef(storage, `items/${itemIdForPath}/${fileName}`);
+
+          console.log(`[ListItemForm] Uploading file: ${file.name} to path: items/${itemIdForPath}/${fileName}`);
+
+          const snapshot = await uploadBytes(imageRef, file);
+          console.log(`[ListItemForm] File ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
+
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          console.log(`[ListItemForm] Got download URL for ${file.name}: ${downloadURL}`);
+
+          return downloadURL;
+        });
+
+        const results = await Promise.allSettled(uploadedUrlsPromises);
+        finalImageUrls = results
+          .filter(result => result.status === 'fulfilled')
+          .map(result => (result as PromiseFulfilledResult<string>).value);
+
+        const failedUploads = results.filter(result => result.status === 'rejected');
+        if (failedUploads.length > 0) {
+          console.error(`[ListItemForm] ${failedUploads.length} image(s) failed to upload. Errors:`, failedUploads);
+        }
+
+        console.log("[ListItemForm] Images processed. Successfully uploaded URLs:", finalImageUrls);
 
         if (uploadToastControls) {
           if (finalImageUrls.length === Array.from(data.imageFiles).length) {
             uploadToastControls.update({ title: "Images Uploaded!", description: `${finalImageUrls.length} image(s) successfully uploaded.`, duration: 3000 });
           } else if (finalImageUrls.length > 0) {
-            uploadToastControls.update({ title: "Partial Upload", description: `${finalImageUrls.length}/${data.imageFiles.length} image(s) uploaded. Some may have failed.`, variant: "destructive", duration: 5000 });
+            uploadToastControls.update({ title: "Partial Upload", description: `${finalImageUrls.length}/${data.imageFiles.length} image(s) uploaded. Some may have failed.`, variant: "default", duration: 5000 });
+          } else if (failedUploads.length > 0 && finalImageUrls.length === 0) {
+            uploadToastControls.update({ title: "Upload Failed", description: "No images were successfully uploaded. Please check console for errors.", variant: "destructive", duration: 7000 });
           } else {
-            uploadToastControls.update({ title: "Upload Failed", description: "No images were successfully uploaded. Please check console for errors.", variant: "destructive", duration: 5000 });
+             uploadToastControls.dismiss(); // Should not happen if data.imageFiles.length > 0 initially
           }
         }
       } catch (error) {
-        console.error("[ListItemForm] Error during image upload Promise.all:", error);
+        console.error("[ListItemForm] Critical error during image upload Promise.all or related logic:", error);
         let errorMessage = 'Could not upload one or more images. Please try again.';
         if (error && typeof error === 'object' && 'code' in error) {
             const firebaseError = error as { code: string; message: string };
             if (firebaseError.code === 'storage/unauthorized') {
                 errorMessage = 'Image upload failed: Unauthorized. Please check your Firebase Storage security rules to allow writes.';
-            } else if (firebaseError.code === 'storage/object-not-found') { 
-                errorMessage = 'Image upload failed: Storage object/path not found. This might indicate an issue with the storage path or rules.';
+            } else if (firebaseError.code === 'storage/object-not-found' || firebaseError.code === 'storage/bucket-not-found') {
+                errorMessage = 'Image upload failed: Storage path or bucket not found. Ensure Firebase Storage is set up correctly.';
             } else {
                 errorMessage = `Image upload error: ${firebaseError.message} (Code: ${firebaseError.code})`;
             }
@@ -354,13 +370,13 @@ export function ListItemForm() {
       finalImageUrls = currentItemBeingEdited.imageUrl;
       console.log("[ListItemForm] Using existing images for edited item:", finalImageUrls);
     }
-    
-    // If after attempting uploads, finalImageUrls is still empty for a new listing, it's an error.
+
+
     if (finalImageUrls.length === 0 && !isEditMode) {
         console.log("[ListItemForm] No images available for new listing after processing. Aborting.");
-        toast({ title: 'Missing Images', description: 'Listings must have at least one image. Please ensure images were uploaded successfully.', variant: 'destructive' });
+        toast({ title: 'Missing Images', description: 'Listings must have at least one image. Please ensure images were uploaded successfully or select files.', variant: 'destructive' });
         form.setError("imageFiles", { type: "manual", message: "Please upload at least one image." });
-        if (uploadToastControls && !isEditMode) uploadToastControls.dismiss(); // Dismiss if it was for an upload attempt
+        if (uploadToastControls && !isEditMode) uploadToastControls.dismiss();
         setIsSubmitting(false);
         return;
     }
@@ -377,7 +393,7 @@ export function ListItemForm() {
       description: data.description,
       price: data.price,
       type: data.type,
-      imageUrl: finalImageUrls, // Use the processed finalImageUrls
+      imageUrl: finalImageUrls,
       category: data.category,
       condition: showConditionField ? data.itemCondition : undefined,
       canDeliver: data.canDeliver,
@@ -393,7 +409,7 @@ export function ListItemForm() {
         mockItems[itemIndex] = {
           ...mockItems[itemIndex],
           ...itemBaseData,
-          currentBid: data.type === 'auction' ? mockItems[itemIndex].currentBid : undefined, 
+          currentBid: data.type === 'auction' ? mockItems[itemIndex].currentBid : undefined,
           bidHistory: data.type === 'auction' ? mockItems[itemIndex].bidHistory : undefined,
         };
         toast({ title: 'Item Updated!', description: `${data.name} has been successfully updated.` });
@@ -406,7 +422,7 @@ export function ListItemForm() {
     } else {
       console.log("[ListItemForm] Creating new item.");
       const newItem: Item = {
-        id: `item-${Date.now()}`, // Ensure unique ID
+        id: `item-${Date.now()}`,
         sellerName: mockUser.name,
         sellerEmail: mockUser.email,
         ...itemBaseData,
@@ -449,9 +465,9 @@ export function ListItemForm() {
 
     form.reset(initialFormValues);
     if(imageFilesInputRef.current) {
-        imageFilesInputRef.current.value = ""; 
+        imageFilesInputRef.current.value = "";
     }
-    setDisplayedImagePreviews([]); 
+    setDisplayedImagePreviews([]);
     setIsSubmitting(false);
     router.push('/my-listings');
   }
@@ -688,7 +704,7 @@ export function ListItemForm() {
           <FormField
             control={form.control}
             name="imageFiles"
-            render={({ field: { onChange, value, ...rest } }) => ( 
+            render={({ field: { onChange, value, ...rest } }) => (
               <FormItem>
                 <FormLabel className="flex items-center">
                   <UploadCloud className="h-5 w-5 mr-2 text-primary" /> Item Images (1-{MAX_IMAGES})
@@ -698,7 +714,7 @@ export function ListItemForm() {
                     type="file"
                     accept={ACCEPTED_IMAGE_TYPES.join(',')}
                     multiple
-                    onChange={(e) => onChange(e.target.files)} 
+                    onChange={(e) => onChange(e.target.files)}
                     {...rest}
                     ref={imageFilesInputRef}
                     disabled={(disableFormFields && !isEditMode) || isSubmitting}
@@ -783,4 +799,3 @@ export function ListItemForm() {
     </div>
   );
 }
-

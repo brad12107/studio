@@ -28,7 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { storage } from '@/lib/firebase';
+import { storage } from '@/lib/firebase'; // Ensure storage is imported
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
@@ -177,14 +177,12 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: true, 
-        agreedToTerms: true, 
+        agreedToCodeOfConduct: true,
+        agreedToTerms: true,
       },
   });
 
   useEffect(() => {
-    // Update userData state when mockUser's relevant properties change
-    // This helps keep the local state in sync if mockUser is modified elsewhere
     setUserData({
       ...mockUser,
       totalRatings: mockUser.totalRatings || 0,
@@ -204,13 +202,13 @@ export default function ProfilePage() {
       : {
           name: userData.name || '',
           email: userData.email || '',
-          password: '', 
+          password: '',
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined,
           agreedToCodeOfConduct: true,
-          agreedToTerms: true, 
+          agreedToTerms: true,
         },
       { resolver: zodResolver(currentProfileSchema) }
     );
@@ -277,11 +275,11 @@ export default function ProfilePage() {
       }
       mockUser.isAdmin = true;
     } else if (isCreateMode) {
-      mockUser.isAdmin = false; 
+      mockUser.isAdmin = false;
     }
 
 
-    let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl; 
+    let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl;
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
@@ -294,45 +292,55 @@ export default function ProfilePage() {
         setIsSubmitting(false);
         return;
       }
-      try {
-        const avatarFileName = `avatar-${mockUser.id || Date.now()}-${file.name}`;
-        const avatarRef = storageRef(storage, `avatars/${mockUser.id || 'guest'}/${avatarFileName}`);
-        const snapshot = await uploadBytes(avatarRef, file);
-        finalAvatarUrl = await getDownloadURL(snapshot.ref);
-        setAvatarPreview(finalAvatarUrl); 
-      } catch (error) {
-        console.error("Error uploading avatar to Firebase Storage:", error);
+      if (!storage) {
+        console.error("Firebase Storage is not configured. Cannot upload avatar.");
         toast({
           title: 'Avatar Upload Error',
-          description: 'Could not upload the avatar image. Please try another one.',
+          description: 'Image storage service is not configured. Please contact support.',
           variant: 'destructive',
         });
         setIsSubmitting(false);
         return;
       }
-    } else if (typeof data.avatarUrl === 'string') { 
+      try {
+        const avatarFileName = `avatar-${mockUser.id || Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const avatarRef = storageRef(storage, `avatars/${mockUser.id || 'guest'}/${avatarFileName}`);
+        const snapshot = await uploadBytes(avatarRef, file);
+        finalAvatarUrl = await getDownloadURL(snapshot.ref);
+        setAvatarPreview(finalAvatarUrl);
+      } catch (error) {
+        console.error("Error uploading avatar to Firebase Storage:", error);
+        toast({
+          title: 'Avatar Upload Error',
+          description: 'Could not upload the avatar image. Please try another one or check console.',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    } else if (typeof data.avatarUrl === 'string') {
       finalAvatarUrl = data.avatarUrl;
     }
 
 
     mockUser.name = data.name.trim();
     if (isCreateMode && data.email) mockUser.email = data.email.trim();
-    else if (!isCreateMode && data.email && userData.email) mockUser.email = userData.email; // Preserve existing email if not changed during edit
+    else if (!isCreateMode && data.email && userData.email) mockUser.email = userData.email;
 
-    
-    if (data.password) mockUser.password = data.password; 
+
+    if (data.password) mockUser.password = data.password;
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
     mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
-    // Admin status handled above based on adminKey
+
 
     if (isCreateMode) {
-      mockUser.id = `user-${Date.now()}`; 
-      
+      mockUser.id = `user-${Date.now()}`;
+
       const userExists = allMockUsers.find(u => u.id === mockUser.id);
       if (!userExists) {
-        allMockUsers.push({ ...mockUser }); 
+        allMockUsers.push({ ...mockUser });
       }
     } else {
       const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
@@ -344,7 +352,7 @@ export default function ProfilePage() {
     }
 
 
-    setUserData({ ...mockUser }); 
+    setUserData({ ...mockUser });
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -365,7 +373,7 @@ export default function ProfilePage() {
   }
 
   const averageRating = userData.totalRatings > 0 ? userData.sumOfRatings / userData.totalRatings : 0;
-  const showBlurredFields = watchedIsProfilePrivate && !(userData.isAdmin || false); 
+  const showBlurredFields = watchedIsProfilePrivate && !(userData.isAdmin || false);
 
   return (
     <div className="container mx-auto py-8">
@@ -426,10 +434,10 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel className="text-foreground">Full Name</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Your full name" 
-                        {...field} 
-                        className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" 
+                      <Input
+                        placeholder="Your full name"
+                        {...field}
+                        className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
                       />
                     </FormControl>
                     <FormMessage />
@@ -452,8 +460,8 @@ export default function ProfilePage() {
                           "bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70",
                           showBlurredFields && "filter blur-sm pointer-events-none select-none"
                         )}
-                        readOnly={(!isCreateMode && !!userData.email) || (showBlurredFields)} 
-                        disabled={!isCreateMode && !!userData.email}  
+                        readOnly={(!isCreateMode && !!userData.email) || (showBlurredFields)}
+                        disabled={!isCreateMode && !!userData.email}
                       />
                     </FormControl>
                      {!isCreateMode && !!userData.email && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
@@ -493,8 +501,8 @@ export default function ProfilePage() {
                   />
                 </>
               )}
-              
-              {!isCreateMode && ( 
+
+              {!isCreateMode && (
                 <>
                   <FormField
                     control={form.control}
@@ -534,10 +542,10 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel className="text-foreground">Delivery/Pick Up Location</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g., Your City, Postcode, or specific address" 
-                        {...field} 
-                        value={field.value || ''} 
+                      <Input
+                        placeholder="e.g., Your City, Postcode, or specific address"
+                        {...field}
+                        value={field.value || ''}
                         className={cn(
                           "bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70",
                           showBlurredFields && "filter blur-sm pointer-events-none select-none"
@@ -707,8 +715,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-    
-
-      
-
-    
