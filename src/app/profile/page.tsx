@@ -23,7 +23,7 @@ import { mockUser, bannedEmails, allMockUsers } from '@/lib/mock-data';
 import type { User } from '@/lib/types';
 import { useState, useEffect, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Star, StarHalf, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
+import { Camera, Star, StarHalf, ShieldCheck, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 const MAX_AVATAR_SIZE_MB = 5;
 const MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-const ADMIN_KEY = "135%32£fhj@345"; // Define Admin Key
+const ADMIN_KEY = "135%32£fhj@345";
 
 const fileToDataUri = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -183,7 +183,14 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    setUserData({...mockUser});
+    // Update userData state when mockUser's relevant properties change
+    // This helps keep the local state in sync if mockUser is modified elsewhere
+    setUserData({
+      ...mockUser,
+      totalRatings: mockUser.totalRatings || 0,
+      sumOfRatings: mockUser.sumOfRatings || 0,
+      // Removed thumbsUp/Down as they are replaced by star rating
+    });
   }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl, mockUser.isAdmin]);
 
   useEffect(() => {
@@ -216,6 +223,7 @@ export default function ProfilePage() {
 
   const watchedAvatarUrl = form.watch('avatarUrl');
   const watchedIsAdminAccount = form.watch('isAdminAccount');
+  const watchedIsProfilePrivate = form.watch('isProfilePrivate');
 
   useEffect(() => {
     if (isCreateMode) {
@@ -310,6 +318,8 @@ export default function ProfilePage() {
 
     mockUser.name = data.name.trim();
     if (isCreateMode && data.email) mockUser.email = data.email.trim();
+    else if (!isCreateMode && data.email && userData.email) mockUser.email = userData.email; // Preserve existing email if not changed during edit
+
     
     if (data.password) mockUser.password = data.password; 
     mockUser.location = data.location?.trim();
@@ -330,12 +340,13 @@ export default function ProfilePage() {
       if (userIndex > -1) {
         allMockUsers[userIndex] = { ...mockUser };
       } else {
+        // This case should ideally not happen if mockUser is the source of truth for edits
         allMockUsers.push({ ...mockUser });
       }
     }
 
 
-    setUserData({ ...mockUser });
+    setUserData({ ...mockUser }); // Update local state which triggers re-render
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -356,6 +367,7 @@ export default function ProfilePage() {
   }
 
   const averageRating = userData.totalRatings > 0 ? userData.sumOfRatings / userData.totalRatings : 0;
+  const showBlurredFields = watchedIsProfilePrivate && !(userData.isAdmin || false); // Blur if private AND current user is NOT admin
 
   return (
     <div className="container mx-auto py-8">
@@ -388,7 +400,7 @@ export default function ProfilePage() {
                         <Camera className="h-8 w-8 text-white" />
                       </div>
                     </FormLabel>
-                    <div className="mt-2 flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="mt-2 flex flex-col items-center space-y-1 text-sm text-muted-foreground">
                        {renderStars(averageRating, userData.totalRatings)}
                     </div>
                     <FormDescription className="text-center mt-1">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
@@ -416,7 +428,11 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your full name" {...field} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" />
+                      <Input 
+                        placeholder="Your full name" 
+                        {...field} 
+                        className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -434,44 +450,84 @@ export default function ProfilePage() {
                         type="email"
                         placeholder="you@example.com"
                         {...field}
-                        className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
-                        readOnly={!isCreateMode && !!userData.email} 
+                        className={cn(
+                          "bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70",
+                          showBlurredFields && "filter blur-sm pointer-events-none select-none"
+                        )}
+                        readOnly={(!isCreateMode && !!userData.email) || (showBlurredFields)} 
                         disabled={!isCreateMode && !!userData.email}  
                       />
                     </FormControl>
                      {!isCreateMode && !!userData.email && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
+                     {showBlurredFields && <FormDescription className="text-primary">Email is private. Toggle "Keep Profile Private" to view/edit.</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{isCreateMode ? 'Password' : 'New Password (optional)'}</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
-                    </FormControl>
-                      {!isCreateMode && <FormDescription>Leave blank to keep current password.</FormDescription>}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{isCreateMode ? 'Confirm Password' : 'Confirm New Password'}</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isCreateMode && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+              
+              {!isCreateMode && ( // Password change fields for edit mode
+                <>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password (optional)</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                        </FormControl>
+                        <FormDescription>Leave blank to keep current password.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
 
               <FormField
                 control={form.control}
@@ -480,9 +536,19 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Delivery/Pick Up Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Your City, Postcode, or specific address" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" />
+                      <Input 
+                        placeholder="e.g., Your City, Postcode, or specific address" 
+                        {...field} 
+                        value={field.value || ''} 
+                        className={cn(
+                          "bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70",
+                          showBlurredFields && "filter blur-sm pointer-events-none select-none"
+                        )}
+                        readOnly={showBlurredFields}
+                      />
                     </FormControl>
                     <FormDescription>Your preferred location for item exchange (optional).</FormDescription>
+                    {showBlurredFields && <FormDescription className="text-primary">Location is private. Toggle "Keep Profile Private" to view/edit.</FormDescription>}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -516,7 +582,7 @@ export default function ProfilePage() {
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Keep Profile Private</FormLabel>
                       <FormDescription>
-                        If enabled, your email address and delivery/pick-up location will not be publicly visible. Other details like your name, avatar, and bio may still be visible.
+                       When enabled, your email address and delivery/pick-up location will be hidden from other regular users on your public profile. Administrators may still see this information. Your name, avatar, and bio will remain visible. On this page, if private and you are not an admin, these fields will appear blurred and be read-only.
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -643,6 +709,6 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
     
+
+      
