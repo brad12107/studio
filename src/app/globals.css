@@ -35,7 +35,7 @@
     --input: 0 0% 98%; /* Very Light Gray for inputs, almost white */
     --ring: 210 89% 54%; /* Medium Blue for rings */
 
-    --custom-input-text: hsl(220, 20%, 92%); /* Light Cool White for text in custom inputs */
+    --custom-input-text: 0 0% 100%; /* Pure White for text in custom inputs */
     --input-profile-background: hsl(220, 50%, 25%); /* Dark Slate Blue for profile input backgrounds */
 
 
@@ -91,7 +91,7 @@
     --input: 200 15% 20%;
     --ring: 210 89% 60%;
 
-    --custom-input-text: hsl(200, 60%, 85%); /* Light Blue for custom input text in dark mode */
+    --custom-input-text: 0 0% 100%; /* Pure White for custom input text in dark mode */
     --input-profile-background: hsl(200, 15%, 20%); /* Same as general dark input for profile inputs */
     
     --chart-1: 204 70% 50%;
@@ -126,7 +126,9 @@
       4. Replace "YOUR_FIREBASE_STORAGE_HTTPS_DOWNLOAD_URL_HERE" with the actual Download URL you copied.
          Example: background-image: url("https://firebasestorage.googleapis.com/v0/b/your-project-id.appspot.com/o/images%2Fblue%20background.avif?alt=media&token=your-token-here");
     
-     /* background-image: url("https://firebasestorage.googleapis.com/v0/b/community-market-rgnru.firebasestorage.app/o/images%2Fblue%20background.avif?alt=media&token=4bfa869c-5c1e-4eec-9b16-ff4a0a20054c"); */
+    */
+    /* background-image: url("YOUR_FIREBASE_STORAGE_HTTPS_DOWNLOAD_URL_HERE"); */ /* Make sure to replace placeholder */
+    background-image: url("https://firebasestorage.googleapis.com/v0/b/community-market-rgnru.firebasestorage.app/o/images%2Fblue%20background.avif?alt=media&token=4bfa869c-5c1e-4eec-9b16-ff4a0a20054c");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
