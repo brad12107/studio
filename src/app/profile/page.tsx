@@ -28,7 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { storage } from '@/lib/firebase'; // Ensure storage is imported
+import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
@@ -177,8 +177,8 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: true, // Default to true for edit mode, user already agreed
-        agreedToTerms: true, // Default to true for edit mode
+        agreedToCodeOfConduct: true, 
+        agreedToTerms: true, 
       },
   });
 
@@ -202,15 +202,15 @@ export default function ProfilePage() {
       : {
           name: userData.name || '',
           email: userData.email || '',
-          password: '', // Always clear password fields on reset for edit mode
+          password: '', 
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined,
-          agreedToCodeOfConduct: true, // Assume already agreed if editing
-          agreedToTerms: true, // Assume already agreed if editing
+          agreedToCodeOfConduct: true, 
+          agreedToTerms: true, 
         },
-      { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver with current schema
+      { resolver: zodResolver(currentProfileSchema) } 
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
     setShowAdminKeyInput(isCreateMode ? form.getValues('isAdminAccount') || false : false);
@@ -238,14 +238,14 @@ export default function ProfilePage() {
           setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
-        // If file is invalid, reset to previous or default
+        
         setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
       }
     } else if (typeof watchedAvatarUrl === 'string') {
-      setAvatarPreview(watchedAvatarUrl); // This handles existing Firebase URLs
-    } else if (!watchedAvatarUrl && isCreateMode) { // No file selected in create mode
+      setAvatarPreview(watchedAvatarUrl); 
+    } else if (!watchedAvatarUrl && isCreateMode) { 
       setAvatarPreview(defaultAvatarPlaceholder);
-    } else if (!watchedAvatarUrl && !isCreateMode) { // No new file selected in edit mode
+    } else if (!watchedAvatarUrl && !isCreateMode) { 
       setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
     }
   }, [watchedAvatarUrl, isCreateMode, userData.avatarUrl]);
@@ -254,6 +254,12 @@ export default function ProfilePage() {
   async function onSubmit(data: ProfileFormValues) {
     setIsSubmitting(true);
     console.log("[ProfilePage] onSubmit triggered. Data:", JSON.stringify(data, null, 2));
+
+    let newUserId: string | null = null;
+    if (isCreateMode) {
+      newUserId = `user-${Date.now()}`;
+      console.log("[ProfilePage] New user ID generated for create mode:", newUserId);
+    }
 
     if (isCreateMode && data.email && bannedEmails.includes(data.email)) {
       toast({
@@ -275,9 +281,6 @@ export default function ProfilePage() {
         setIsSubmitting(false);
         return;
       }
-      mockUser.isAdmin = true;
-    } else if (isCreateMode) {
-      mockUser.isAdmin = false;
     }
 
 
@@ -295,7 +298,7 @@ export default function ProfilePage() {
         return;
       }
       if (!storage) {
-        console.error("Firebase Storage is not configured. Cannot upload avatar.");
+        console.error("[ProfilePage] Firebase Storage is not configured. Cannot upload avatar.");
         toast({
           title: 'Avatar Upload Error',
           description: 'Image storage service is not configured. Please ensure Firebase is set up and check console for details.',
@@ -306,18 +309,18 @@ export default function ProfilePage() {
         return;
       }
       try {
-        const userIdForPath = mockUser.id || (isCreateMode ? `temp-${Date.now()}` : 'guest');
+        const userIdForPath = isCreateMode && newUserId ? newUserId : mockUser.id || 'guest';
         const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
         const avatarFileName = `avatar-${userIdForPath}-${sanitizedFileName}`;
         const avatarRef = storageRef(storage, `avatars/${userIdForPath}/${avatarFileName}`);
         
-        console.log(`[ProfilePage] Uploading avatar: ${file.name} to path: avatars/${userIdForPath}/${avatarFileName}`);
+        console.log(`[ProfilePage] Attempting to upload avatar: ${file.name} to path: avatars/${userIdForPath}/${avatarFileName}`);
         const snapshot = await uploadBytes(avatarRef, file);
         console.log(`[ProfilePage] Avatar ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
         finalAvatarUrl = await getDownloadURL(snapshot.ref);
         console.log(`[ProfilePage] Got download URL for avatar ${file.name}: ${finalAvatarUrl}`);
-        setAvatarPreview(finalAvatarUrl); // Update preview with Firebase URL
-      } catch (error) {
+        setAvatarPreview(finalAvatarUrl); 
+      } catch (error: any) {
         console.error("[ProfilePage] Critical error during avatar upload:", error);
         let errorMessage = 'Could not upload the avatar image. Please try another one.';
         if (error && typeof error === 'object' && 'code' in error) {
@@ -340,26 +343,28 @@ export default function ProfilePage() {
         return;
       }
     } else if (typeof data.avatarUrl === 'string' && data.avatarUrl.startsWith('https://placehold.co')) {
-      // If it's a placeholder and no new file, keep it as placeholder in create mode, or existing in edit
+      
       finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : data.avatarUrl;
     } else if (typeof data.avatarUrl === 'string') {
-      finalAvatarUrl = data.avatarUrl; // Existing URL (could be Firebase URL)
+      finalAvatarUrl = data.avatarUrl; 
+    }
+
+    if (isCreateMode && newUserId) {
+      mockUser.id = newUserId;
+      mockUser.email = data.email!.trim(); // data.email is guaranteed by createSchema
+      mockUser.isAdmin = data.isAdminAccount || false;
+      mockUser.totalRatings = 0;
+      mockUser.sumOfRatings = 0;
+      mockUser.thumbsUp = 0; // Initialize if still present in type, otherwise remove
+      mockUser.thumbsDown = 0; // Initialize if still present in type, otherwise remove
+      mockUser.itemsListedCount = 0;
+      mockUser.enhancedListingsRemaining = 0;
+      mockUser.subscriptionStatus = 'none'; // New users start with no subscription
     }
 
 
     mockUser.name = data.name.trim();
-    if (isCreateMode && data.email) {
-      mockUser.email = data.email.trim();
-      mockUser.id = `user-${Date.now()}`; // Assign new ID for new user
-       // Initialize rating fields for new user
-      mockUser.totalRatings = 0;
-      mockUser.sumOfRatings = 0;
-    } else if (!isCreateMode && userData.email) {
-      mockUser.email = userData.email; // Email is not changed in edit mode
-    }
-
-
-    if (data.password) mockUser.password = data.password; // Only update if password fields are filled
+    if (data.password) mockUser.password = data.password; 
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
@@ -370,25 +375,24 @@ export default function ProfilePage() {
       const userExists = allMockUsers.find(u => u.id === mockUser.id);
       if (!userExists) {
         allMockUsers.push({ ...mockUser });
+        console.log("[ProfilePage] New user added to allMockUsers:", mockUser);
       } else {
-        // This case should ideally not happen if ID generation is robust
         console.warn("[ProfilePage] New user ID conflict, attempting to update existing record for ID:", mockUser.id);
         const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
         allMockUsers[userIndex] = { ...mockUser };
       }
-    } else { // Edit mode
+    } else { 
       const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
       if (userIndex > -1) {
         allMockUsers[userIndex] = { ...mockUser };
+        console.log("[ProfilePage] Existing user updated in allMockUsers:", mockUser);
       } else {
-        // If user not in allMockUsers (e.g. if mockUser was manually edited outside of app flow)
-        // Add them. This can happen if mockUser is the only source of truth initially.
         allMockUsers.push({ ...mockUser });
         console.warn("[ProfilePage] Edited user not found in allMockUsers, adding now. ID:", mockUser.id);
       }
     }
 
-    setUserData({ ...mockUser }); // Update local state for the current page if needed
+    setUserData({ ...mockUser }); 
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -403,7 +407,7 @@ export default function ProfilePage() {
         title: 'Profile Saved!',
         description: 'Your information has been updated.',
       });
-      router.refresh(); // To update UserNav potentially
+      router.refresh(); 
     }
     setIsSubmitting(false);
   }
@@ -428,7 +432,7 @@ export default function ProfilePage() {
                   <FormItem className="flex flex-col items-center">
                     <FormLabel
                       htmlFor="avatar-upload-input"
-                      className="relative cursor-pointer group"
+                      className="relative cursor-pointer group text-foreground"
                       onClick={(e) => {
                         e.preventDefault();
                         fileInputRef.current?.click();
@@ -760,5 +764,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
