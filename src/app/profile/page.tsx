@@ -177,8 +177,8 @@ export default function ProfilePage() {
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
         avatarUrl: userData.avatarUrl || undefined,
-        agreedToCodeOfConduct: true,
-        agreedToTerms: true,
+        agreedToCodeOfConduct: true, // Default to true for edit mode, user already agreed
+        agreedToTerms: true, // Default to true for edit mode
       },
   });
 
@@ -202,15 +202,15 @@ export default function ProfilePage() {
       : {
           name: userData.name || '',
           email: userData.email || '',
-          password: '',
+          password: '', // Always clear password fields on reset for edit mode
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined,
-          agreedToCodeOfConduct: true,
-          agreedToTerms: true,
+          agreedToCodeOfConduct: true, // Assume already agreed if editing
+          agreedToTerms: true, // Assume already agreed if editing
         },
-      { resolver: zodResolver(currentProfileSchema) }
+      { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver with current schema
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
     setShowAdminKeyInput(isCreateMode ? form.getValues('isAdminAccount') || false : false);
@@ -238,13 +238,14 @@ export default function ProfilePage() {
           setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
+        // If file is invalid, reset to previous or default
         setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
       }
     } else if (typeof watchedAvatarUrl === 'string') {
-      setAvatarPreview(watchedAvatarUrl);
-    } else if (!watchedAvatarUrl && isCreateMode) {
+      setAvatarPreview(watchedAvatarUrl); // This handles existing Firebase URLs
+    } else if (!watchedAvatarUrl && isCreateMode) { // No file selected in create mode
       setAvatarPreview(defaultAvatarPlaceholder);
-    } else if (!watchedAvatarUrl && !isCreateMode) {
+    } else if (!watchedAvatarUrl && !isCreateMode) { // No new file selected in edit mode
       setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
     }
   }, [watchedAvatarUrl, isCreateMode, userData.avatarUrl]);
@@ -252,6 +253,7 @@ export default function ProfilePage() {
 
   async function onSubmit(data: ProfileFormValues) {
     setIsSubmitting(true);
+    console.log("[ProfilePage] onSubmit triggered. Data:", JSON.stringify(data, null, 2));
 
     if (isCreateMode && data.email && bannedEmails.includes(data.email)) {
       toast({
@@ -279,7 +281,7 @@ export default function ProfilePage() {
     }
 
 
-    let finalAvatarUrl = isCreateMode ? undefined : userData.avatarUrl;
+    let finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : userData.avatarUrl;
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
@@ -296,39 +298,68 @@ export default function ProfilePage() {
         console.error("Firebase Storage is not configured. Cannot upload avatar.");
         toast({
           title: 'Avatar Upload Error',
-          description: 'Image storage service is not configured. Please contact support.',
+          description: 'Image storage service is not configured. Please ensure Firebase is set up and check console for details.',
           variant: 'destructive',
+          duration: 7000
         });
         setIsSubmitting(false);
         return;
       }
       try {
-        const avatarFileName = `avatar-${mockUser.id || Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-        const avatarRef = storageRef(storage, `avatars/${mockUser.id || 'guest'}/${avatarFileName}`);
+        const userIdForPath = mockUser.id || (isCreateMode ? `temp-${Date.now()}` : 'guest');
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
+        const avatarFileName = `avatar-${userIdForPath}-${sanitizedFileName}`;
+        const avatarRef = storageRef(storage, `avatars/${userIdForPath}/${avatarFileName}`);
+        
+        console.log(`[ProfilePage] Uploading avatar: ${file.name} to path: avatars/${userIdForPath}/${avatarFileName}`);
         const snapshot = await uploadBytes(avatarRef, file);
+        console.log(`[ProfilePage] Avatar ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
         finalAvatarUrl = await getDownloadURL(snapshot.ref);
-        setAvatarPreview(finalAvatarUrl);
+        console.log(`[ProfilePage] Got download URL for avatar ${file.name}: ${finalAvatarUrl}`);
+        setAvatarPreview(finalAvatarUrl); // Update preview with Firebase URL
       } catch (error) {
-        console.error("Error uploading avatar to Firebase Storage:", error);
+        console.error("[ProfilePage] Critical error during avatar upload:", error);
+        let errorMessage = 'Could not upload the avatar image. Please try another one.';
+        if (error && typeof error === 'object' && 'code' in error) {
+            const firebaseError = error as { code: string; message: string };
+            if (firebaseError.code === 'storage/unauthorized') {
+                errorMessage = 'Avatar upload failed: Unauthorized. Please check your Firebase Storage security rules.';
+            } else if (firebaseError.code === 'storage/object-not-found' || firebaseError.code === 'storage/bucket-not-found') {
+                errorMessage = 'Avatar upload failed: Storage path or bucket not found. Ensure Firebase Storage is set up correctly.';
+            } else {
+                errorMessage = `Avatar upload error: ${firebaseError.message} (Code: ${firebaseError.code})`;
+            }
+        }
         toast({
           title: 'Avatar Upload Error',
-          description: 'Could not upload the avatar image. Please try another one or check console.',
+          description: `${errorMessage} Check console for more details.`,
           variant: 'destructive',
+          duration: 10000
         });
         setIsSubmitting(false);
         return;
       }
+    } else if (typeof data.avatarUrl === 'string' && data.avatarUrl.startsWith('https://placehold.co')) {
+      // If it's a placeholder and no new file, keep it as placeholder in create mode, or existing in edit
+      finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : data.avatarUrl;
     } else if (typeof data.avatarUrl === 'string') {
-      finalAvatarUrl = data.avatarUrl;
+      finalAvatarUrl = data.avatarUrl; // Existing URL (could be Firebase URL)
     }
 
 
     mockUser.name = data.name.trim();
-    if (isCreateMode && data.email) mockUser.email = data.email.trim();
-    else if (!isCreateMode && data.email && userData.email) mockUser.email = userData.email;
+    if (isCreateMode && data.email) {
+      mockUser.email = data.email.trim();
+      mockUser.id = `user-${Date.now()}`; // Assign new ID for new user
+       // Initialize rating fields for new user
+      mockUser.totalRatings = 0;
+      mockUser.sumOfRatings = 0;
+    } else if (!isCreateMode && userData.email) {
+      mockUser.email = userData.email; // Email is not changed in edit mode
+    }
 
 
-    if (data.password) mockUser.password = data.password;
+    if (data.password) mockUser.password = data.password; // Only update if password fields are filled
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
     mockUser.isProfilePrivate = data.isProfilePrivate;
@@ -336,23 +367,28 @@ export default function ProfilePage() {
 
 
     if (isCreateMode) {
-      mockUser.id = `user-${Date.now()}`;
-
       const userExists = allMockUsers.find(u => u.id === mockUser.id);
       if (!userExists) {
         allMockUsers.push({ ...mockUser });
+      } else {
+        // This case should ideally not happen if ID generation is robust
+        console.warn("[ProfilePage] New user ID conflict, attempting to update existing record for ID:", mockUser.id);
+        const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
+        allMockUsers[userIndex] = { ...mockUser };
       }
-    } else {
+    } else { // Edit mode
       const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
       if (userIndex > -1) {
         allMockUsers[userIndex] = { ...mockUser };
       } else {
+        // If user not in allMockUsers (e.g. if mockUser was manually edited outside of app flow)
+        // Add them. This can happen if mockUser is the only source of truth initially.
         allMockUsers.push({ ...mockUser });
+        console.warn("[ProfilePage] Edited user not found in allMockUsers, adding now. ID:", mockUser.id);
       }
     }
 
-
-    setUserData({ ...mockUser });
+    setUserData({ ...mockUser }); // Update local state for the current page if needed
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -367,7 +403,7 @@ export default function ProfilePage() {
         title: 'Profile Saved!',
         description: 'Your information has been updated.',
       });
-      router.refresh();
+      router.refresh(); // To update UserNav potentially
     }
     setIsSubmitting(false);
   }
@@ -420,6 +456,7 @@ export default function ProfilePage() {
                         onChange={(e) => {
                            field.onChange(e.target.files)
                         }}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -438,6 +475,7 @@ export default function ProfilePage() {
                         placeholder="Your full name"
                         {...field}
                         className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -461,7 +499,7 @@ export default function ProfilePage() {
                           showBlurredFields && "filter blur-sm pointer-events-none select-none"
                         )}
                         readOnly={(!isCreateMode && !!userData.email) || (showBlurredFields)}
-                        disabled={!isCreateMode && !!userData.email}
+                        disabled={(!isCreateMode && !!userData.email) || isSubmitting}
                       />
                     </FormControl>
                      {!isCreateMode && !!userData.email && <FormDescription>Email cannot be changed after account creation.</FormDescription>}
@@ -480,7 +518,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel className="text-foreground">Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -493,7 +531,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel className="text-foreground">Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -511,7 +549,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel className="text-foreground">New Password (optional)</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" disabled={isSubmitting}/>
                         </FormControl>
                         <FormDescription>Leave blank to keep current password.</FormDescription>
                         <FormMessage />
@@ -525,7 +563,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel className="text-foreground">Confirm New Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"/>
+                          <Input type="password" placeholder="••••••••" {...field} value={field.value || ''} className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70" disabled={isSubmitting}/>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -551,6 +589,7 @@ export default function ProfilePage() {
                           showBlurredFields && "filter blur-sm pointer-events-none select-none"
                         )}
                         readOnly={showBlurredFields}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormDescription>Your preferred location for item exchange (optional).</FormDescription>
@@ -572,6 +611,7 @@ export default function ProfilePage() {
                         className="resize-y min-h-[100px] bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
                         {...field}
                         value={field.value || ''}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormDescription>A short description about you (max 250 characters).</FormDescription>
@@ -595,6 +635,7 @@ export default function ProfilePage() {
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                   </FormItem>
@@ -620,6 +661,7 @@ export default function ProfilePage() {
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                       </FormItem>
@@ -639,6 +681,7 @@ export default function ProfilePage() {
                               {...field}
                               value={field.value || ''}
                               className="bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
+                              disabled={isSubmitting}
                             />
                           </FormControl>
                           <FormMessage />
@@ -656,6 +699,7 @@ export default function ProfilePage() {
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             id="termsAndConditionsCheckbox"
+                            disabled={isSubmitting}
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
@@ -683,6 +727,7 @@ export default function ProfilePage() {
                         checked={field.value}
                         onCheckedChange={field.onChange}
                         id="codeOfConductCheckbox"
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
@@ -715,3 +760,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
