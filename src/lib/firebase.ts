@@ -23,8 +23,7 @@ function isConfigLikelyPlaceholder(config: typeof firebaseConfig): boolean {
     config.projectId === "YOUR_PROJECT_ID" ||
     config.storageBucket === "YOUR_STORAGE_BUCKET" ||
     config.messagingSenderId === "YOUR_MESSAGING_SENDER_ID" ||
-    config.appId === "YOUR_APP_ID" ||
-    config.apiKey === "ACTUAL_API_KEY_FROM_FIREBASE_CONSOLE" // Catching previous explicit placeholders
+    config.appId === "YOUR_APP_ID"
   );
 }
 
