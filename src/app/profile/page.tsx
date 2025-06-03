@@ -150,7 +150,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdminKeyInput, setShowAdminKeyInput] = useState(false);
-  const [newUserIdState, setNewUserIdState] = useState<string | null>(null); // For create mode ID
+  const [newUserIdState, setNewUserIdState] = useState<string | null>(null);
 
 
   const form = useForm<ProfileFormValues>({
@@ -255,174 +255,181 @@ export default function ProfilePage() {
 
   async function onSubmit(data: ProfileFormValues) {
     setIsSubmitting(true);
-    console.log("[ProfilePage] onSubmit triggered. isCreateMode:", isCreateMode, "Data:", JSON.stringify(data, null, 2));
-
-    let finalNewUserId = newUserIdState;
-    if (isCreateMode && !finalNewUserId) {
-        finalNewUserId = `user-${Date.now()}`;
-        setNewUserIdState(finalNewUserId); // Store it in state if needed elsewhere or for re-renders
-        console.log("[ProfilePage] New user ID generated for create mode:", finalNewUserId);
-    }
-
-
-    if (isCreateMode && data.email && bannedEmails.includes(data.email)) {
-      toast({
-        title: 'Account Creation Failed',
-        description: 'This email address has been banned and cannot be used to create an account.',
-        variant: 'destructive',
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (isCreateMode && data.isAdminAccount) {
-      if (data.adminKey !== ADMIN_KEY) {
-        toast({
-          title: 'Admin Account Creation Failed',
-          description: 'The Admin Key provided is incorrect.',
-          variant: 'destructive',
-        });
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
-
-    let finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : userData.avatarUrl;
-
-    if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
-      const file = data.avatarUrl[0];
-      if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-        toast({
-          title: 'Invalid Avatar File',
-          description: `Max size ${MAX_AVATAR_SIZE_MB}MB. Accepted types: JPG, PNG, WEBP.`,
-          variant: 'destructive',
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      if (!storage) {
-        console.error("[ProfilePage] Firebase Storage is not configured. Cannot upload avatar.");
-        toast({
-          title: 'Avatar Upload Error',
-          description: 'Image storage service is not configured. Please ensure Firebase is set up correctly (check src/lib/firebase.ts and Firebase console) and check browser console for details.',
-          variant: 'destructive',
-          duration: 10000 
-        });
-        setIsSubmitting(false);
-        return;
-      }
-      try {
-        const userIdForPath = isCreateMode && finalNewUserId ? finalNewUserId : mockUser.id || 'guest';
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
-        const avatarFileName = `avatar-${userIdForPath}-${sanitizedFileName}`;
-        const avatarRef = storageRef(storage, `avatars/${userIdForPath}/${avatarFileName}`);
-        
-        console.log(`[ProfilePage] Attempting to upload avatar: ${file.name} to path: avatars/${userIdForPath}/${avatarFileName}`);
-        console.log(`[ProfilePage] Avatar storage ref path: ${avatarRef.fullPath}`); 
-        const snapshot = await uploadBytes(avatarRef, file);
-        console.log(`[ProfilePage] Avatar ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
-        finalAvatarUrl = await getDownloadURL(snapshot.ref);
-        console.log(`[ProfilePage] Got download URL for avatar ${file.name}: ${finalAvatarUrl}`);
-        setAvatarPreview(finalAvatarUrl); 
-      } catch (error: any) {
-        console.error("[ProfilePage] Critical error during avatar upload:", error);
-        let errorMessage = 'Could not upload the avatar image. Please try another one.';
-        if (error && typeof error === 'object' && 'code' in error) {
-            const firebaseError = error as { code: string; message: string };
-            if (firebaseError.code === 'storage/unauthorized') {
-                errorMessage = 'Avatar upload failed: Unauthorized. Please check your Firebase Storage security rules to allow writes for all users during testing (e.g., allow read, write;).';
-            } else if (firebaseError.code === 'storage/object-not-found' || firebaseError.code === 'storage/bucket-not-found') {
-                errorMessage = 'Avatar upload failed: Storage path or bucket not found. Ensure Firebase Storage is set up correctly in your Firebase project.';
-            } else {
-                errorMessage = `Avatar upload error: ${firebaseError.message} (Code: ${firebaseError.code})`;
-            }
-        }
-        toast({
-          title: 'Avatar Upload Error',
-          description: `${errorMessage} Check browser console for more details. Ensure Firebase config and Storage rules are correct.`,
-          variant: 'destructive',
-          duration: 10000 
-        });
-        setIsSubmitting(false);
-        return;
-      }
-    } else if (typeof data.avatarUrl === 'string' && data.avatarUrl.startsWith('https://placehold.co')) {
-      finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : data.avatarUrl;
-    } else if (typeof data.avatarUrl === 'string') {
-      finalAvatarUrl = data.avatarUrl; 
-    }
-
-
-    if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0 && (!finalAvatarUrl || finalAvatarUrl === defaultAvatarPlaceholder)) {
-        console.error("[ProfilePage] Avatar upload was attempted, but finalAvatarUrl is not a valid Firebase URL. Aborting save.");
-        setIsSubmitting(false);
-        return;
-    }
-
-
-    if (isCreateMode && finalNewUserId) {
-      mockUser.id = finalNewUserId;
-      mockUser.email = data.email!.trim(); 
-      mockUser.isAdmin = data.isAdminAccount || false;
-      mockUser.totalRatings = 0;
-      mockUser.sumOfRatings = 0;
-      mockUser.itemsListedCount = 0;
-      mockUser.enhancedListingsRemaining = 0;
-      mockUser.subscriptionStatus = 'none'; 
-    }
-
-
-    mockUser.name = data.name.trim();
-    if (data.password && !isCreateMode) mockUser.password = data.password; 
-    if (data.password && isCreateMode) mockUser.password = data.password; 
+    console.log("[ProfilePage] onSubmit triggered. isCreateMode:", isCreateMode, "Data submitted:", JSON.stringify(data, (key, value) => key === 'avatarUrl' && value instanceof FileList ? Array.from(value).map(f => f.name) : value, 2 ));
     
-    mockUser.location = data.location?.trim();
-    mockUser.bio = data.bio?.trim();
-    mockUser.isProfilePrivate = data.isProfilePrivate;
-    mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
+    let operationSuccessful = false;
 
+    try {
+      let finalNewUserId = newUserIdState;
+      if (isCreateMode && !finalNewUserId) {
+          finalNewUserId = `user-${Date.now()}`;
+          setNewUserIdState(finalNewUserId); 
+          console.log("[ProfilePage] New user ID generated for create mode:", finalNewUserId);
+      }
 
-    if (isCreateMode) {
-      const userExists = allMockUsers.find(u => u.id === mockUser.id);
-      if (!userExists) {
-        allMockUsers.push({ ...mockUser }); 
-        console.log("[ProfilePage] New user added to allMockUsers:", JSON.stringify(mockUser, null, 2));
-      } else {
-        console.warn("[ProfilePage] New user ID conflict, attempting to update existing record for ID:", mockUser.id);
+      if (isCreateMode && data.email && bannedEmails.includes(data.email)) {
+        toast({
+          title: 'Account Creation Failed',
+          description: 'This email address has been banned and cannot be used to create an account.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (isCreateMode && data.isAdminAccount) {
+        if (data.adminKey !== ADMIN_KEY) {
+          toast({
+            title: 'Admin Account Creation Failed',
+            description: 'The Admin Key provided is incorrect.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      let finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder);
+
+      if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
+        const file = data.avatarUrl[0];
+        if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
+          toast({
+            title: 'Invalid Avatar File',
+            description: `Max size ${MAX_AVATAR_SIZE_MB}MB. Accepted types: JPG, PNG, WEBP.`,
+            variant: 'destructive',
+          });
+          return;
+        }
+        if (!storage) {
+          console.error("[ProfilePage] Firebase Storage is not configured. Cannot upload avatar.");
+          toast({
+            title: 'Avatar Upload Error',
+            description: 'Image storage service is not configured. Please ensure Firebase is set up correctly (check src/lib/firebase.ts and Firebase console) and check browser console for details.',
+            variant: 'destructive',
+            duration: 10000 
+          });
+          return;
+        }
+        try {
+          const userIdForPath = isCreateMode && finalNewUserId ? finalNewUserId : mockUser.id || 'guest';
+          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
+          const avatarFileName = `avatar-${userIdForPath}-${sanitizedFileName}`;
+          const avatarRef = storageRef(storage, `avatars/${userIdForPath}/${avatarFileName}`);
+          
+          console.log(`[ProfilePage] Attempting to upload avatar: ${file.name} to path: avatars/${userIdForPath}/${avatarFileName}`);
+          console.log(`[ProfilePage] Avatar storage ref path: ${avatarRef.fullPath}`); 
+          const snapshot = await uploadBytes(avatarRef, file);
+          console.log(`[ProfilePage] Avatar ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
+          finalAvatarUrl = await getDownloadURL(snapshot.ref);
+          console.log(`[ProfilePage] Got download URL for avatar ${file.name}: ${finalAvatarUrl}`);
+          setAvatarPreview(finalAvatarUrl); 
+        } catch (error: any) {
+          console.error("[ProfilePage] Critical error during avatar upload:", error);
+          let errorMessage = 'Could not upload the avatar image. Please try another one.';
+          if (error && typeof error === 'object' && 'code' in error) {
+              const firebaseError = error as { code: string; message: string };
+              if (firebaseError.code === 'storage/unauthorized') {
+                  errorMessage = 'Avatar upload failed: Unauthorized. Please check your Firebase Storage security rules to allow writes for all users during testing (e.g., allow read, write;).';
+              } else if (firebaseError.code === 'storage/object-not-found' || firebaseError.code === 'storage/bucket-not-found') {
+                  errorMessage = 'Avatar upload failed: Storage path or bucket not found. Ensure Firebase Storage is set up correctly in your Firebase project.';
+              } else {
+                  errorMessage = `Avatar upload error: ${firebaseError.message} (Code: ${firebaseError.code})`;
+              }
+          }
+          toast({
+            title: 'Avatar Upload Error',
+            description: `${errorMessage} Check browser console for more details. Ensure Firebase config and Storage rules are correct.`,
+            variant: 'destructive',
+            duration: 10000 
+          });
+          return;
+        }
+      } else if (typeof data.avatarUrl === 'string' && data.avatarUrl.startsWith('https://placehold.co')) {
+        finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : data.avatarUrl;
+      } else if (typeof data.avatarUrl === 'string') {
+        finalAvatarUrl = data.avatarUrl; 
+      }
+
+      if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0 && (!finalAvatarUrl || finalAvatarUrl === defaultAvatarPlaceholder || !finalAvatarUrl.startsWith('https://firebasestorage.googleapis.com'))) {
+          console.error("[ProfilePage] Avatar upload was attempted, but finalAvatarUrl is not a valid Firebase Storage URL. Aborting save. Final URL was:", finalAvatarUrl);
+          toast({
+            title: 'Avatar Processing Error',
+            description: 'The uploaded avatar could not be processed into a valid storage URL. Please try a different image or try again.',
+            variant: 'destructive',
+          });
+          return;
+      }
+
+      if (isCreateMode && finalNewUserId) {
+        mockUser.id = finalNewUserId;
+        mockUser.email = data.email!.trim(); 
+        mockUser.isAdmin = data.isAdminAccount || false;
+        mockUser.totalRatings = 0;
+        mockUser.sumOfRatings = 0;
+        mockUser.itemsListedCount = 0;
+        mockUser.enhancedListingsRemaining = 0;
+        mockUser.subscriptionStatus = 'none'; 
+      }
+
+      mockUser.name = data.name.trim();
+      if (data.password && !isCreateMode) mockUser.password = data.password; 
+      if (data.password && isCreateMode) mockUser.password = data.password; 
+      
+      mockUser.location = data.location?.trim();
+      mockUser.bio = data.bio?.trim();
+      mockUser.isProfilePrivate = data.isProfilePrivate;
+      mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
+
+      if (isCreateMode) {
+        const userExists = allMockUsers.find(u => u.id === mockUser.id);
+        if (!userExists) {
+          allMockUsers.push({ ...mockUser }); 
+          console.log("[ProfilePage] New user added to allMockUsers:", JSON.stringify(mockUser, null, 2));
+        } else {
+          console.warn("[ProfilePage] New user ID conflict, attempting to update existing record for ID:", mockUser.id);
+          const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
+          allMockUsers[userIndex] = { ...mockUser }; 
+        }
+      } else { 
         const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
-        allMockUsers[userIndex] = { ...mockUser }; 
+        if (userIndex > -1) {
+          allMockUsers[userIndex] = { ...mockUser }; 
+          console.log("[ProfilePage] Existing user updated in allMockUsers:", JSON.stringify(mockUser, null, 2));
+        } else {
+          allMockUsers.push({ ...mockUser });
+          console.warn("[ProfilePage] Edited user not found in allMockUsers, adding now. ID:", mockUser.id);
+        }
       }
-    } else { 
-      const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
-      if (userIndex > -1) {
-        allMockUsers[userIndex] = { ...mockUser }; 
-        console.log("[ProfilePage] Existing user updated in allMockUsers:", JSON.stringify(mockUser, null, 2));
+
+      setUserData({ ...mockUser }); 
+      operationSuccessful = true;
+
+      if (isCreateMode) {
+        localStorage.setItem('isLoggedIn', 'true');
+        toast({
+          title: 'Account Created!',
+          description: 'Your account has been successfully created and you are now logged in.',
+        });
+        router.push('/'); 
+        router.refresh(); 
       } else {
-        allMockUsers.push({ ...mockUser });
-        console.warn("[ProfilePage] Edited user not found in allMockUsers, adding now. ID:", mockUser.id);
+        toast({
+          title: 'Profile Saved!',
+          description: 'Your information has been updated.',
+        });
+        router.refresh(); 
       }
+      setNewUserIdState(null);
+    } catch (e) {
+        console.error("[ProfilePage] Unexpected error in onSubmit:", e);
+        toast({
+            title: 'An Unexpected Error Occurred',
+            description: 'Your changes could not be saved. Please try again. If the problem persists, check the console for details.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsSubmitting(false);
+        console.log("[ProfilePage] onSubmit finished. isSubmitting set to false. Operation successful:", operationSuccessful);
     }
-
-    setUserData({ ...mockUser }); 
-
-    if (isCreateMode) {
-      localStorage.setItem('isLoggedIn', 'true');
-      toast({
-        title: 'Account Created!',
-        description: 'Your account has been successfully created and you are now logged in.',
-      });
-      router.push('/'); 
-      router.refresh(); 
-    } else {
-      toast({
-        title: 'Profile Saved!',
-        description: 'Your information has been updated.',
-      });
-      router.refresh(); 
-    }
-    setNewUserIdState(null); // Reset for next potential creation
-    setIsSubmitting(false);
   }
 
   const averageRating = userData.totalRatings > 0 ? userData.sumOfRatings / userData.totalRatings : 0;
@@ -783,5 +790,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-      
