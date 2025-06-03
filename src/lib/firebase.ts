@@ -16,7 +16,6 @@ const firebaseConfig = {
 
 // Function to check if the config seems to be using placeholders
 function isConfigLikelyPlaceholder(config: typeof firebaseConfig): boolean {
-  // This check is to guide you. If your actual keys happen to be "YOUR_API_KEY", this will need adjustment.
   return (
     config.apiKey === "YOUR_API_KEY" ||
     config.authDomain === "YOUR_AUTH_DOMAIN" ||
