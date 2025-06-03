@@ -14,22 +14,56 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID" // Replace this
 };
 
+// Function to check if the config seems to be using placeholders
+function isConfigLikelyPlaceholder(config: typeof firebaseConfig): boolean {
+  return (
+    config.apiKey === "YOUR_API_KEY" ||
+    config.authDomain === "YOUR_AUTH_DOMAIN" ||
+    config.projectId === "YOUR_PROJECT_ID" ||
+    config.storageBucket === "YOUR_STORAGE_BUCKET" ||
+    config.messagingSenderId === "YOUR_MESSAGING_SENDER_ID" ||
+    config.appId === "YOUR_APP_ID"
+  );
+}
+
 // Initialize Firebase
 let app;
+let storage;
+
+if (typeof window !== 'undefined' && isConfigLikelyPlaceholder(firebaseConfig)) {
+  console.warn(
+    "Firebase configuration in src/lib/firebase.ts appears to be using placeholder values. " +
+    "Please replace them with your actual Firebase project credentials for Firebase services to work correctly. " +
+    "Image uploads and other Firebase features will fail until this is corrected."
+  );
+}
+
 if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
+  if (!isConfigLikelyPlaceholder(firebaseConfig)) {
+    app = initializeApp(firebaseConfig);
+  } else {
+    // Do not initialize app if config is placeholder, to avoid potential errors with invalid config
+    console.error("Firebase app initialization skipped due to placeholder configuration values.");
+  }
 } else {
   app = getApp();
 }
 
 // Get a reference to the storage service, which is used to create references in your storage bucket
 // This will only work if you have properly configured firebaseConfig above.
-let storage;
-try {
-  storage = getStorage(app);
-} catch (error) {
-  console.error("Firebase Storage could not be initialized. Ensure firebaseConfig is correct in src/lib/firebase.ts and Firebase Storage is enabled in your Firebase project.", error);
-  // storage will remain undefined if initialization fails
+if (app && !isConfigLikelyPlaceholder(firebaseConfig)) {
+  try {
+    storage = getStorage(app);
+  } catch (error) {
+    console.error("Firebase Storage could not be initialized. Ensure firebaseConfig is correct in src/lib/firebase.ts and Firebase Storage is enabled in your Firebase project.", error);
+    // storage will remain undefined if initialization fails
+  }
+} else {
+  if (isConfigLikelyPlaceholder(firebaseConfig)) {
+    console.warn("Firebase Storage initialization skipped because Firebase app was not initialized due to placeholder configuration values.");
+  } else if (!app) {
+    console.warn("Firebase Storage initialization skipped because Firebase app is not available (was not initialized).");
+  }
 }
 
 export { app, storage };
