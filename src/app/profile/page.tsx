@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { storage } from '@/lib/firebase'; // Ensure storage is imported
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Badge } from '@/components/ui/badge';
 
 
 const MAX_AVATAR_SIZE_MB = 5;
@@ -149,6 +150,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdminKeyInput, setShowAdminKeyInput] = useState(false);
+  const [newUserIdState, setNewUserIdState] = useState<string | null>(null); // For create mode ID
 
 
   const form = useForm<ProfileFormValues>({
@@ -168,65 +170,60 @@ export default function ProfilePage() {
         isAdminAccount: false,
         adminKey: '',
       }
-    : { // For edit mode, prefill from userData (which is mockUser initially)
+    : { 
         name: userData.name || '',
-        email: userData.email || '', // Email should be prefilled for edit mode
-        password: '', // Password fields are for changing password, so start empty
+        email: userData.email || '', 
+        password: '', 
         confirmPassword: '',
         location: userData.location || '',
         bio: userData.bio || '',
         isProfilePrivate: userData.isProfilePrivate || false,
-        avatarUrl: userData.avatarUrl || undefined, // Use existing avatar URL
-        agreedToCodeOfConduct: true, // Assume existing users agreed
-        agreedToTerms: true, // Assume existing users agreed
-        // isAdminAccount and adminKey are not relevant for editing an existing profile's admin status this way
+        avatarUrl: userData.avatarUrl || undefined, 
+        agreedToCodeOfConduct: true, 
+        agreedToTerms: true, 
       },
   });
 
-  // Effect to update local userData state if global mockUser changes (e.g., due to actions on other pages)
-  // This is important for a mock setup. In a real app, this would be fetched data.
+
   useEffect(() => {
-    // console.log("[ProfilePage] mockUser changed externally, updating local userData state:", JSON.stringify(mockUser, null, 2));
     setUserData({
       ...mockUser,
-      totalRatings: mockUser.totalRatings || 0, // Ensure these are numbers
+      totalRatings: mockUser.totalRatings || 0, 
       sumOfRatings: mockUser.sumOfRatings || 0,
     });
   }, [mockUser.totalRatings, mockUser.sumOfRatings, mockUser.name, mockUser.email, mockUser.location, mockUser.bio, mockUser.isProfilePrivate, mockUser.avatarUrl, mockUser.isAdmin]);
 
-  // Effect to reset form when mode changes or when userData (for edit mode) changes
   useEffect(() => {
     const currentProfileSchema = isCreateMode ? profileSchemaCreate : profileSchemaEdit;
-    // console.log(`[ProfilePage] Mode changed or userData updated. isCreateMode: ${isCreateMode}. Resetting form.`);
     form.reset(
       isCreateMode
-      ? { // Default for create mode
+      ? { 
           name: '', email: '', password: '', confirmPassword: '', location: '', bio: '',
           isProfilePrivate: false, avatarUrl: undefined, agreedToCodeOfConduct: false, agreedToTerms: false,
           isAdminAccount: false, adminKey: '',
         }
-      : { // Default for edit mode, based on current userData
+      : { 
           name: userData.name || '',
           email: userData.email || '',
-          password: '', // Always start password fields empty for edit
+          password: '', 
           confirmPassword: '',
           location: userData.location || '', bio: userData.bio || '',
           isProfilePrivate: userData.isProfilePrivate || false,
           avatarUrl: userData.avatarUrl || undefined,
-          agreedToCodeOfConduct: true, // Existing users are assumed to have agreed
-          agreedToTerms: true, // Existing users are assumed to have agreed
+          agreedToCodeOfConduct: true, 
+          agreedToTerms: true, 
         },
-      { resolver: zodResolver(currentProfileSchema) } // Re-apply resolver
+      { resolver: zodResolver(currentProfileSchema) } 
     );
     setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
-    setShowAdminKeyInput(isCreateMode ? form.getValues('isAdminAccount') || false : false); // Reset admin key input visibility for create mode
+    setShowAdminKeyInput(isCreateMode ? form.getValues('isAdminAccount') || false : false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData.name, userData.email, userData.location, userData.bio, userData.isProfilePrivate, userData.avatarUrl, isCreateMode]);
+  }, [userData.name, userData.email, userData.location, userData.bio, userData.isProfilePrivate, userData.avatarUrl, isCreateMode, userData.isAdmin]);
 
 
-  const watchedAvatarUrl = form.watch('avatarUrl'); // For FileList objects from input
+  const watchedAvatarUrl = form.watch('avatarUrl'); 
   const watchedIsAdminAccount = form.watch('isAdminAccount');
-  const watchedIsProfilePrivate = form.watch('isProfilePrivate'); // Watch this for dynamic UI changes
+  const watchedIsProfilePrivate = form.watch('isProfilePrivate'); 
 
   useEffect(() => {
     if (isCreateMode) {
@@ -236,31 +233,21 @@ export default function ProfilePage() {
 
 
   useEffect(() => {
-    // This effect handles updating the avatar preview
     if (watchedAvatarUrl instanceof FileList && watchedAvatarUrl.length > 0) {
       const file = watchedAvatarUrl[0];
-      // console.log("[ProfilePage] FileList detected for avatar. File:", file ? file.name : "no file");
       if (file && ACCEPTED_AVATAR_TYPES.includes(file.type) && file.size <= MAX_AVATAR_SIZE_BYTES) {
         fileToDataUri(file).then(setAvatarPreview).catch(err => {
           console.error("[ProfilePage] Error creating avatar preview:", err);
-          // Fallback to default or existing if preview creation fails
           setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
         });
       } else {
-        // If file is invalid (type/size), reset to default/existing or show an error
-        // console.log("[ProfilePage] Invalid file for avatar preview. Resetting.");
         setAvatarPreview(isCreateMode ? defaultAvatarPlaceholder : (userData.avatarUrl || defaultAvatarPlaceholder));
-        // Optionally, you could set a form error here if the file is invalid upon selection
       }
     } else if (typeof watchedAvatarUrl === 'string') {
-      // This handles the case where avatarUrl is already a string (e.g., existing URL from mockUser)
-      // console.log("[ProfilePage] avatarUrl is a string, setting preview:", watchedAvatarUrl);
-      setAvatarPreview(watchedAvatarUrl); // This might be redundant if form.reset already handles it via defaultValues
-    } else if (!watchedAvatarUrl && isCreateMode) { // No file selected in create mode
-      // console.log("[ProfilePage] No avatar selected in create mode, using default placeholder.");
+      setAvatarPreview(watchedAvatarUrl); 
+    } else if (!watchedAvatarUrl && isCreateMode) { 
       setAvatarPreview(defaultAvatarPlaceholder);
-    } else if (!watchedAvatarUrl && !isCreateMode) { // No file selected in edit mode (meaning user didn't change it)
-      // console.log("[ProfilePage] No new avatar selected in edit mode, using existing or default.");
+    } else if (!watchedAvatarUrl && !isCreateMode) { 
       setAvatarPreview(userData.avatarUrl || defaultAvatarPlaceholder);
     }
   }, [watchedAvatarUrl, isCreateMode, userData.avatarUrl]);
@@ -270,11 +257,13 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     console.log("[ProfilePage] onSubmit triggered. isCreateMode:", isCreateMode, "Data:", JSON.stringify(data, null, 2));
 
-    let newUserId: string | null = null;
-    if (isCreateMode) {
-      newUserId = `user-${Date.now()}`;
-      console.log("[ProfilePage] New user ID generated for create mode:", newUserId);
+    let finalNewUserId = newUserIdState;
+    if (isCreateMode && !finalNewUserId) {
+        finalNewUserId = `user-${Date.now()}`;
+        setNewUserIdState(finalNewUserId); // Store it in state if needed elsewhere or for re-renders
+        console.log("[ProfilePage] New user ID generated for create mode:", finalNewUserId);
     }
+
 
     if (isCreateMode && data.email && bannedEmails.includes(data.email)) {
       toast({
@@ -303,7 +292,6 @@ export default function ProfilePage() {
 
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0) {
       const file = data.avatarUrl[0];
-      // Redundant check, schema should catch this, but good for safety
       if (file.size > MAX_AVATAR_SIZE_BYTES || !ACCEPTED_AVATAR_TYPES.includes(file.type)) {
         toast({
           title: 'Invalid Avatar File',
@@ -319,26 +307,24 @@ export default function ProfilePage() {
           title: 'Avatar Upload Error',
           description: 'Image storage service is not configured. Please ensure Firebase is set up correctly (check src/lib/firebase.ts and Firebase console) and check browser console for details.',
           variant: 'destructive',
-          duration: 10000 // Longer duration for important error
+          duration: 10000 
         });
         setIsSubmitting(false);
         return;
       }
       try {
-        // Determine the user ID for the storage path. For new users, use the generated newUserId.
-        const userIdForPath = isCreateMode && newUserId ? newUserId : mockUser.id || 'guest';
-        // Sanitize filename
+        const userIdForPath = isCreateMode && finalNewUserId ? finalNewUserId : mockUser.id || 'guest';
         const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g, '_');
         const avatarFileName = `avatar-${userIdForPath}-${sanitizedFileName}`;
         const avatarRef = storageRef(storage, `avatars/${userIdForPath}/${avatarFileName}`);
         
         console.log(`[ProfilePage] Attempting to upload avatar: ${file.name} to path: avatars/${userIdForPath}/${avatarFileName}`);
-        console.log(`[ProfilePage] Avatar storage ref path: ${avatarRef.fullPath}`); // Log the exact path
+        console.log(`[ProfilePage] Avatar storage ref path: ${avatarRef.fullPath}`); 
         const snapshot = await uploadBytes(avatarRef, file);
         console.log(`[ProfilePage] Avatar ${file.name} uploaded. Snapshot path: ${snapshot.ref.fullPath}`);
         finalAvatarUrl = await getDownloadURL(snapshot.ref);
         console.log(`[ProfilePage] Got download URL for avatar ${file.name}: ${finalAvatarUrl}`);
-        setAvatarPreview(finalAvatarUrl); // Update preview with the actual uploaded URL
+        setAvatarPreview(finalAvatarUrl); 
       } catch (error: any) {
         console.error("[ProfilePage] Critical error during avatar upload:", error);
         let errorMessage = 'Could not upload the avatar image. Please try another one.';
@@ -356,48 +342,40 @@ export default function ProfilePage() {
           title: 'Avatar Upload Error',
           description: `${errorMessage} Check browser console for more details. Ensure Firebase config and Storage rules are correct.`,
           variant: 'destructive',
-          duration: 10000 // Longer duration for important error
+          duration: 10000 
         });
         setIsSubmitting(false);
         return;
       }
     } else if (typeof data.avatarUrl === 'string' && data.avatarUrl.startsWith('https://placehold.co')) {
-      // If user cleared a previously uploaded image and it defaulted back to placeholder via form logic,
-      // ensure the placeholder is what's saved if they submit then.
       finalAvatarUrl = isCreateMode ? defaultAvatarPlaceholder : data.avatarUrl;
     } else if (typeof data.avatarUrl === 'string') {
-      finalAvatarUrl = data.avatarUrl; // Using an existing URL (e.g. from previous upload)
+      finalAvatarUrl = data.avatarUrl; 
     }
-    // If data.avatarUrl was undefined (e.g. in edit mode, user didn't touch the avatar field), finalAvatarUrl will retain its initial value (userData.avatarUrl or placeholder)
 
-    // Safeguard: If avatar upload was attempted but failed to get a URL, abort.
+
     if (data.avatarUrl instanceof FileList && data.avatarUrl.length > 0 && (!finalAvatarUrl || finalAvatarUrl === defaultAvatarPlaceholder)) {
         console.error("[ProfilePage] Avatar upload was attempted, but finalAvatarUrl is not a valid Firebase URL. Aborting save.");
-        // The try-catch block for uploadBytes should have already shown a specific error and returned.
-        // This is an additional check.
         setIsSubmitting(false);
         return;
     }
 
 
-    // Update mockUser with new data
-    // For create mode, assign the new ID
-    if (isCreateMode && newUserId) {
-      mockUser.id = newUserId;
-      mockUser.email = data.email!.trim(); // data.email is guaranteed by createSchema
+    if (isCreateMode && finalNewUserId) {
+      mockUser.id = finalNewUserId;
+      mockUser.email = data.email!.trim(); 
       mockUser.isAdmin = data.isAdminAccount || false;
-      // Reset/initialize fields specific to a new user
       mockUser.totalRatings = 0;
       mockUser.sumOfRatings = 0;
       mockUser.itemsListedCount = 0;
       mockUser.enhancedListingsRemaining = 0;
-      mockUser.subscriptionStatus = 'none'; // New users start with no subscription
+      mockUser.subscriptionStatus = 'none'; 
     }
 
 
     mockUser.name = data.name.trim();
-    if (data.password && !isCreateMode) mockUser.password = data.password; // Update password only if provided in edit mode
-    if (data.password && isCreateMode) mockUser.password = data.password; // Set password in create mode
+    if (data.password && !isCreateMode) mockUser.password = data.password; 
+    if (data.password && isCreateMode) mockUser.password = data.password; 
     
     mockUser.location = data.location?.trim();
     mockUser.bio = data.bio?.trim();
@@ -405,32 +383,28 @@ export default function ProfilePage() {
     mockUser.avatarUrl = finalAvatarUrl || defaultAvatarPlaceholder;
 
 
-    // Update or add to allMockUsers array
     if (isCreateMode) {
-      // Ensure no duplicate ID, though Date.now() makes it highly unlikely
       const userExists = allMockUsers.find(u => u.id === mockUser.id);
       if (!userExists) {
-        allMockUsers.push({ ...mockUser }); // Add a copy of the new user
+        allMockUsers.push({ ...mockUser }); 
         console.log("[ProfilePage] New user added to allMockUsers:", JSON.stringify(mockUser, null, 2));
       } else {
-        // This case should be rare with timestamp-based IDs
         console.warn("[ProfilePage] New user ID conflict, attempting to update existing record for ID:", mockUser.id);
         const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
-        allMockUsers[userIndex] = { ...mockUser }; // Update the conflicted record
+        allMockUsers[userIndex] = { ...mockUser }; 
       }
-    } else { // Edit mode
+    } else { 
       const userIndex = allMockUsers.findIndex(u => u.id === mockUser.id);
       if (userIndex > -1) {
-        allMockUsers[userIndex] = { ...mockUser }; // Update existing user
+        allMockUsers[userIndex] = { ...mockUser }; 
         console.log("[ProfilePage] Existing user updated in allMockUsers:", JSON.stringify(mockUser, null, 2));
       } else {
-        // If somehow editing a user not in allMockUsers (e.g. if allMockUsers was cleared), add them.
         allMockUsers.push({ ...mockUser });
         console.warn("[ProfilePage] Edited user not found in allMockUsers, adding now. ID:", mockUser.id);
       }
     }
 
-    setUserData({ ...mockUser }); // Update local state to reflect changes immediately
+    setUserData({ ...mockUser }); 
 
     if (isCreateMode) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -438,15 +412,16 @@ export default function ProfilePage() {
         title: 'Account Created!',
         description: 'Your account has been successfully created and you are now logged in.',
       });
-      router.push('/'); // Redirect to homepage
-      router.refresh(); // Force refresh to update layout/nav state
+      router.push('/'); 
+      router.refresh(); 
     } else {
       toast({
         title: 'Profile Saved!',
         description: 'Your information has been updated.',
       });
-      router.refresh(); // Force refresh to update layout/nav state
+      router.refresh(); 
     }
+    setNewUserIdState(null); // Reset for next potential creation
     setIsSubmitting(false);
   }
 
@@ -472,7 +447,6 @@ export default function ProfilePage() {
                       htmlFor="avatar-upload-input"
                       className="relative cursor-pointer group text-foreground"
                       onClick={(e) => {
-                        // Prevent default form submission if label is clicked
                         e.preventDefault();
                         fileInputRef.current?.click();
                       }}
@@ -486,7 +460,13 @@ export default function ProfilePage() {
                       </div>
                     </FormLabel>
                     <div className="mt-2 flex flex-col items-center space-y-1 text-sm text-muted-foreground">
-                       {renderStars(averageRating, userData.totalRatings)}
+                       {userData.isAdmin ? (
+                          <Badge variant="default" className="bg-blue-600 text-white hover:bg-blue-700">
+                            <ShieldCheck className="mr-1.5 h-4 w-4" /> Admin
+                          </Badge>
+                       ) : (
+                          renderStars(averageRating, userData.totalRatings)
+                       )}
                     </div>
                     <FormDescription className="text-center mt-1 text-muted-foreground">Click avatar to change image (Max {MAX_AVATAR_SIZE_MB}MB).</FormDescription>
                     <FormControl>
@@ -497,7 +477,7 @@ export default function ProfilePage() {
                         className="hidden"
                         ref={fileInputRef}
                         onChange={(e) => {
-                           field.onChange(e.target.files) // Pass the FileList to the form field
+                           field.onChange(e.target.files) 
                         }}
                         disabled={isSubmitting}
                       />
@@ -541,8 +521,8 @@ export default function ProfilePage() {
                           "bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70",
                           showBlurredFields && "filter blur-sm pointer-events-none select-none"
                         )}
-                        readOnly={(!isCreateMode && !!userData.email) || (showBlurredFields)} // Email can't be changed in edit mode
-                        disabled={(!isCreateMode && !!userData.email) || isSubmitting} // Also disabled if it's an existing email in edit mode
+                        readOnly={(!isCreateMode && !!userData.email) || (showBlurredFields)} 
+                        disabled={(!isCreateMode && !!userData.email) || isSubmitting} 
                       />
                     </FormControl>
                      {!isCreateMode && !!userData.email && <FormDescription className="text-muted-foreground">Email cannot be changed after account creation.</FormDescription>}
@@ -583,7 +563,7 @@ export default function ProfilePage() {
                 </>
               )}
 
-              {!isCreateMode && ( // Only show password change for existing users
+              {!isCreateMode && ( 
                 <>
                   <FormField
                     control={form.control}
@@ -626,7 +606,7 @@ export default function ProfilePage() {
                       <Input
                         placeholder="e.g., Your City, Postcode, or specific address"
                         {...field}
-                        value={field.value || ''} // Ensure value is controlled
+                        value={field.value || ''} 
                         className={cn(
                           "bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70",
                           showBlurredFields && "filter blur-sm pointer-events-none select-none"
@@ -653,7 +633,7 @@ export default function ProfilePage() {
                         placeholder="Tell us a little about yourself..."
                         className="resize-y min-h-[100px] bg-input-profile-background text-custom-input-text placeholder:text-custom-input-text/70"
                         {...field}
-                        value={field.value || ''} // Ensure value is controlled
+                        value={field.value || ''} 
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -719,7 +699,7 @@ export default function ProfilePage() {
                           <FormLabel className="text-foreground">Admin Key</FormLabel>
                           <FormControl>
                             <Input
-                              type="password" // Keep as password type for obscurity
+                              type="password" 
                               placeholder="Enter Admin Key"
                               {...field}
                               value={field.value || ''}
@@ -803,3 +783,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+      
