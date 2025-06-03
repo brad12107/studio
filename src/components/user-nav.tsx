@@ -48,6 +48,11 @@ export function UserNav() {
           setCurrentUserDetails(null);
         }
       }
+      // Also listen for changes to 'stayLoggedIn' if needed for immediate UI updates,
+      // though ClientSessionInitializer handles its core logic on load.
+      if (event.key === 'stayLoggedIn') {
+        // Potentially update UI or re-evaluate session if needed here
+      }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => {
@@ -57,6 +62,7 @@ export function UserNav() {
 
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('stayLoggedIn'); // Clear the stayLoggedIn flag as well
     // State will be updated by useEffect on redirection due to pathname change
     window.location.href = '/login'; // Force full reload to ensure state is cleared
   };

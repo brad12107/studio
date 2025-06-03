@@ -5,18 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
 import { useToast } from '@/hooks/use-toast';
 import { mockUser } from '@/lib/mock-data';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-// ShieldCheck icon is no longer needed as the dedicated admin login button is removed.
 
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [stayLoggedIn, setStayLoggedIn] = useState(false); // State for the checkbox
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -26,6 +27,11 @@ export function LoginForm() {
 
     if (mockUser.email && email === mockUser.email && mockUser.password && password === mockUser.password) {
       localStorage.setItem('isLoggedIn', 'true');
+      if (stayLoggedIn) {
+        localStorage.setItem('stayLoggedIn', 'true');
+      } else {
+        localStorage.removeItem('stayLoggedIn');
+      }
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',
@@ -52,7 +58,7 @@ export function LoginForm() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -65,7 +71,7 @@ export function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -77,13 +83,26 @@ export function LoginForm() {
                 className="bg-white text-black"
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="stayLoggedIn"
+                checked={stayLoggedIn}
+                onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
+                disabled={isLoading}
+              />
+              <Label
+                htmlFor="stayLoggedIn"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-foreground"
+              >
+                Stay logged in
+              </Label>
+            </div>
             <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isLoading} size="default">
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col items-center gap-4 pt-6">
-          {/* Removed Admin Login Area button */}
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Button variant="link" asChild className="p-0 h-auto text-accent">
