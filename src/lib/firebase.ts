@@ -6,13 +6,14 @@ import { getStorage } from 'firebase/storage';
 // You can find this in your Firebase project settings:
 // Project Overview > Project settings (gear icon) > General tab > Your apps > Web app > SDK setup and configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // Replace this
-  authDomain: "YOUR_AUTH_DOMAIN", // Replace this
-  projectId: "YOUR_PROJECT_ID", // Replace this
-  storageBucket: "YOUR_STORAGE_BUCKET", // Replace this (e.g., "your-project-id.appspot.com")
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Replace this
-  appId: "YOUR_APP_ID" // Replace this
+  apiKey: "AIzaSyAQ2ty73IaqcHs0nIaQb5Djglu3soBqR-U",
+  authDomain: "community-market-rgnru.firebaseapp.com",
+  projectId: "community-market-rgnru",
+  storageBucket: "community-market-rgnru.firebasestorage.app",
+  messagingSenderId: "27779111166",
+  appId: "1:27779111166:web:6d62ec425ca90279da2daf"
 };
+
 
 // Function to check if the config seems to be using placeholders
 function isConfigLikelyPlaceholder(config: typeof firebaseConfig): boolean {
