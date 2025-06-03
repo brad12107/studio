@@ -17,13 +17,15 @@ const firebaseConfig = {
 // Function to check if the config seems to be using placeholders
 function isConfigLikelyPlaceholder(config: typeof firebaseConfig): boolean {
   return (
-    config.apiKey === "YOUR_API_KEY" ||
-    config.authDomain === "YOUR_AUTH_DOMAIN" ||
-    config.projectId === "YOUR_PROJECT_ID" ||
-    config.storageBucket === "YOUR_STORAGE_BUCKET" ||
-    config.messagingSenderId === "YOUR_MESSAGING_SENDER_ID" ||
-    config.appId === "YOUR_APP_ID"
-  );
+  // Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAQ2ty73IaqcHs0nIaQb5Djglu3soBqR-U",
+  authDomain: "community-market-rgnru.firebaseapp.com",
+  projectId: "community-market-rgnru",
+  storageBucket: "community-market-rgnru.firebasestorage.app",
+  messagingSenderId: "27779111166",
+  appId: "1:27779111166:web:6d62ec425ca90279da2daf"
+};
 }
 
 // Initialize Firebase
