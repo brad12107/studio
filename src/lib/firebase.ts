@@ -44,17 +44,19 @@ if (!getApps().length) {
       app = initializeApp(firebaseConfig);
     } catch (e) {
       console.error("Error initializing Firebase app. Ensure firebaseConfig is correct.", e);
+      // app will remain undefined, and storage initialization will be skipped.
     }
   } else {
     // Do not initialize app if config is placeholder, to avoid potential errors with invalid config
     console.error("Firebase app initialization skipped due to placeholder configuration values.");
+    // app will remain undefined, and storage initialization will be skipped.
   }
 } else {
   app = getApp();
 }
 
 // Get a reference to the storage service, which is used to create references in your storage bucket
-// This will only work if you have properly configured firebaseConfig above.
+// This will only work if you have properly configured firebaseConfig above and app was initialized.
 if (app && !isConfigLikelyPlaceholder(firebaseConfig)) {
   try {
     storage = getStorage(app);
