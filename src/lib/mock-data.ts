@@ -1,370 +1,291 @@
 
 import type { Item, User, Message, Conversation } from './types';
 
-export const mockUser: User = {
+export let mockUser: User = {
   id: 'user123',
-  name: '',
-  email: '',
-  password: '',
-  location: 'Barrow Market Hall, Duke Street',
-  bio: 'Lover of vintage items and good deals. Avid collector of rare books and quirky antiques. Always on the lookout for the next great find!',
+  name: 'Current User',
+  email: 'user@example.com',
+  password: 'password123',
+  location: 'Barrow-in-Furness, UK',
+  bio: 'Loves finding great deals and selling unique items. Avid collector of vintage electronics.',
   isProfilePrivate: false,
-  subscriptionStatus: 'none',
-  itemsListedCount: 0,
-  avatarUrl: 'https://placehold.co/100x100.png',
-  enhancedListingsRemaining: 0,
-  totalRatings: 0,
-  sumOfRatings: 0,
+  subscriptionStatus: 'premium_plus',
+  itemsListedCount: 2,
+  avatarUrl: 'https://placehold.co/100x100.png?text=CU',
+  enhancedListingsRemaining: 3,
+  totalRatings: 15,
+  sumOfRatings: 65, // (e.g., 5x5 stars, 5x4 stars, 5x3 stars = 25+20+15 = 60. Let's make it average 4.33)
   isAdmin: false,
 };
 
-export let allMockUsers: User[] = [{ ...mockUser }];
-export let bannedEmails: string[] = [];
-
-const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
-const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
 export let mockItems: Item[] = [
   {
-    id: '1',
+    id: 'item1',
     name: 'Vintage Leather Jacket',
-    description: 'A stylish vintage leather jacket, in excellent condition. Size M.',
-    price: 120,
+    description: 'A cool vintage leather jacket, size L. Worn but in good condition. Perfect for a retro look. Has a few scuffs but adds to the character.',
+    price: 45.00,
     type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'John Seller',
-    sellerEmail: 'john.seller@example.com',
+    imageUrl: ['https://placehold.co/600x400.png?text=Jacket1', 'https://placehold.co/600x400.png?text=Jacket2'],
+    sellerName: 'Seller One',
+    sellerEmail: 'seller1@example.com',
     category: 'Apparel',
     condition: 'good',
     isEnhanced: true,
     canDeliver: true,
   },
   {
-    id: '2',
-    name: 'Antique Wooden Chair',
-    description: 'Beautifully carved antique wooden chair. A true collector\'s item. Auction ends soon!',
-    price: 85,
-    type: 'auction',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Alice Collector',
-    sellerEmail: 'alice.collector@example.com',
-    category: 'Furniture',
-    condition: 'good',
-    isEnhanced: false,
-    auctionEndTime: oneHourFromNow,
-    currentBid: 95,
-    bidHistory: [
-      { userId: 'user456', userName: 'Bidder Bob', amount: 90, timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
-      { userId: 'user789', userName: 'Auction Alex', amount: 95, timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
-    ],
+    id: 'item2',
+    name: 'Acoustic Guitar - Yamaha F310',
+    description: 'Yamaha F310 acoustic guitar. Great for beginners. Includes a soft case and a few picks. Minor scratch on the back.',
+    price: 80.00,
+    type: 'sale',
+    imageUrl: ['https://placehold.co/600x400.png?text=Guitar1'],
+    sellerName: 'Music Lover',
+    sellerEmail: 'musiclover@example.com',
+    category: 'Music & Instruments',
+    condition: 'like_new',
     canDeliver: false,
   },
   {
-    id: '3',
-    name: 'Handmade Ceramic Vase',
-    description: 'Unique handmade ceramic vase, perfect for home decor.',
-    price: 50,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Crafty Carol',
-    sellerEmail: 'crafty.carol@example.com',
-    category: 'Home Decor',
-    condition: 'new',
-    isEnhanced: false,
+    id: 'item3',
+    name: 'Antique Pocket Watch (Auction)',
+    description: 'A beautiful antique silver pocket watch. Mechanism needs repair. Sold as seen. Auction starts at £20.',
+    price: 20.00, // Starting price for auction
+    type: 'auction',
+    imageUrl: ['https://placehold.co/600x400.png?text=Watch1', 'https://placehold.co/600x400.png?text=Watch2', 'https://placehold.co/600x400.png?text=Watch3'],
+    sellerName: 'Collector X',
+    sellerEmail: 'collectorx@example.com',
+    category: 'Jewellery & Accessories',
+    condition: 'not_working',
+    auctionEndTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
+    currentBid: 25.50,
+    bidHistory: [
+      { userId: 'bidder123', userName: 'Enthusiast Bidder', amount: 25.50, timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+      { userId: 'user123', userName: 'Current User', amount: 22.00, timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    ],
     canDeliver: true,
   },
   {
-    id: '4',
-    name: 'Retro Gaming Console',
-    description: 'Classic retro gaming console with 2 controllers and 10 games.',
-    price: 150,
+    id: 'item4',
+    name: 'Set of Classic Novels',
+    description: 'Includes titles like Moby Dick, Pride and Prejudice, and War and Peace. Hardcover editions. Excellent condition.',
+    price: 15.00,
     type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Gamer Tom',
-    sellerEmail: 'gamer.tom@example.com',
-    category: 'Electronics',
-    condition: 'like_new',
-    isEnhanced: false,
-    canDeliver: false,
-  },
-  {
-    id: '5',
-    name: 'Mountain Bike - Auction',
-    description: 'Used mountain bike, good condition, recently serviced. Size L. Auction running for a few days.',
-    price: 200,
-    type: 'auction',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Outdoor Dave',
-    sellerEmail: 'outdoor.dave@example.com',
-    category: 'Sports',
-    condition: 'good',
-    isEnhanced: true,
-    auctionEndTime: threeDaysFromNow,
-    currentBid: 220,
-    bidHistory: [
-       { userId: 'user101', userName: 'Cyclist Chris', amount: 220, timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString() },
-    ],
-    canDeliver: false,
-  },
-  {
-    id: '6',
-    name: 'Signed First Edition Book',
-    description: 'A rare signed first edition of a popular novel. Includes certificate of authenticity.',
-    price: 300,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Bookworm Beth',
-    sellerEmail: 'bookworm.beth@example.com',
+    imageUrl: ['https://placehold.co/600x400.png?text=Books1'],
+    sellerName: 'Current User',
+    sellerEmail: 'user@example.com',
     category: 'Books',
     condition: 'like_new',
     isEnhanced: false,
-    canDeliver: true,
-  },
-  {
-    id: '7',
-    name: 'Reliable Town Car',
-    description: 'A well-maintained 2015 hatchback, perfect for city driving. Low mileage.',
-    price: 4500,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Driver Dan',
-    sellerEmail: 'driver.dan@example.com',
-    category: 'Vehicles',
-    condition: 'good',
-    isEnhanced: false,
     canDeliver: false,
   },
   {
-    id: '8',
-    name: 'Classic Motorbike Project - Ended Auction',
-    description: 'Vintage motorbike, needs some TLC. Great project for an enthusiast. Sold as seen.',
-    price: 1200,
+    id: 'item5',
+    name: 'Modern Art Print - Framed',
+    description: 'Large framed modern art print. Abstract design. Measures 80cm x 60cm. Perfect for a statement wall.',
+    price: 30.00,
+    type: 'sale',
+    imageUrl: ['https://placehold.co/600x400.png?text=Art1'],
+    sellerName: 'ArtFan',
+    sellerEmail: 'artfan@example.com',
+    category: 'Home Decor',
+    condition: 'new',
+    canDeliver: true,
+  },
+  {
+    id: 'item6',
+    name: 'Nintendo Switch Console (Auction)',
+    description: 'Used Nintendo Switch console with dock, joy-cons, and charger. Works perfectly. Some light scratches on screen protector (not screen itself).',
+    price: 120.00, // Starting price
     type: 'auction',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Mechanic Mike',
-    sellerEmail: 'mechanic.mike@example.com',
-    category: 'Vehicles',
-    condition: 'not_working',
-    isEnhanced: false,
-    auctionEndTime: oneDayAgo,
-    currentBid: 1350,
+    imageUrl: ['https://placehold.co/600x400.png?text=Switch1', 'https://placehold.co/600x400.png?text=Switch2'],
+    sellerName: 'Gamer Pro',
+    sellerEmail: 'gamerpro@example.com',
+    category: 'Electronics',
+    condition: 'good',
+    auctionEndTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+    currentBid: 135.00,
     bidHistory: [
-      { userId: 'user202', userName: 'BikeLover', amount: 1300, timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-      { userId: 'user303', userName: 'FixItFelix', amount: 1350, timestamp: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString() },
+        { userId: 'bidderX', userName: 'PlayerOne', amount: 135.00, timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+        { userId: 'bidderY', userName: 'JoyConFan', amount: 130.00, timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString() }
     ],
-    canDeliver: false,
-  },
-  {
-    id: '9',
-    name: 'Electric Scooter - Nearly New',
-    description: 'Foldable electric scooter, used only a few times. Comes with charger and helmet.',
-    price: 350,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Eco Eva',
-    sellerEmail: 'eco.eva@example.com',
-    category: 'Vehicles',
-    condition: 'like_new',
-    isEnhanced: false,
     canDeliver: true,
   },
   {
-    id: '10',
-    name: 'Gardening Tool Set',
-    description: 'Complete set of essential gardening tools. Barely used.',
-    price: 45,
+    id: 'item7',
+    name: 'Garden Furniture Set',
+    description: 'Rattan effect garden sofa, two chairs and a coffee table. Weather resistant. Cushions included. Good condition, stored in shed over winter.',
+    price: 150.00,
     type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Green Thumb George',
-    sellerEmail: 'george.green@example.com',
+    imageUrl: ['https://placehold.co/600x400.png?text=GardenSet1'],
+    sellerName: 'Current User',
+    sellerEmail: 'user@example.com',
     category: 'Garden & Outdoors',
-    condition: 'like_new',
-    isEnhanced: false,
-    canDeliver: false,
-  },
-  {
-    id: '11',
-    name: 'Acoustic Guitar',
-    description: 'Full-size acoustic guitar, great for beginners. Includes soft case.',
-    price: 75,
-    type: 'auction',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Musician Mia',
-    sellerEmail: 'mia.music@example.com',
-    category: 'Music & Instruments',
     condition: 'good',
-    isEnhanced: false,
-    auctionEndTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    canDeliver: true,
-  },
-  {
-    id: '12',
-    name: 'Silver Pendant Necklace',
-    description: 'Elegant silver pendant necklace with a unique design. Gift box included.',
-    price: 60,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Jeweler Jess',
-    sellerEmail: 'jess.jewels@example.com',
-    category: 'Jewellery & Accessories',
-    condition: 'new',
-    isEnhanced: false,
-    canDeliver: true,
-  },
-  {
-    id: '13',
-    name: 'Board Game Collection',
-    description: 'Collection of 5 popular board games. Excellent condition.',
-    price: 50,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Gamer Tom',
-    sellerEmail: 'gamer.tom@example.com',
-    category: 'Toys & Games',
-    condition: 'like_new',
-    isEnhanced: false,
+    isEnhanced: true,
     canDeliver: false,
   },
-  {
-    id: '14',
-    name: 'Oil Painting Set',
-    description: 'Beginner oil painting set with various colors, brushes, and canvases.',
-    price: 35,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Artist Andy',
-    sellerEmail: 'andy.artist@example.com',
-    category: 'Art & Crafts',
-    condition: 'new',
-    isEnhanced: false,
-    canDeliver: true,
-  },
-   {
-    id: '15',
-    name: 'Organic Skincare Set',
-    description: 'Set of organic skincare products, including cleanser, toner, and moisturizer. Unopened.',
-    price: 40,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Healthy Hannah',
-    sellerEmail: 'hannah.health@example.com',
-    category: 'Health & Beauty',
-    condition: 'new',
-    isEnhanced: true,
-    canDeliver: true,
-  },
-  {
-    id: '16',
-    name: 'Dog Bed - Large',
-    description: 'Comfortable and durable large dog bed. Washable cover.',
-    price: 30,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Pet Lover Pete',
-    sellerEmail: 'pete.pets@example.com',
-    category: 'Pet Supplies',
-    condition: 'good',
-    isEnhanced: false,
-    canDeliver: false,
-  },
-  {
-    id: '17',
-    name: 'Modern 2-Bed Apartment for Rent',
-    description: 'Spacious 2-bedroom apartment in the city center. Fully furnished, available immediately. £1200/month.',
-    price: 1200,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Landlord Larry',
-    sellerEmail: 'larry.landlord@example.com',
-    category: 'Property for Rent',
-    isEnhanced: true,
-    canDeliver: false, // Typically not applicable
-  },
-  {
-    id: '18',
-    name: 'Charming 3-Bed House for Sale',
-    description: 'Beautiful 3-bedroom detached house with a large garden. Quiet neighborhood. Offers over £250,000.',
-    price: 250000,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Realty Rosie',
-    sellerEmail: 'rosie.realty@example.com',
-    category: 'Property for Sale',
-    isEnhanced: false,
-    canDeliver: false, // Typically not applicable
-  },
-  {
-    id: '19',
-    name: 'Studio Flat to Let',
-    description: 'Compact studio flat, ideal for a single professional. Close to transport links. £800/month.',
-    price: 800,
-    type: 'sale',
-    imageUrl: ['https://placehold.co/600x400.png'],
-    sellerName: 'Landlord Larry',
-    sellerEmail: 'larry.landlord@example.com',
-    category: 'Property for Rent',
-    isEnhanced: false,
-    canDeliver: false, // Typically not applicable
-  }
 ];
 
-export const mockMessages: Message[] = [
-  { id: 'msg1', fromUserId: mockUser.id, toUserId: 'sellerA', itemId: '1', content: 'Hi, is this jacket still available?', timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), isRead: false },
-  { id: 'msg2', fromUserId: 'sellerA', toUserId: mockUser.id, itemId: '1', content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(), isRead: false },
-  { id: 'msg3', fromUserId: 'user456', toUserId: mockUser.id, itemId: '3', content: 'I love your vase! Can you do $40?', timestamp: new Date(Date.now() - 3600000 * 5).toISOString(), isRead: true },
-  { id: 'msg4', fromUserId: mockUser.id, toUserId: 'user456', itemId: '3', content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString(), isRead: true },
-];
-
-
-export const mockConversations: Conversation[] = [
+export let mockConversations: Conversation[] = [
   {
     id: 'conv1',
-    itemId: '1',
+    itemId: 'item1',
     itemName: 'Vintage Leather Jacket',
-    itemImageUrl: (mockItems.find(item => item.id === '1')?.imageUrl[0] || 'https://placehold.co/100x100.png'),
+    itemImageUrl: 'https://placehold.co/100x100.png?text=Jacket',
     participants: [
-      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
-      { id: 'sellerA', name: 'John Seller', avatarUrl: 'https://placehold.co/50x50.png?text=JS' },
+      { id: 'user123', name: 'Current User', avatarUrl: mockUser.avatarUrl },
+      { id: 'sellerUser1', name: 'Seller One', avatarUrl: 'https://placehold.co/100x100.png?text=S1' },
     ],
-    lastMessage: { content: 'Yes, it is!', timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString() },
+    lastMessage: { content: 'Is this still available?', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
     unreadCount: 1,
     buyRequestStatus: 'none',
-    isItemSoldOrUnavailable: false,
   },
   {
     id: 'conv2',
-    itemId: '3',
-    itemName: 'Handmade Ceramic Vase',
-    itemImageUrl: (mockItems.find(item => item.id === '3')?.imageUrl[0] || 'https://placehold.co/100x100.png'),
+    itemId: 'item2',
+    itemName: 'Acoustic Guitar - Yamaha F310',
+    itemImageUrl: 'https://placehold.co/100x100.png?text=Guitar',
     participants: [
-      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
-      { id: 'user456', name: 'Crafty Carol', avatarUrl: 'https://placehold.co/50x50.png?text=CC' },
+      { id: 'user123', name: 'Current User', avatarUrl: mockUser.avatarUrl },
+      { id: 'sellerUser2', name: 'Music Lover', avatarUrl: 'https://placehold.co/100x100.png?text=ML' },
     ],
-    lastMessage: { content: 'Sorry, price is firm.', timestamp: new Date(Date.now() - 3600000 * 4).toISOString() },
+    lastMessage: { content: 'Great, I will take it!', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
     unreadCount: 0,
-    buyRequestStatus: 'none',
-    isItemSoldOrUnavailable: false,
+    buyRequestStatus: 'accepted',
+    itemPriceAtRequest: 80.00,
+    isItemSoldOrUnavailable: true,
   },
   {
-    id: 'conv-item4-seller-GamerTom',
-    itemId: '4',
-    itemName: 'Retro Gaming Console',
-    itemImageUrl: (mockItems.find(item => item.id === '4')?.imageUrl[0] || 'https://placehold.co/100x100.png'),
+    id: 'conv-reports-user123', // For admin reports
+    itemId: 'system-reports',
+    itemName: 'Item Reports',
+    itemImageUrl: 'https://placehold.co/100x100.png?text=RPT',
     participants: [
-      { id: mockUser.id, name: mockUser.name, avatarUrl: mockUser.avatarUrl },
-      { id: 'seller-GamerTom', name: 'Gamer Tom', avatarUrl: 'https://placehold.co/50x50.png?text=GT' }
+        { id: 'user123', name: 'Current User', avatarUrl: mockUser.avatarUrl }, // Assuming current user can be admin
+        { id: 'system-reporter', name: 'System Reporter', avatarUrl: 'https://placehold.co/100x100.png?text=SYS' }
     ],
-    lastMessage: { content: 'Interested in the console.', timestamp: new Date().toISOString() },
-    unreadCount: 0,
-    buyRequestStatus: 'none',
-    isItemSoldOrUnavailable: false,
+    lastMessage: { content: 'New report for "Suspicious Item".', timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+    unreadCount: 1,
+    buyRequestStatus: 'none'
   }
 ];
 
-export const removeItemFromMockItems = (itemId: string) => {
-  const itemIndex = mockItems.findIndex(item => item.id === itemId);
-  if (itemIndex > -1) {
-    mockItems.splice(itemIndex, 1);
+export let mockMessages: Message[] = [
+  {
+    id: 'msg1',
+    fromUserId: 'user123',
+    toUserId: 'sellerUser1',
+    itemId: 'item1',
+    content: 'Is this still available?',
+    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+    isRead: false,
+  },
+  {
+    id: 'msg2',
+    fromUserId: 'sellerUser1',
+    toUserId: 'user123',
+    itemId: 'item1',
+    content: 'Yes, it is!',
+    timestamp: new Date(Date.now() - 58 * 60 * 1000).toISOString(),
+    isRead: true,
+  },
+  {
+    id: 'msg3',
+    fromUserId: 'user123',
+    toUserId: 'sellerUser2',
+    itemId: 'item2',
+    content: 'I would like to buy the guitar.',
+    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 - 10*60*1000).toISOString(),
+    isRead: true,
+  },
+  {
+    id: 'msg4',
+    fromUserId: 'sellerUser2',
+    toUserId: 'user123',
+    itemId: 'item2',
+    content: 'Sure, let\'s arrange collection.',
+    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 - 5*60*1000).toISOString(),
+    isRead: true,
+  },
+  {
+    id: 'msg5',
+    fromUserId: 'user123',
+    toUserId: 'sellerUser2',
+    itemId: 'item2',
+    content: 'Great, I will take it!',
+    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    isRead: true,
+  },
+  {
+    id: 'msg-system-report-1',
+    fromUserId: 'system-reporter',
+    toUserId: 'user123', // Assuming user123 is an admin for this context
+    itemId: 'itemX', // A reported item ID (can be a dummy one or a real one from mockItems)
+    content: 'Item Reported: "Suspicious Item" (ID: itemX). Sold by: NaughtySeller. Reason: This item seems too good to be true, price is very low.',
+    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    isRead: false,
+    isSystemMessage: true,
   }
+];
+
+export let bannedEmails: string[] = ['scammer@example.com'];
+
+// Ensure allMockUsers contains mockUser and any other distinct users from mockItems/mockConversations
+const otherUser1: User = {
+    id: 'sellerUser1', name: 'Seller One', email: 'seller1@example.com', password: 'password',
+    subscriptionStatus: 'none', itemsListedCount: 1, totalRatings: 5, sumOfRatings: 22,
+    avatarUrl: 'https://placehold.co/100x100.png?text=S1'
 };
+const otherUser2: User = {
+    id: 'sellerUser2', name: 'Music Lover', email: 'musiclover@example.com', password: 'password',
+    subscriptionStatus: 'subscribed', itemsListedCount: 1, totalRatings: 10, sumOfRatings: 48,
+    avatarUrl: 'https://placehold.co/100x100.png?text=ML'
+};
+const otherUser3: User = {
+    id: 'collectorX', name: 'Collector X', email: 'collectorx@example.com', password: 'password',
+    subscriptionStatus: 'none', itemsListedCount: 1, totalRatings: 2, sumOfRatings: 7,
+    avatarUrl: 'https://placehold.co/100x100.png?text=CX'
+};
+const otherUser4: User = {
+    id: 'artfan', name: 'ArtFan', email: 'artfan@example.com', password: 'password',
+    subscriptionStatus: 'none', itemsListedCount: 1, totalRatings: 0, sumOfRatings: 0,
+    avatarUrl: 'https://placehold.co/100x100.png?text=AF'
+};
+const otherUser5: User = {
+    id: 'gamerpro', name: 'Gamer Pro', email: 'gamerpro@example.com', password: 'password',
+    subscriptionStatus: 'free_trial', itemsListedCount: 1, totalRatings: 3, sumOfRatings: 15,
+    avatarUrl: 'https://placehold.co/100x100.png?text=GP'
+};
+
+
+export let allMockUsers: User[] = [
+    {...mockUser}, // Add a copy of the main mockUser
+    otherUser1,
+    otherUser2,
+    otherUser3,
+    otherUser4,
+    otherUser5
+];
+
+
+export function removeItemFromMockItems(itemId: string): void {
+  const index = mockItems.findIndex(item => item.id === itemId);
+  if (index > -1) {
+    mockItems.splice(index, 1);
+    console.log(`Item ${itemId} removed from mockItems.`);
+  }
+}
+
+// Function to find a user by name, case-insensitive, and update mockUser
+// This is a helper for realistic login simulation if needed, but primary login uses mockUser.email
+export function setCurrentUserByName(name: string): boolean {
+  const foundUser = allMockUsers.find(u => u.name.toLowerCase() === name.toLowerCase());
+  if (foundUser) {
+    mockUser = {...foundUser}; // Update the global mockUser
+    return true;
+  }
+  return false;
+}
+
+    
